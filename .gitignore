@@ -1,0 +1,43 @@
+# Python environments and generated caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Node dependencies, generated builds, and test output
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+
+# Local environment and credential files; sanitized examples may be tracked
+.env
+.env.*
+!.env.example
+!.env.*.example
+.secrets/
+kubeconfig
+kubeconfig.local
+*.key
+*.pem
+values-secrets.yaml
+values-secrets.yml
+
+# Local logs and editor/OS temporary files
+*.log
+*.swp
+*.swo
+~$*.docx
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep source documents, dependency lockfiles, Secret templates, and safe
+# local/production Helm values trackable. Never place real secrets in them.
