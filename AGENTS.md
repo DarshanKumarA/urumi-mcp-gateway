@@ -16,7 +16,7 @@ Follow this sequence: **understand → plan → identify files → implement sma
 4. Implement one small, reviewable change. Do not generate the whole project at once or add optional technologies/features without agreement on the requirement they solve.
 5. Show and review the complete Git diff, including new files, and explain each changed file. Preserve unrelated user changes and the original assignment document.
 6. Run relevant tests or validation and report commands, results, failures, and limits honestly. Documentation is not evidence that a system requirement has been implemented or verified.
-7. Update the relevant requirements, decision records, progress notes, and security analysis. Keep proposals separate from accepted choices and implemented behavior.
+7. Update the relevant requirements, decision records, progress notes, and security analysis. After each meaningful step, check whether [docs/project-journey.md](docs/project-journey.md) needs an entry or update. Progress describes current status; decisions explain individual choices; the journey preserves the chronological engineering story, reasoning, validation, learning, and commit references for an interview walkthrough. Keep it concise, not a command log. Keep proposals separate from accepted choices and implemented behavior.
 8. Stop at major milestone boundaries for the user to verify understanding before continuing. Do not commit, publish, or submit unless authorized.
 
 ## Security and scope rules
@@ -29,4 +29,4 @@ Follow this sequence: **understand → plan → identify files → implement sma
 
 ## Current milestone boundary
 
-This milestone creates only AGENTS.md, .gitignore, README.md, docs/assignment.md, docs/requirements.md, docs/architecture.md, docs/decisions.md, docs/progress.md, and docs/threat-model.md. The source DOCX already exists and must remain unchanged. No application directories, manifests, charts, dependency files, Dockerfiles, frontend/backend code, databases, or other implementation scaffolding are authorized at this milestone. Stop after documentation review; update this boundary only when the user authorizes the next milestone.
+Stage 0 governance was approved and committed as 51f27b2 on main. Architecture v1 decisions A1–A13 have been reviewed and approved; the current milestone records them in documentation and adds docs/project-journey.md. Preserve the source DOCX and faithful assignment transcription. No application directories, manifests, charts, dependency files, Dockerfiles, frontend/backend code, ORM models, databases, or other implementation scaffolding are authorized. Prototype and implementation validation described in the architecture are future work, not permission to start. Do not commit this documentation update. Stop for review; update this boundary only when the user authorizes the next milestone.

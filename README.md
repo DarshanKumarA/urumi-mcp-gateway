@@ -2,7 +2,7 @@
 
 This repository is for the Urumi AI FDE internship assignment: run a WooCommerce store on Kubernetes, write its MCP server, aggregate at least three upstream MCP servers through a team gateway, and provide a React dashboard with a chat agent that uses the gateway as the logged-in user.
 
-**Current state:** governance documentation drafted for review. No application, deployment, or runnable setup exists. No runtime requirement or live demo has been implemented or verified.
+**Current state:** Stage 0 governance is approved and committed as 51f27b2 on main. Architecture v1 is approved; its documentation update and the project journey await review. No application, deployment, or runnable setup exists. No runtime requirement or live demo has been implemented or verified.
 
 ## Source of truth and project documents
 
@@ -13,16 +13,19 @@ The [original assignment DOCX](docs/source/urumi-mcp-gateway-assignment.docx) is
 | [AGENTS.md](AGENTS.md) | Required learning, planning, change, review, and validation process |
 | [.gitignore](.gitignore) | Exclude generated output and recognizable local secret files |
 | [docs/requirements.md](docs/requirements.md) | Stable requirement IDs, verification plans, demo mapping, and optional scope |
-| [docs/architecture.md](docs/architecture.md) | Assignment constraints, proposed design, and open decisions |
-| [docs/decisions.md](docs/decisions.md) | Accepted governance choices and proposed engineering choices with rationale |
+| [docs/architecture.md](docs/architecture.md) | Assignment constraints, approved Architecture v1, and open implementation details |
+| [docs/decisions.md](docs/decisions.md) | Individual decisions, alternatives, rationale, and explicitly superseded proposals |
 | [docs/progress.md](docs/progress.md) | Milestone status, validation evidence, and review boundary |
+| [docs/project-journey.md](docs/project-journey.md) | Chronological engineering story and learning for an interview walkthrough |
 | [docs/threat-model.md](docs/threat-model.md) | Required threat analysis, required controls, and separate optional hardening |
 
-## Proposed technology baseline
+## Technology decisions and proposals
 
 React is required for the dashboard. The assignment also mandates WordPress with WooCommerce, Kubernetes, Helm (not Kustomize), Streamable HTTP for the custom WooCommerce MCP server and supported upstreams, and Kubernetes Secrets.
 
-Vite, Python, FastAPI, the official Python MCP SDK, Python for the upstream servers, PostgreSQL for gateway/control-plane state, MariaDB for the store, Docker, Minikube with the Docker driver, and k3s for the production-like target remain **proposed**. Specific versions, packages, and deployment layouts are not selected. The model/provider is also undecided. See the [architecture](docs/architecture.md) for choices and alternatives.
+Architecture v1 accepts one Python/FastAPI backend, the official Python MCP SDK, PostgreSQL for gateway state, MariaDB for the store, one application namespace, and one application Helm chart/release. The additional upstreams are arithmetic and store policy/reference servers with no external service dependencies. These are implementation choices, not technologies mandated by the assignment.
+
+Vite, Docker, Minikube with the Docker driver, and k3s remain **proposed** selections from the original baseline. The model/provider, exact versions, SDK connection lifecycle, runtime Secret management, and store/chart packaging remain open. Verify SDK/protocol compatibility at implementation time and pin exact package versions; moving defaults are not permanent contracts. See the [architecture](docs/architecture.md) for approved boundaries and remaining decisions.
 
 The mandatory core uses one store. Multi-store provisioning and other stand-out work are optional and have not been selected. VPS deployability using the same Helm charts and configuration changes is mandatory; actually demonstrating a VPS deployment is listed as stand-out work.
 

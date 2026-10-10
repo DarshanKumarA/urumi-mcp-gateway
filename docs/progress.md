@@ -2,41 +2,50 @@
 
 ## Current milestone
 
-**2026-10-10 — Governance documentation drafted; awaiting user review.** This date uses the user's Asia/Calcutta calendar. No application implementation is authorized at this boundary, and no commit has been made.
+**2026-10-10 — Architecture v1 approved; documentation recording step awaiting review.** Dates use the user's Asia/Calcutta calendar.
 
-The user approved the initial governance structure, then added the authoritative source DOCX, faithful assignment transcription, requirement/demo matrices, and explicit mandatory/optional/proposed distinctions. The completed authoring step is limited to the nine approved governance files. Document authoring is not implementation or verification of the assignment's runtime requirements.
+Stage 0 governance was reviewed and committed as **51f27b2 — docs: establish project governance and assignment baseline** after renaming master to main. The working tree was clean at the start of this update. The current change is documentation only and must not be committed yet.
 
-## Work performed
+A1–A13 are accepted design choices, recorded as DEC-004 through DEC-016. No application, prototype, schema, dependency files, Kubernetes manifests, Helm chart, or deployment exists. No runtime requirement is implemented or verified and every live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
-- Inspected the repository: branch master, no commits or tracked files at the start of this milestone; the user-supplied docs/source/urumi-mcp-gateway-assignment.docx was already present and untracked.
-- Read the complete DOCX body and list metadata. The source contains no tables, drawings, text boxes, hidden runs, tracked insertions/deletions, comments, headers/footers, or footnotes/endnotes requiring a separate content extraction path.
-- Created assignment.md as a faithful transcription with a source checksum and clearly separated editorial provenance.
-- Created stable requirement tracking, all eleven definition-of-done demo checks, all six mandatory video coverage groups, and a separate optional-work register.
-- Drafted the working agreement, ignore rules, README, architecture proposal, decision register, and threat model. Only governance/source-priority choices are accepted; technical choices remain proposed or open unless mandated by the assignment.
+## Current documentation change
+
+- Record approved architecture, interfaces, credential boundaries, persistence inventory, namespace/chart boundaries, additional upstreams, and reviewed interpretations; leave implementation details explicitly open.
+- Add the project journey with Stage 0 and the completed Stage 1 design review; distinguish approval of the design from pending review of its documentation.
+- Update AGENTS.md to check the journey after meaningful steps and retain the documentation-only/no-commit boundary.
+- Align README, requirements/demo plans, and threat-model wording with the accepted design without changing source requirements, promoting optional work, or claiming runtime evidence.
+- Preserve .gitignore, assignment.md, and the original source DOCX unchanged.
 
 ## Validation and review record
 
-The documentation checks below passed on 2026-10-10. They used inline Python with the bundled runtime, OOXML extraction, and read-only Git commands; no test scripts or other implementation files were added.
+Stage 0's completed checks included exact transcription of 169 nonempty paragraphs, 119 list entries, and 29 heading depths; 40 local links/anchors; ignore-rule checks; whitespace/formatting; and complete governance diff review. The source checksum was preserved. See the [journey](project-journey.md#stage-0--from-an-empty-repository-to-a-governed-assignment-baseline) for that checkpoint rather than treating those historical counts as current validation.
+
+Current documentation checks passed on 2026-10-10 using inline Python and read-only Git commands; no validation scripts or scaffolding were added.
 
 | Check | Result |
 | --- | --- |
-| Source fidelity | All 169 nonempty source paragraphs match the Markdown transcription exactly in order; 119 list entries preserve type/numbering/nesting and 29 original headings preserve depth |
-| Source preservation | SHA-256 unchanged: e9f7e797d72c331ab508d75135490644c99b9bf2c172f36225ad861926d02f92 |
-| Allowed file scope | Exactly the nine approved governance files plus the pre-existing source DOCX, excluding Git internals |
-| Links and formatting | All 40 local links/anchors resolve; Markdown table column counts, UTF-8 text, LF endings, and final newlines checked |
-| Tracking consistency | 44 requirement rows, 11 live demo rows, 6 video coverage groups, 10 optional items, and 7 open interpretations; IDs/references consistent; no implemented/verified status |
-| Ignore rules | git check-ignore checked 12 generated/local-secret examples are ignored and 9 source/example/template/values/lockfile examples remain trackable; no sample files created |
-| Whitespace | git diff --no-index --check against NUL for each new file reports no whitespace diagnostics |
-| Diff review | Full new-file diffs reviewed using git diff --no-index against NUL; ordinary git diff is empty because all files are untracked. The source DOCX was preserved, not authored in this change |
+| Local documentation links | All 56 local links/anchors resolve across 9 Markdown files |
+| Tracking references | 44 requirements, 11 demos, 6 video groups, 10 optional items, 7 interpretation IDs, 16 decision IDs, 13 Architecture v1 review IDs, and 4 required threat topics; references consistent |
+| Scope and status fidelity | Requirement/demo source fields and mandatory/optional classifications preserved; runtime and demo statuses unchanged. REQ-DEL-04 now notes approved design with implementation still unverified |
+| Source preservation | DOCX SHA-256 remains e9f7e797d72c331ab508d75135490644c99b9bf2c172f36225ad861926d02f92; assignment.md and .gitignore unchanged |
+| Formatting | Table widths, UTF-8 without BOM, LF endings, final newlines, and trailing whitespace checked; Git whitespace checks clean |
+| Change boundary | Seven existing text files modified and only docs/project-journey.md added; no application files/directories, staged changes, or new commit |
+| Git checkpoint | Still main at 51f27b2; complete tracked-file and new-file diffs are included in the review handoff |
 
-Initial failures and corrections: one authoring command had a mistyped Python path and wrote nothing; retrying with the dependency loader's correct path succeeded. The validation harness initially treated Git's expected new-file difference exit code as an error and initially omitted the alphanumeric K8S IDs from its count; both checks were corrected. Git then detected CRLF line endings in the generated transcription as whitespace errors; only that Markdown file's line endings were normalized to LF, followed by passing fidelity and whitespace checks. No source text was corrected or reinterpreted.
+An initial patch-format attempt was rejected because it targeted architecture.md twice in one patch; it changed no files. The edits were then applied with a valid update operation. The first tree display hit a Windows console encoding error on box-drawing characters; the display was retried with ASCII, with no file changes. No application tests or runtime demos apply to this documentation-only change; SDK/client and deployment compatibility remain untested.
 
-Manual scope review checked the mandatory/optional classifications against the source, the eleven live demonstrations, and the four required threat-analysis topics. No application tests, cluster deployment, external MCP connection, or live demo has been run because no implementation exists. Runtime and submission requirements remain unverified.
+## Open and provisional work
 
-## Open questions and next boundary
+- Vite, Docker, Minikube with Docker driver, and k3s remain proposed baseline selections.
+- SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
+- Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
+- LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
+- Chart dependencies, WordPress/MariaDB packaging, Ingress/DNS/TLS, storage, probes, and resources await the Kubernetes/store milestone.
 
-See OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) for assignment interpretation questions. The technology baseline is DEC-003 (proposed) in [decisions.md](decisions.md). No bonus or stand-out work is selected, and no requirement is marked implemented or verified.
+OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) now have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
-The next action is the user's review of these governance documents, their proposed choices, and the unresolved interpretations. Stop here after validation and diff review. Do not create application directories, charts/manifests, dependencies, Dockerfiles, code, or databases, and do not commit. A later implementation milestone needs its own clear plan and identified files under [AGENTS.md](../AGENTS.md).
+## Review boundary
 
-The source gives a two-week assignment window but no actual start/due date. No submission deadline has been inferred or scheduled.
+Stop after showing the repository tree/status, complete diff, documentation explanations, remaining decisions, and validation results. Do not stage or commit this update or create application directories/code/scaffolding. The next implementation milestone requires its own clear plan, identified files, and user authorization under [AGENTS.md](../AGENTS.md).
+
+The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
