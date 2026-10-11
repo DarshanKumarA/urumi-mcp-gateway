@@ -4,7 +4,7 @@ This register explains project decisions; it does not override the [original ass
 
 ## DEC-001 Governance before application implementation
 
-- **Status:** Accepted, 2026-10-10. Stage 0 documents reviewed and committed as 51f27b2; current documentation extension awaits review.
+- **Status:** Accepted, 2026-10-10. Stage 0 documents reviewed and committed as 51f27b2; Architecture v1 documentation and the journey subsequently reviewed and committed as db49836.
 - **Problem and decision:** Future sessions need durable scope and the user must understand each meaningful change. Begin with the nine governance files and preserve understand → plan → identify files → implement small change → review diff → validate → document → verify understanding.
 - **Alternatives and rationale:** Starting code or a full scaffold would cross the user's milestone boundary. A small documentation baseline makes scope and proposals reviewable first.
 - **Consequences:** Implementation and commits require the applicable authorization. The user later authorized the first governance commit separately. After meaningful steps, now check the chronological [project journey](project-journey.md), alongside current progress and individual decisions; preserve engineering reasoning rather than a terminal log.
@@ -20,17 +20,17 @@ This register explains project decisions; it does not override the [original ass
 
 ## DEC-003 Initial proposed technology baseline
 
-- **Status:** Historical proposal, partially superseded by accepted Architecture v1 decisions DEC-004 through DEC-016 on 2026-10-10. Governance approval alone did not accept this baseline.
+- **Status:** Historical proposal, partially superseded by accepted Architecture v1 decisions DEC-004 through DEC-016 on 2026-10-10, and the local cluster choice in DEC-017 on 2026-10-11. Governance approval alone did not accept this baseline.
 - **Original proposal:** React + Vite, Python + FastAPI, official Python MCP SDK, Python upstreams if authored here, PostgreSQL, WordPress + WooCommerce + MariaDB, Docker, Minikube with Docker driver, Helm, and k3s.
 - **Assignment constraints:** React, WordPress/WooCommerce, Kubernetes, Helm rather than Kustomize, Kubernetes Secrets, and Streamable HTTP for custom server/supported upstreams. Local cluster alternatives and k3s are allowed examples, not mandated selections.
 - **Alternatives and rationale:** Other backend/database choices and Kind/k3d were possible. The user's baseline gave a starting point for focused comparison, not proof of compatibility or necessity.
-- **Current disposition:** Python/FastAPI, the official SDK, PostgreSQL, MariaDB, and the reviewed boundaries are accepted below. Vite, Docker, Minikube/Docker driver, and k3s remain proposed. Model/provider and exact versions remain open.
+- **Current disposition:** Python/FastAPI, the official SDK, PostgreSQL, MariaDB, and the reviewed boundaries are accepted below. DEC-017 replaces the Minikube/Docker-driver proposal with k3d, using Docker Desktop as the intended runtime. Vite and k3s for the production-like VPS remain proposed. Model/provider and exact versions remain open.
 - **Consequences:** Verify SDK/protocol compatibility at implementation time and pin exact package versions. No dependencies are installed and no moving library default is a permanent contract.
 - **Related requirements:** REQ-K8S-01, REQ-K8S-02, REQ-WOO-01, REQ-WOO-02, REQ-GW-02, REQ-UI-01, REQ-CHAT-01.
 
 ## Architecture v1 accepted decisions
 
-All entries below were approved by the user on 2026-10-10. A1–A13 are the user's review IDs; DEC IDs are durable register IDs. Their documentation is under review and every runtime verification remains pending. [Architecture v1](architecture.md) records the shared contracts and open details.
+DEC-004 through DEC-016 were approved by the user on 2026-10-10 and their documentation committed as db49836. A1–A13 are the user's review IDs; DEC IDs are durable register IDs. Every runtime verification remains pending. [Architecture v1](architecture.md) records the shared contracts and open details.
 
 ### DEC-004 A1 One deployable backend
 
@@ -137,6 +137,17 @@ All entries below were approved by the user on 2026-10-10. A1–A13 are the user
 - **Alternatives and rationale:** Hardcoded timezone, an email delivery dependency, guessed audit identities, or equating a disabled server with a dead pod would obscure or unnecessarily expand the required outcomes. Client validation is needed because protocol diagnostics alone do not prove the two-upstream prompt works.
 - **Consequences/verification:** OPEN-01 through OPEN-07 retain their IDs in [architecture.md](architecture.md#unresolved-assignment-interpretations), now with reviewed approaches and explicit remaining checks. No optional upgrade/security feature is promoted into core implementation.
 - **Requirements:** REQ-WOO-05, REQ-GW-01, REQ-GW-02, REQ-GW-04, REQ-TEAM-02, REQ-TEAM-03, REQ-TEAM-06, REQ-AUD-01, REQ-DEL-04; DEMO-04 through DEMO-11, VID-06.
+
+## DEC-017 Local k3d after environment preflight
+
+- **Status:** Accepted by the user, 2026-10-11, after review of the Stage 2 preflight. Supersedes only DEC-003's proposed local Minikube/Docker-driver selection; no software installed or cluster created.
+- **Constraint/problem:** The assignment permits Kind, k3d, or Minikube and requires stable storefront/dashboard URLs through Ingress. Our Windows environment needs a practical host-to-Ingress access path with Docker Desktop as the intended runtime.
+- **Decision:** Select k3d for local Kubernetes. k3s for the production-like VPS remains proposed; neither k3d nor k3s is an assignment mandate.
+- **Alternatives and rationale:** Minikube remains permitted, but its Docker-driver node IP is not directly reachable from Windows/WSL2 hosts, adding access setup to our stable-URL plan. k3d exposes Ingress through explicit Docker host port mappings and runs k3s in Docker, aligning the local distribution with the proposed VPS distribution. Kind also remains valid, but does not provide that k3s alignment. This is a project-specific choice, not a claim that Minikube cannot work.
+- **Consequences:** Keep A10's namespace/public/internal boundaries and A11's one-chart/environment-values approach. Sharing k3s does not prove VPS compatibility. Defer exact tool/image versions, node count, resource budget, ports, hostnames, Ingress controller, and storage details to the next reviewed design step. Recheck available RAM before cluster creation.
+- **Evidence and limits:** Read-only preflight found existing developer tools and WSL, missing Docker/kubectl/Helm, sufficient CPU/disk for initial planning, and tight available RAM. A supplemental read-only check did not detect k3d. No Docker engine, cluster connectivity, Ingress, Helm deployment, or workload resource behavior has been validated. The [journey](project-journey.md#stage-2--environment-preflight-and-local-cluster-selection) preserves the concise findings.
+- **Technical references:** Reviewed the official [Minikube Docker-driver limitations](https://minikube.sigs.k8s.io/docs/drivers/docker/), [k3d overview](https://k3d.io/stable/), and [k3d Ingress port-mapping guide](https://k3d.io/stable/usage/exposing_services/). These support the design rationale, not evidence of successful operation on this machine.
+- **Requirements:** REQ-K8S-01, REQ-K8S-02, REQ-K8S-05, REQ-DEL-04; VID-02, VID-06. Requirement statuses and mandatory/optional classifications do not change.
 
 ## Recording future decisions
 

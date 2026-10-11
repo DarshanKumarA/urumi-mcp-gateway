@@ -1,6 +1,6 @@
 # Architecture v1 and assignment boundaries
 
-Status: **A1–A13 approved by the user on 2026-10-10; documentation update awaiting review; no application implemented.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval does not authorize implementation or prove a requirement works.
+Status: **A1–A13 and their documentation approved and committed as db49836 on 2026-10-10; local k3d choice approved on 2026-10-11 after environment preflight; no application implemented.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval does not authorize implementation or prove a requirement works.
 
 ## Assignment constraints
 
@@ -94,6 +94,10 @@ Invitations are manually shared; no email delivery service is required initially
 
 ## Kubernetes and Helm boundaries
 
+**Local cluster choice (DEC-017):** Use k3d with Docker Desktop as the intended container runtime. This replaces the proposed Minikube/Docker-driver baseline; the assignment still permits Kind, k3d, or Minikube (REQ-K8S-01). Windows host-access limitations with Minikube's Docker driver would complicate stable local Ingress. k3d's explicit Docker host port mappings offer a simpler planned access path, and its use of k3s aligns with the proposed k3s VPS environment. See [the decision and supporting references](decisions.md#dec-017-local-k3d-after-environment-preflight). Local-to-VPS compatibility still requires validation through the same Helm chart and environment values.
+
+Preflight found the local cluster toolchain missing and limited currently available RAM despite adequate CPU/disk capacity for initial planning. Docker startup, Linux container mode, cluster operation, and browser access have not been tested. Recheck memory headroom before cluster creation. Exact versions, node count, resource allocation, host ports, and hostnames remain open; choosing k3d does not select an Ingress controller or create a cluster.
+
 A10 starts with one application namespace for the mandatory single store. Public Ingress routes provide the storefront, dashboard, same-origin `/api`, and gateway `/mcp`. Internal Services connect PostgreSQL, MariaDB, WooCommerce MCP, arithmetic MCP, and store policy/reference MCP. Upstreams use ClusterIP without public Ingress, NodePort, or LoadBalancer exposure. Ingress controller, hosts, TLS approach, and detailed routing remain to be selected.
 
 Gateway-held upstream authentication adds a caller boundary to internal addressing. ClusterIP alone does not isolate callers inside the cluster. Validate successful gateway calls, rejection without the gateway-held credential, and lack of external upstream exposure; do not claim packet-level gateway-only isolation without evidence. Calico and custom NetworkPolicy setup are not prerequisites for the first working core. NetworkPolicy may be considered after the mandatory flow works, if time allows or needed to strengthen the documented gateway-only boundary. The assignment's gateway-only outcome is not waived; residual exposure belongs in the [threat model](threat-model.md).
@@ -124,10 +128,10 @@ These stable OPEN IDs preserve the original questions and links. A13 records rev
 
 ## Open and provisional decisions
 
-- Vite, Docker, Minikube with Docker driver, and k3s remain proposed baseline selections. React, Kubernetes, and Helm are assignment constraints; Python/FastAPI, the SDK, PostgreSQL, MariaDB, and the boundaries above are accepted project choices. No versions are pinned or packages installed.
+- k3d is selected locally, with Docker Desktop as the intended runtime; installation and operational validation remain pending. Vite and k3s for the production-like VPS remain proposed. React, Kubernetes, and Helm are assignment constraints; Python/FastAPI, the SDK, PostgreSQL, MariaDB, and the boundaries above are accepted project choices. No project dependency versions are pinned or installed.
 - Validate SDK/protocol versions, gateway/client interoperability, connection/session lifecycle, catalog notifications/refresh, tool-name limits, timeout defaults, and health observation in a later prototype.
 - Specify authentication algorithms/formats, session/cookie/CSRF and invitation details, role representation, initial admin/WooCommerce registration, runtime Secret management, audit failure/denial/redaction/retention contracts, and schema constraints before affected implementation.
 - Select the LLM/provider, chat-loop integration and response transport, exact WooCommerce REST/tool contracts, auxiliary tool schemas, and final interactive client. Define revenue demo data semantics and user A/B roles.
 - Design WordPress/MariaDB packaging, chart dependencies, Ingress/DNS/TLS, storage, Secret injection/access, probes, and resources at the Kubernetes/store milestone. NetworkPolicy is deferred, not a first-core prerequisite.
 
-No bonus or stand-out item is selected by this approval. [progress.md](progress.md) records current evidence; [project-journey.md](project-journey.md) records how the design evolved. Stop at documentation review before any application/prototype work.
+No bonus or stand-out item is selected by this approval. [progress.md](progress.md) records current evidence; [project-journey.md](project-journey.md) records how the design evolved. Stop after the authorized documentation commit; installation, cluster creation, and application/prototype work require a later reviewed step.

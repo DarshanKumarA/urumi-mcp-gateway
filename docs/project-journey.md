@@ -22,7 +22,7 @@ Completed and reviewed on 2026-10-10; committed as **51f27b2 — docs: establish
 
 ## Stage 1 — Architecture v1 review before implementation
 
-Design reviewed and approved on 2026-10-10. This documentation recording step is awaiting review and is **not committed**. No MCP prototype, application, schema, or deployment has been created.
+Design and documentation reviewed and approved on 2026-10-10; committed as **db49836**. No MCP prototype, application, schema, or deployment has been created.
 
 - **Starting state:** Approved governance on main at 51f27b2, with a proposed technology baseline and unresolved architecture/demo mechanics. No runnable system existed.
 - **Problem:** We needed a small deployable design with explicit tool routing, user identity, credential ownership, failure behavior, and deployment boundaries before writing code.
@@ -34,6 +34,20 @@ Design reviewed and approved on 2026-10-10. This documentation recording step is
 - **Validation performed:** A1–A13 were reviewed by the user. Documentation link/reference, formatting, source-preservation, scope, and status checks passed; evidence is recorded in [progress.md](progress.md#validation-and-review-record). Complete text diffs accompany this recording step's review. No SDK/client, authentication, Kubernetes, Helm, or live demo behavior has been tested.
 - **What we learned:** Approval can fix a boundary while leaving mechanisms open. A disabled server is intentionally hidden; an unreachable enabled server retains stale metadata. ClusterIP does not prove isolation inside the cluster. Store timezone defines today, and the required rollback explanation does not automatically require executing an optional live rollback.
 - **How this enables the next stage:** A later, separately authorized milestone can plan focused compatibility/prototype checks against these contracts, rather than scaffold the whole system. Package versions, connection lifecycle, Secret management, and client refresh behavior still need evidence.
-- **Git reference:** Pending; this documentation update is based on 51f27b2. Add its commit only after the user authorizes and completes a checkpoint.
+- **Git reference:** db49836 — docs: define architecture v1 and project journey; based on 51f27b2.
+
+## Stage 2 — Environment preflight and local cluster selection
+
+Preflight reviewed and k3d selected on 2026-10-11. This completes the preflight/decision checkpoint only; the Kubernetes foundation is not installed or running.
+
+- **Starting state:** Architecture v1 committed as db49836 on main, with its commit-reference update still unstaged in this journey. That update is included in this documentation checkpoint.
+- **Problem and concepts:** Establish readiness before installation and choose a practical Windows host-to-Ingress path. A container runtime, cluster tool, and Kubernetes Ingress have distinct responsibilities; total RAM is not the same as available capacity.
+- **Preflight evidence:** Git 2.44.0.windows.1, Python 3.13.6 through both python/py, Node 22.18.0, and npm 11.6.1 were already available. Windows 11 had WSL 2.5.9 with WSL2 as the default, its supporting Windows features enabled, and no installed distributions. Docker Desktop/engine, kubectl, and Helm were not detected; the supplemental k3d check also found no installation. Existing Docker context metadata did not establish a running engine.
+- **Resource findings:** About 24 logical CPUs and 110 GiB free on the repository drive supported initial planning. Of roughly 15.7 GiB total RAM, only 2.6–2.8 GiB was available during preflight. Memory headroom must be rechecked before starting a cluster; a workable full-system resource budget has not been demonstrated.
+- **Decision, alternatives, and rationale:** DEC-017 selects k3d with Docker Desktop as the intended runtime, replacing the proposed Minikube Docker driver. Windows host-access limitations would complicate stable Ingress with that Minikube setup; k3d provides explicit Docker host port mappings. Running k3s locally also aligns with the proposed k3s VPS. Kind and Minikube remain assignment-permitted alternatives. This is an implementation choice, not a new requirement.
+- **Repository/components affected:** Architecture, decisions, progress, this journey, and the stale local-baseline references in README and requirements. The existing Architecture v1 checkpoint update is preserved. No application or deployment components were created.
+- **Validation and learning:** Read-only environment inspection and official tool documentation informed the change; no installation, cluster, or runtime test occurred. Preflight can revise a proposed tool choice before it becomes costly to change. Documentation checks for this checkpoint are recorded in [progress.md](progress.md#validation-and-review-record); runtime requirement and demo statuses remain unchanged.
+- **How this enables the next stage:** A later reviewed step can select versions, plan installation and resource allocation, and validate Docker plus stable local Ingress before application deployment. Neither stable access nor local-to-VPS parity is proven yet.
+- **Git reference:** This entry belongs to the `docs: select k3d after environment preflight` checkpoint following db49836; the preceding Architecture v1 hash is now recorded above.
 
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
