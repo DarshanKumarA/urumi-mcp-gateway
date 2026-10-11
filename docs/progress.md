@@ -2,19 +2,19 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.3 local Kubernetes infrastructure created and validated.** Dates use the user's Asia/Calcutta calendar. The single-server urumi-local cluster is running with healthy essential system components. This checkpoint awaits review; no application workloads have been deployed.
+**2026-10-11 — Stage 2.4A nginx learning workload applied and inspected successfully.** Dates use the user's Asia/Calcutta calendar. urumi-local and the one-replica lab remain running. This checkpoint awaits review; Pod deletion, scaling, declarative reconciliation, and cleanup have not been run. No Urumi application workload has been deployed.
 
-Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 began with a clean working tree at that checkpoint.
+Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
 A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the proposed local Minikube/Docker driver with k3d and Docker Desktop as the intended runtime. The assignment still permits Kind, k3d, or Minikube; its requirements have not changed.
 
-No application, prototype, schema, dependency files, project Kubernetes manifests, or project Helm chart exists. The cluster contains only its default system resources. This establishes infrastructure prerequisites, not completion of any full assignment runtime requirement; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
+No Urumi application, prototype, schema, dependency files, production application manifests, or project Helm chart exists. The cluster contains its default system resources plus the isolated nginx learning lab. Lab networking and healthy operation are verified, not completion of any full assignment runtime requirement; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
 ## Current documentation change
 
-- Record Stage 2.3 prechecks, the exact creation command, actual cluster configuration, system health, startup retries, and validation limits in progress and one journey entry.
-- Record the approved Stage 2.2B Git checkpoint while preserving earlier installation and validation history.
-- Preserve all requirement/demo statuses and architecture decisions. No application files, deployment files, or dependencies are added to the repository; this documentation update is not committed.
+- Record Stage 2.4A actual runtime observations in the lab README, with concise progress and journey summaries.
+- Record the approved Stage 2.3 and lab-manifest checkpoints while preserving earlier installation and validation history.
+- Preserve all four approved YAML manifests, requirement/demo statuses, and architecture decisions. Only these three existing Markdown files change; this documentation update is not committed.
 
 ## Docker setup outcome
 
@@ -86,6 +86,14 @@ Validation ran the requested cluster, Docker container, context, cluster-info, n
 
 Windows available RAM was about 1.28 GiB after startup. The node metrics snapshot showed about 727 MiB memory usage and no memory pressure was observed, but this is not total Windows/Docker overhead or an application capacity budget. Reassess host memory before expanding the environment. No project workload, nginx learning workload, application directory, Dockerfile, Helm chart, or additional CNI/NetworkPolicy tooling was created. k3d's nginx-based infrastructure proxy and K3s's automatic Traefik Helm Jobs are cluster internals, not project scaffolding. Stable application URLs, real persistent-volume behavior, TLS, and VPS compatibility remain unverified.
 
+## Stage 2.4A learning workload outcome
+
+Prechecks passed with current/target context k3d-urumi-local, a Ready node, healthy system components, no lab namespace/Ingress conflict, approximately 3.14 GiB available host RAM, and the pinned nginx tag active for Linux/amd64. A fresh external request confirmed the pre-apply Traefik 404. Namespace apply, server dry-run of the remaining manifests, apply, and rollout succeeded. An initial registry-download EOF recovered through Kubernetes image-pull retries without changing the manifests.
+
+The Deployment has one desired/current/ready replica; inspected owner references connect it to its generated ReplicaSet and Ready Pod. Matching app=nginx-lab selectors connect the Service to that Pod, and its EndpointSlice records one ready backend. The approved in-cluster DNS/Service request returned nginx HTML; Windows localhost:8080 returned HTTP 200 with Server: nginx/1.30.5 and the welcome page through the existing Traefik route. Live resource requests/limits and both probes match the manifest; nginx logs show successful probe requests and the Pod has zero restarts. Detailed identities, addresses, ownership, and evidence are in the [lab's actual observations](../labs/kubernetes-basics/README.md#actual-observations).
+
+The one-replica lab remains running. No Pod deletion, scaling, drift/reconciliation experiment, probe failure injection, cleanup, or HTTPS test was performed. Healthy operation is observed; application capacity and failure handling remain unverified. No Urumi application or Helm resources were created, and this step does not complete an assignment requirement.
+
 ## Validation and review record
 
 Stage 0's completed checks included exact transcription of 169 nonempty paragraphs, 119 list entries, and 29 heading depths; 40 local links/anchors; ignore rules; formatting; and complete governance diff review. Architecture v1's documentation checks passed on 2026-10-10: 56 local links across 9 Markdown files, consistent tracking IDs, unchanged assignment/source classifications, source checksum preservation, formatting, and complete diff review. These are historical checks, not evidence of working software.
@@ -123,6 +131,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized Stage 2.3 cluster infrastructure creation and inspection only. Show validation results, explain the Windows/Docker/k3d/K3s/node/Pod layers and kubeconfig/API concepts, show Git status and the complete documentation diff, leave changes uncommitted, and stop for review. No application code/directories, WooCommerce deployment, project Kubernetes workloads, Helm charts, or nginx learning workload are authorized in this step. Only progress and the journey are updated; older architecture/preflight statements retain their historical context, with current infrastructure evidence recorded here. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 2.4A apply and inspection of the approved nginx learning manifests only. Show runtime observations, the three-file documentation diff, and Git status; leave the workload running and changes uncommitted, then stop for review. Do not delete the Pod, scale, reconcile replica drift, clean up, deliberately break probes, or deploy application/Helm resources. README edits are confined to its actual-observations section; its earlier authoring status is historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

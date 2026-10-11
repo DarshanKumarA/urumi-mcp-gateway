@@ -240,9 +240,33 @@ Expected: lab namespace/resources disappear; the request returns Traefik's no-ro
 
 ## Actual observations
 
-**Not run.** No lab namespace, Deployment, Service, or Ingress has been applied as part of manifest creation. There is no evidence yet for image startup, resource sizing, probes, internal requests, browser access, replacement, scaling, reconciliation, or cleanup.
+**2026-10-11 — Stage 2.4A applied and inspected successfully.** This runtime record supersedes the manifest-creation status at the top of this file; only this actual-observations section was updated in this step. The approved manifests from commit de2e69d were applied without changes. Pod deletion, scaling, drift/reconciliation, cleanup, and deliberate probe failures have not been performed.
 
-After a separately authorized run, record Pod identities/IPs, Service/backend changes, HTTP outcomes, drift/reconciliation results, failures, and cleanup here. Update the project's progress and journey with a concise milestone record at that time; do not mark application requirements completed by this lab.
+Prechecks confirmed current/target context k3d-urumi-local, a Ready node, healthy essential system components, no learning namespace, and no existing Ingress routes. Windows had approximately 3.14 GiB available RAM. Docker Hub reported the pinned nginx 1.30.5-alpine tag and Linux/amd64 image active. A fresh request to http://localhost:8080/ returned HTTP 404 with "404 page not found" before applying.
+
+Applied the Namespace, then successfully server-dry-ran the Deployment, Service, and Ingress before applying those three objects. Rollout succeeded within the 120-second wait. The first image download failed with EOF and briefly entered ImagePullBackOff; Kubernetes retried automatically and pulled the image. No manifest changes, Pod deletion, or manual retry intervention was needed.
+
+| Object | Authored by us? | Created by | Purpose | Observed status |
+| --- | --- | --- | --- | --- |
+| Namespace kubernetes-basics | Yes | Our kubectl apply through the API | Group lab resources | Active; purpose=learning label present |
+| Deployment nginx-lab | Yes | Our kubectl apply through the API | Declare desired Pods | Desired/current/updated/ready/available replicas all 1 |
+| ReplicaSet nginx-lab-76c7f65877 | No | Deployment controller | Maintain replica count | Owned by Deployment nginx-lab; one managed Pod |
+| Pod nginx-lab-76c7f65877-pkdgp | No; its template is authored | ReplicaSet controller | Run nginx container | Owned by the ReplicaSet; Running, 1/1 Ready, zero restarts |
+| Service nginx-lab | Yes | Our kubectl apply through the API | Stable internal address and backend selection | ClusterIP 10.43.133.91, 80/TCP to named targetPort http |
+| EndpointSlice nginx-lab-fzdc6 | No | EndpointSlice controller | Track Service backend addresses/readiness | Owned by Service nginx-lab; 10.42.0.9:80 ready=true, serving=true, terminating=false |
+| Ingress nginx-lab | Yes | Our kubectl apply through the API; interpreted by Traefik | Route external HTTP requests | Class traefik, host *, path /, backend nginx-lab:80; HTTP 200 observed |
+
+Owner references establish `Deployment nginx-lab -> ReplicaSet nginx-lab-76c7f65877 -> Pod nginx-lab-76c7f65877-pkdgp -> container nginx`. The Pod UID is 4fb258e4-6bfd-43c6-b9b4-d185127674f2, its node is k3d-urumi-local-server-0, and its IP is 10.42.0.9. The container uses docker.io/library/nginx:1.30.5-alpine. The Pod has app=nginx-lab and pod-template-hash=76c7f65877 labels. Deployment and Service selectors both match app=nginx-lab; the Service selects the Pod, not the Deployment object.
+
+Internal access through the approved `kubectl exec deployment/nginx-lab -- wget -qO- http://nginx-lab.kubernetes-basics.svc.cluster.local/` request succeeded with exit 0 and the nginx welcome page. The Service's DNS/ClusterIP identifies the stable internal destination; its EndpointSlice records the ready Pod backend. EndpointSlice is discovery state, not a network hop. No authentication or network-isolation test was performed, and ClusterIP is not treated as a security boundary.
+
+Traefik remained available 1/1; its Pod is 10.42.0.8. IngressClass traefik uses controller traefik.io/ingress-controller. The live Deployment enables the Kubernetes Ingress provider and listens on web port 8000; its Service exposes port 80 to the named web port. The k3d serverlb still maps Windows 8080 to port 80. The lab Ingress describes the hostless / Prefix backend as nginx-lab:80 (10.42.0.9:80); its reported address is 172.18.0.3, while the tested Windows URL is localhost:8080.
+
+The external curl request returned **HTTP/1.1 200 OK**, `Server: nginx/1.30.5`, `Content-Type: text/html`, and `<h1>Welcome to nginx!</h1>` in an 896-byte body. nginx access logs show successful Wget, curl, and kube-probe requests; the curl request arrived from the Traefik Pod IP. Together, route inspection and request evidence support the path `Windows localhost:8080 -> k3d load balancer -> Traefik -> Ingress rule -> nginx Service/backend -> nginx Pod`. The Ingress is controller configuration rather than another proxy process; this was not a packet-capture test of every hop.
+
+Live Pod resources match the manifest: requests 50m CPU/32Mi memory, limits 250m CPU/128Mi memory. Both HTTP probes use / on the named http port, a 2-second timeout and failure threshold 3. Readiness delay/period are 2/5 seconds; liveness delay/period are 10/10 seconds. The Pod is Ready with restart count 0, and logs include HTTP 200 probe requests. This confirms configured probes and current healthy operation, not failure handling or a full workload capacity test.
+
+The namespace and one-replica workload remain running for review. No Pod was deleted, no replica count changed, no resources cleaned up, and no commit created during this run. The later experiment steps remain future work; no Urumi application requirement is marked completed by this lab.
 
 ## References
 
