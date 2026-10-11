@@ -2,20 +2,20 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.4C scaling, configuration drift, and declarative reconciliation observed successfully.** Dates use the user's Asia/Calcutta calendar. urumi-local and the reconciled one-replica lab remain running. This checkpoint awaits review; cleanup has not been run. No Urumi application workload has been deployed.
+**2026-10-11 — Stage 2.4 Kubernetes fundamentals lab complete; Stage 2.4D cleanup and final validation succeeded.** Dates use the user's Asia/Calcutta calendar. The lab namespace and live resources are gone; urumi-local and its healthy system components remain running. The learning files remain in Git. This documentation checkpoint awaits review. No Urumi application workload has been deployed.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
 A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the proposed local Minikube/Docker driver with k3d and Docker Desktop as the intended runtime. The assignment still permits Kind, k3d, or Minikube; its requirements have not changed.
 
-Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C began from that clean documentation checkpoint.
+Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-No Urumi application, prototype, schema, dependency files, production application manifests, or project Helm chart exists. The cluster contains its default system resources plus the isolated nginx learning lab. Lab networking and healthy operation are verified, not completion of any full assignment runtime requirement; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
+No Urumi application, prototype, schema, dependency files, production application manifests, or project Helm chart exists. The cluster has returned to its default namespaces/system resources after lab cleanup. The fundamentals lab is complete, but no full assignment runtime requirement is marked implemented or verified; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
 ## Current documentation change
 
-- Append Stage 2.4C one/two/one replica observations, diff evidence, controller removal, and the Helm conceptual connection to the lab README, with concise progress and journey summaries.
-- Record the approved Stage 2.4B checkpoint while preserving earlier runtime history.
+- Record Stage 2.4D namespace cleanup, resource absence, retained cluster health, external 404, and the completed lab's learning outcomes. Update the README's historical top-level status to its current state.
+- Record the approved Stage 2.4C checkpoint while preserving earlier runtime history.
 - Preserve all four approved YAML manifests, requirement/demo statuses, and architecture decisions. Only these three existing Markdown files change; this documentation update is not committed.
 
 ## Docker setup outcome
@@ -112,6 +112,14 @@ kubectl diff exited 1 and showed live replicas: 2 versus the file's replicas: 1,
 
 Kubernetes follows the live API object's desired state, not the Git file automatically. Re-applying YAML restored our committed intent. Two Pods on one node offer Pod-level redundancy but no node-failure protection; no availability guarantee or distribution test is claimed. Helm's future values/templates will render manifests expressing intent, and manual live changes can similarly diverge. No Helm files or releases were created, no YAML/Service/Ingress was changed, and no cleanup or extra workload was performed. The one-replica lab remains running; this checkpoint is uncommitted for review.
 
+## Stage 2.4D cleanup and final validation outcome
+
+The pre-cleanup baseline passed: correct current/target context, Ready node, Active lab namespace, Deployment/ReplicaSet 1/1/1, one Ready Pod/backend, existing Ingress, and external HTTP 200. Captured all six relevant namespaced resource types and their ownership. Deleted only namespace kubernetes-basics with an explicit context and bounded wait; a watch observed Active then Terminating. Deletion completed successfully without forced cleanup or child-resource deletion commands.
+
+Subsequent listings confirmed namespace absence and no lab Deployment, ReplicaSet, Pod, Service, EndpointSlice, or Ingress across the cluster. urumi-local remains listed with servers 1/1 and its load balancer enabled. The node is Ready; Traefik, CoreDNS, metrics-server, and local-path-provisioner Deployments are each desired/ready/available 1/1/1 with Ready running Pods. The Traefik ServiceLB Pod is 2/2, and the cluster-scoped IngressClass remains. With no Ingress objects left, localhost:8080 returned HTTP 404 and `404 page not found`, matching the original no-route state.
+
+The fundamentals lab is complete: controller ownership, labels/selectors, Service/EndpointSlice discovery, internal/external routing, probes/resources, Pod replacement, scaling, declarative drift restoration, and namespace lifecycle have been observed. Namespace grouping enabled cleanup but does not itself enforce network isolation. Live objects are gone while all learning manifests remain available for an authorized repeat. No application requirement/demo status changes, Helm chart, new workload, or application deployment are implied. Detailed cleanup evidence is in the lab README; prior outcome sections retain their historical checkpoint state.
+
 ## Validation and review record
 
 Stage 0's completed checks included exact transcription of 169 nonempty paragraphs, 119 list entries, and 29 heading depths; 40 local links/anchors; ignore rules; formatting; and complete governance diff review. Architecture v1's documentation checks passed on 2026-10-10: 56 local links across 9 Markdown files, consistent tracking IDs, unchanged assignment/source classifications, source checksum preservation, formatting, and complete diff review. These are historical checks, not evidence of working software.
@@ -149,6 +157,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized Stage 2.4C imperative scale to two, observation of manifest/live drift, and restoration to one by re-applying the unchanged Deployment manifest. Show the three-state comparison, diff evidence, three-file documentation diff, and Git status; leave the reconciled one-replica lab running and changes uncommitted, then stop for review. Do not perform further scaling, clean up, deliberately break probes, alter Service/Ingress or manifests, or create additional workloads. README edits are confined to its actual-observations section; earlier checkpoint statements remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 2.4D deletion of only the lab namespace, final infrastructure/HTTP validation, and updates to the lab README, progress, and journey. Show cleanup evidence, final health, the three-file documentation diff, and Git status; leave urumi-local running and changes uncommitted, then stop for review. Do not recreate the lab, delete the cluster, alter the four YAML manifests, remove repository lab files, or create application components/other workloads. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

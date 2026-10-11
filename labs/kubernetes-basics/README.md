@@ -1,6 +1,6 @@
 # Kubernetes basics: disposable nginx lab
 
-Status: manifests created for review; **not applied and no lab runtime observations collected**. Every result described below is an expectation to check later, not evidence of success.
+Status: **Stage 2.4 Kubernetes fundamentals lab completed on 2026-10-11; live lab resources removed.** The urumi-local cluster remains running. The actual-observations section records execution and cleanup; the walkthrough's expected results remain guidance for a future authorized repeat. Stage 2.4D documentation awaits review.
 
 These are learning artifacts, not production Urumi manifests. They exercise Kubernetes fundamentals in an isolated resource namespace before application work. They do not replace the assignment's Helm deployment, prove application requirements, or authorize deployment. No WordPress/WooCommerce, storage, application source, or Helm chart is included.
 
@@ -48,7 +48,7 @@ The Service supplies stable DNS/ClusterIP addressing while Pods come and go. End
 
 The hostless `/` rule matches broadly and is only for this disposable lab. HTTP uses the existing host 8080 mapping; port 8443 and HTTPS are outside this exercise. The empty cluster returned Traefik's no-route 404 in Stage 2.3; this lab should later replace that with nginx's welcome page, then restore the 404 after cleanup.
 
-## Future execution and observation sequence
+## Reusable execution and observation sequence
 
 Do not run this section until manifest review and execution are authorized. Use PowerShell from the repository root. Execute one step at a time, inspect each result, and stop to investigate unexpected output or timeouts instead of continuing blindly. Do not paste the entire walkthrough as a script.
 
@@ -346,6 +346,46 @@ The controller removed one Pod because applying the file changed live desired re
 For the later Helm work, the conceptual flow is `values + templates -> rendered Kubernetes manifests -> applied desired state` ([Helm chart documentation](https://helm.sh/docs/topics/charts/)). Manual live edits can diverge from that rendered configuration without changing Git or values. Helm alone does not continuously watch Git and undo drift; any eventual install/upgrade/reconciliation behavior must be validated in its own milestone. No Helm files, release, or Helm runtime test were created here.
 
 The one-replica lab and namespace remain running. No YAML, Service, or Ingress was modified; no additional workload, explicit Pod deletion command, namespace cleanup, or commit occurred. These observations teach Kubernetes behavior and do not complete an Urumi application requirement.
+
+### Stage 2.4D — Cleanup and final validation
+
+**2026-10-11 — cleanup completed; documentation uncommitted for review.** Started from clean main at 341d83a, the approved Stage 2.4C checkpoint. Before deletion, current/target context was k3d-urumi-local, the node was Ready, and kubernetes-basics was Active. Deployment and ReplicaSet were 1/1/1; the one Ready Pod was nginx-lab-76c7f65877-bj9sz at 10.42.0.10, matching the Service's single ready backend. Service ClusterIP was 10.43.133.91, the lab Ingress existed, and localhost:8080 returned HTTP 200 with the nginx welcome page.
+
+| Resource captured before cleanup | Authored by us? | Creation/ownership | After cleanup |
+| --- | --- | --- | --- |
+| Namespace kubernetes-basics | Yes | Our namespace manifest applied through the API | Absent |
+| Deployment nginx-lab | Yes | Our Deployment manifest | Absent |
+| ReplicaSet nginx-lab-76c7f65877 | No | Deployment controller; owned by nginx-lab Deployment | Absent |
+| Pod nginx-lab-76c7f65877-bj9sz | Template only | ReplicaSet controller; owned by the ReplicaSet | Absent |
+| Service nginx-lab | Yes | Our Service manifest | Absent |
+| EndpointSlice nginx-lab-fzdc6 | No | EndpointSlice controller; owned by the Service | Absent |
+| Ingress nginx-lab | Yes | Our Ingress manifest, interpreted by Traefik | Absent |
+
+The supplementary namespaced inventory showed only the default ServiceAccount and kube-root-ca.crt ConfigMap, with no PVCs, Jobs, CronJobs, DaemonSets, StatefulSets, or NetworkPolicies. No credential values were read or copied. A namespace watch was started before running only `kubectl --context k3d-urumi-local delete namespace kubernetes-basics --wait=true --timeout=120s`. It showed Active followed by Terminating. The delete command completed with exit 0, and a subsequent namespace listing confirmed absence. The watch was stopped with Ctrl+C (expected interrupted exit 1). No stuck finalizers, forced removal, or individual child-resource deletion commands were needed.
+
+A cluster-wide listing of Deployments, ReplicaSets, Pods, Services, EndpointSlices, and Ingresses contained no object in kubernetes-basics and no object named nginx-lab or starting with that prefix. No Ingress remained anywhere in the cluster. Remaining namespaces were default, kube-node-lease, kube-public, and kube-system.
+
+| Infrastructure after cleanup | Observed status |
+| --- | --- |
+| k3d cluster urumi-local | Still listed; servers 1/1, agents 0/0, load balancer enabled |
+| Node k3d-urumi-local-server-0 | Ready; Kubernetes/K3s v1.35.5+k3s1 |
+| Traefik | Deployment desired/ready/available 1/1/1; Pod Running 1/1 |
+| CoreDNS | Deployment desired/ready/available 1/1/1; Pod Running 1/1 |
+| Metrics-server | Deployment desired/ready/available 1/1/1; Pod Running 1/1 |
+| Local-path-provisioner | Deployment desired/ready/available 1/1/1; Pod Running 1/1 |
+| Traefik ServiceLB Pod | Running 2/2 |
+| IngressClass traefik | Remains; controller traefik.io/ingress-controller |
+
+The final `curl.exe --silent --show-error --include --max-time 15 http://localhost:8080/` returned **HTTP/1.1 404 Not Found**, Content-Type text/plain, and the 19-byte body `404 page not found`. curl omitted --fail because 404 was the expected result. Together with healthy Traefik and zero Ingress objects, this confirms the return to the no-route behavior observed before the lab.
+
+```text
+Before: browser -> k3d load balancer -> Traefik -> lab Ingress rule -> Service/backend -> nginx = 200
+After:  browser -> k3d load balancer -> Traefik -> no matching lab Ingress rule = 404
+```
+
+The Namespace grouped the disposable namespaced resources and provided one lifecycle/cleanup boundary. It did not provide a network-security boundary by itself. The Namespace object is itself cluster-scoped, but deleting it does not delete unrelated cluster-scoped objects such as the node or IngressClass. Git manifests describe intent independently of the live API objects: all five lab files remain, and re-applying the unchanged manifests in dependency order could recreate the lab after fresh prechecks and authorization. Re-creation was not performed in this step.
+
+Stage 2.4 is complete as a learning exercise: we observed authored versus controller-generated objects and their owner chain; label/selector matching; stable Service addressing and changing EndpointSlice backends; internal DNS access and external Traefik routing; configured probes/resources and readiness; Pod replacement; imperative scaling and declarative drift restoration; and namespace cleanup. Self-healing was distinguished from uninterrupted availability, and two replicas on one node from node-failure resilience. This does not validate application persistence, security isolation, TLS, Helm deployment, VPS compatibility, or any complete Urumi application requirement. The cluster remains available for the next reviewed milestone; no application components or new workloads were created.
 
 ## References
 

@@ -115,7 +115,7 @@ Observed on 2026-10-11; reviewed, approved, and committed as 89d9084. The replac
 
 ## Stage 2.4C — Scaling, configuration drift, and declarative reconciliation
 
-Observed on 2026-10-11; documentation is uncommitted for review. The lab is restored to its declared one-replica state and remains running.
+Observed on 2026-10-11; reviewed, approved, and committed as 341d83a. The lab was restored to its declared one-replica state and left running for the cleanup milestone.
 
 - **Starting point:** Clean main at 89d9084. Confirmed correct context, Deployment/ReplicaSet 1/1/1, one Ready Pod and backend, external HTTP 200, and committed replicas: 1. The working Deployment manifest matched Git exactly.
 - **Imperative change:** Scaled only the live Deployment to 2. The same ReplicaSet managed existing bj9sz at 10.42.0.10 and new n5jjc at 10.42.0.11, both Ready with zero restarts on the same node. Two ready Service backends appeared without editing selectors, Service ClusterIP 10.43.133.91, or Ingress. External HTTP remained 200 at the checkpoint.
@@ -123,6 +123,17 @@ Observed on 2026-10-11; documentation is uncommitted for review. The lab is rest
 - **Declarative restoration:** Re-applied the unchanged committed Deployment manifest. The controller removed n5jjc, corroborated by the Pod watch and SuccessfulDelete event. A readiness connection-refused warning coincided with the removed container's shutdown. The retained Pod remained Ready with zero restarts; Deployment/ReplicaSet returned to 1/1/1 and only 10.42.0.10 remained a ready backend. Final diff was empty (exit 0), and external HTTP returned 200.
 - **Learning:** Kubernetes controllers follow live desired state. Imperative commands can change that state without changing Git; applying the declared configuration restores source-controlled intent. Scaling the same template uses the same ReplicaSet. Two replicas on one node provide Pod-level redundancy but no protection against loss of that node; this experiment did not inject a failure or measure uninterrupted availability.
 - **Helm connection and boundary:** Future values and templates render Kubernetes manifests expressing desired state. Manual edits can drift from Helm/Git configuration; Helm alone does not continuously reconcile Git. This was a conceptual explanation, not a Helm implementation/test. All four YAML files remain unchanged, only the three authorized Markdown files change, and no additional workload, Service/Ingress alteration, cleanup, or commit occurs. Stop for review with one replica running.
-- **Git reference:** Uncommitted documentation following 89d9084.
+- **Git reference:** 341d83a — docs: record Kubernetes declarative reconciliation experiment; based on 89d9084.
+
+## Stage 2.4D — Cleanup and completion of Kubernetes fundamentals
+
+Observed on 2026-10-11; cleanup succeeded and documentation is uncommitted for review. The disposable live lab is removed; its files and the running k3d cluster remain.
+
+- **Baseline and scope:** Clean main at 341d83a. Confirmed the correct context, Ready node, Active lab namespace, Deployment/ReplicaSet 1/1/1, one ready backend, existing Ingress, and external HTTP 200. Recorded authored Deployment/Service/Ingress and controller-generated ReplicaSet/Pod/EndpointSlice. The additional inventory showed default namespace support objects and no other workloads or PVCs.
+- **Cleanup and evidence:** Deleted only kubernetes-basics with a bounded wait. The namespace watch showed Active then Terminating; deletion completed successfully with no child-resource commands or finalizer intervention. Cluster-wide queries confirmed the namespace and all six lab resource types absent. No Ingress remained, and localhost:8080 returned HTTP 404 with `404 page not found` as expected after removal of the route.
+- **Preserved infrastructure:** urumi-local remains servers 1/1 with its load balancer; its K3s v1.35.5+k3s1 node is Ready. Traefik, CoreDNS, metrics-server, and local-path-provisioner Deployments and Pods are healthy; the Traefik ServiceLB Pod is 2/2. The cluster-scoped IngressClass remains. All four YAML files and the lab README are retained in Git.
+- **Learning across Stage 2.4:** Observed the Deployment/ReplicaSet/Pod owner chain, labels/selectors, stable Service addressing with changing ready endpoints, internal DNS and external Ingress routing, configured probes/resources, Pod replacement, scaling, and YAML-driven restoration of intentional drift. Namespace deletion completed the lifecycle lesson: namespaced objects disappear together, but grouping is not network isolation and unrelated cluster-scoped infrastructure remains. Git retains the configuration needed for an authorized recreation.
+- **Completion limits and next boundary:** The Kubernetes fundamentals lab is complete; application requirements and demos remain unimplemented/unrun. No persistence, TLS, security-isolation, Helm, VPS, or application-capacity claim follows from this lab. Only README/progress/journey documentation changes; no YAML changes, file deletion, new workloads, cluster deletion, or commit. Stop for review before further work.
+- **Git reference:** Uncommitted documentation following 341d83a.
 
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
