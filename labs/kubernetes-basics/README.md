@@ -305,6 +305,48 @@ Observed reconciliation: Deployment desired replicas remained 1; the ReplicaSet 
 
 This demonstrates self-healing, not zero-downtime/high availability. There was an observed interval with no ready backend, but HTTP was not continuously sampled during it, so no outage duration or transient HTTP status is claimed. Temporary interruption is acceptable for this one-replica exercise. The replacement remains running; no scaling, declarative drift experiment, namespace cleanup, additional workload, or deliberate probe failure was performed.
 
+### Stage 2.4C — Scaling, configuration drift, and declarative reconciliation
+
+**2026-10-11 — completed for review, not committed.** Stage 2.4B was approved and committed as 89d9084. Started this experiment from clean main at that checkpoint. Current and explicitly targeted context was k3d-urumi-local, namespace kubernetes-basics. The committed Deployment file declared replicas: 1 and matched the working file byte for byte; all four YAML manifests remained unchanged throughout this run.
+
+| Observation | Before | After imperative scale | After declarative re-apply |
+| --- | --- | --- | --- |
+| Deployment nginx-lab desired/current/ready | 1/1/1 | 2/2/2 | 1/1/1 |
+| ReplicaSet nginx-lab-76c7f65877 desired/current/ready | 1/1/1 | 2/2/2 | 1/1/1 |
+| Pod nginx-lab-76c7f65877-bj9sz | Ready, 10.42.0.10, zero restarts | Same UID/IP; Ready, zero restarts | Same UID/IP; Ready, zero restarts |
+| Pod nginx-lab-76c7f65877-n5jjc | Absent | Ready, 10.42.0.11, zero restarts | Removed by the controller |
+| Ready EndpointSlice backends | 10.42.0.10 | 10.42.0.10 and 10.42.0.11 | 10.42.0.10 only |
+| Service ClusterIP | 10.43.133.91 | Unchanged | Unchanged |
+| Ingress | traefik; hostless / Prefix to nginx-lab:80 | Identical UID and spec | Identical UID and spec |
+| External http://localhost:8080/ | HTTP 200 | HTTP 200 | HTTP 200 |
+| Committed manifest replicas | 1 | 1 | 1 |
+
+The retained Pod UID is 4497ce51-f0fd-4c69-8d5d-ffe7505075b9; the added Pod UID was 8758820e-1da7-4706-b5ac-90283805bccd. Both ran on k3d-urumi-local-server-0. Deployment UID 450ffa99-1046-41ad-aa23-998ed3692f85 and ReplicaSet UID 73b591e5-20d5-4f7e-ae76-3e8688d272fc stayed unchanged. Service UID/spec and EndpointSlice identity also stayed unchanged; the slice's membership followed the ready Pods. The two-Pod owner references point to the same ReplicaSet: scaling changed the count, not the Pod template, so it did not create a new ReplicaSet.
+
+Ran `kubectl --context k3d-urumi-local -n kubernetes-basics scale deployment/nginx-lab --replicas=2`, then waited successfully for rollout. The Service had two ready endpoints matching the two Pod IPs; its selector needed no change. The external request returned nginx/1.30.5 and the welcome page. Identical pages do not establish which replica served a request. Two replicas provide redundancy for a Pod/container failure, but both depend on the same node and do not protect against node loss; no failure or load-distribution test was performed in this step.
+
+With live replicas at 2, ran `kubectl --context k3d-urumi-local -n kubernetes-basics diff -f labs/kubernetes-basics/deployment.yaml`. Git's existing diff.exe directory was added only to the command process PATH. The command exited 1, correctly reporting differences rather than a validation failure. The relevant output was:
+
+```diff
+-  generation: 2
++  generation: 3
+...
+-  replicas: 2
++  replicas: 1
+```
+
+The minus side is live state; the plus side is the proposed result of applying the file. replicas is the intentional configuration drift. generation is server-managed metadata predicted to increment when the spec changes, not another setting to add to our YAML. The diff's dry-run did not restore the count.
+
+Rechecked the file against its committed bytes, then ran `kubectl --context k3d-urumi-local -n kubernetes-basics apply -f labs/kubernetes-basics/deployment.yaml`. It reported configured; the next Deployment listing showed 1/1/1 and rollout succeeded. A Pod watch established beforehand showed the added n5jjc Pod as 1/1 Terminating, then 0/1 Completed. The final listing contained only bj9sz and its one ready endpoint. ReplicaSet events recorded SuccessfulCreate and SuccessfulDelete for n5jjc; Pod events recorded scheduling, cached image use, container creation/start, and Killing during removal. One Unhealthy readiness event reported connection refused at the shutdown timestamp, consistent with nginx stopping; final inspection confirmed the retained Pod remained Ready with zero restarts. The watch was intentionally stopped with Ctrl+C (interrupted exit 1).
+
+The second `kubectl diff` produced no output and exited 0: no Deployment difference remained under that comparison. Service and Ingress UID/spec comparisons matched the baseline. The final external request returned HTTP 200 with the nginx welcome page. HTTP was sampled at the three checkpoints, not continuously; no zero-downtime claim is made.
+
+The controller removed one Pod because applying the file changed live desired replicas from 2 to 1. Git/YAML expresses our intended desired state; an imperative command can change the API object's live desired state, which Kubernetes controllers follow. They do not read this Git repository automatically. Re-applying the declarative configuration restored the source-controlled count without an imperative scale-down command.
+
+For the later Helm work, the conceptual flow is `values + templates -> rendered Kubernetes manifests -> applied desired state` ([Helm chart documentation](https://helm.sh/docs/topics/charts/)). Manual live edits can diverge from that rendered configuration without changing Git or values. Helm alone does not continuously watch Git and undo drift; any eventual install/upgrade/reconciliation behavior must be validated in its own milestone. No Helm files, release, or Helm runtime test were created here.
+
+The one-replica lab and namespace remain running. No YAML, Service, or Ingress was modified; no additional workload, explicit Pod deletion command, namespace cleanup, or commit occurred. These observations teach Kubernetes behavior and do not complete an Urumi application requirement.
+
 ## References
 
 - [Official nginx image tags](https://github.com/docker-library/official-images/blob/master/library/nginx)

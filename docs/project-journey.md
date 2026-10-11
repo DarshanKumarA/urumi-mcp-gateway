@@ -103,7 +103,7 @@ Runtime inspection and documentation were reviewed and approved; committed as **
 
 ## Stage 2.4B — Pod deletion and controller reconciliation
 
-Observed on 2026-10-11; documentation is uncommitted for review. The replacement Pod remains running at one replica.
+Observed on 2026-10-11; reviewed, approved, and committed as 89d9084. The replacement Pod was left running at one replica for the next experiment.
 
 - **Starting state and scope:** Clean main at fc1c38c. Verified one desired/current/ready replica in Deployment and ReplicaSet, one Ready Pod/backend, correct context, and external HTTP 200. Captured controller, Pod, Service, EndpointSlice, and Ingress identities before the experiment. Only deletion of the current nginx Pod was authorized; manifests and replica counts stayed fixed.
 - **Action and evidence:** Started Pod and EndpointSlice watches before deleting nginx-lab-76c7f65877-pkdgp. Observed the old Pod terminating and the replacement progressing through Pending, node assignment, ContainerCreating, unready Running, and Ready. The EndpointSlice removed the old ready backend, briefly had no endpoints, then added the new address as unready before ready. Events confirmed the same ReplicaSet's SuccessfulCreate, scheduling, cached image use, and container creation/start.
@@ -111,6 +111,18 @@ Observed on 2026-10-11; documentation is uncommitted for review. The replacement
 - **Learning:** Controllers reconcile live desired state without re-applying a file. The ReplicaSet replaces an active Pod lost to deletion; scheduler and kubelet/runtime handle placement and startup; readiness gates the usable backend. Stable Service and Ingress identities let clients continue using the same addresses as endpoint membership changes. A new Pod UID distinguishes replacement from a container restart. IP reuse is possible even though the address changed here.
 - **Availability limit:** An empty ready-backend interval was directly observed. This establishes recovery, not high availability or zero downtime; HTTP was not continuously sampled and an outage duration was not measured. The single-replica design allows temporary interruption for this lesson.
 - **Repository and next boundary:** Only README actual observations, progress, and this journey change. No scaling, manifest edits, Service/Ingress alterations, extra workloads, namespace cleanup, or deliberate probe failures occurred. Stop for review before the later scaling/declarative-drift exercise; keep the replacement running.
-- **Git reference:** Uncommitted documentation following fc1c38c.
+- **Git reference:** 89d9084 — docs: record Kubernetes self-healing experiment; based on fc1c38c.
+
+## Stage 2.4C — Scaling, configuration drift, and declarative reconciliation
+
+Observed on 2026-10-11; documentation is uncommitted for review. The lab is restored to its declared one-replica state and remains running.
+
+- **Starting point:** Clean main at 89d9084. Confirmed correct context, Deployment/ReplicaSet 1/1/1, one Ready Pod and backend, external HTTP 200, and committed replicas: 1. The working Deployment manifest matched Git exactly.
+- **Imperative change:** Scaled only the live Deployment to 2. The same ReplicaSet managed existing bj9sz at 10.42.0.10 and new n5jjc at 10.42.0.11, both Ready with zero restarts on the same node. Two ready Service backends appeared without editing selectors, Service ClusterIP 10.43.133.91, or Ingress. External HTTP remained 200 at the checkpoint.
+- **Drift evidence:** kubectl diff exited 1, showing live replicas: 2 versus proposed replicas: 1 and the predicted metadata generation increment. This was an expected difference, not a command failure; the source file still expressed our intended count of one.
+- **Declarative restoration:** Re-applied the unchanged committed Deployment manifest. The controller removed n5jjc, corroborated by the Pod watch and SuccessfulDelete event. A readiness connection-refused warning coincided with the removed container's shutdown. The retained Pod remained Ready with zero restarts; Deployment/ReplicaSet returned to 1/1/1 and only 10.42.0.10 remained a ready backend. Final diff was empty (exit 0), and external HTTP returned 200.
+- **Learning:** Kubernetes controllers follow live desired state. Imperative commands can change that state without changing Git; applying the declared configuration restores source-controlled intent. Scaling the same template uses the same ReplicaSet. Two replicas on one node provide Pod-level redundancy but no protection against loss of that node; this experiment did not inject a failure or measure uninterrupted availability.
+- **Helm connection and boundary:** Future values and templates render Kubernetes manifests expressing desired state. Manual edits can drift from Helm/Git configuration; Helm alone does not continuously reconcile Git. This was a conceptual explanation, not a Helm implementation/test. All four YAML files remain unchanged, only the three authorized Markdown files change, and no additional workload, Service/Ingress alteration, cleanup, or commit occurs. Stop for review with one replica running.
+- **Git reference:** Uncommitted documentation following 89d9084.
 
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
