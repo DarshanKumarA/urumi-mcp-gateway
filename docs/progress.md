@@ -2,18 +2,20 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.4A nginx learning workload applied and inspected successfully.** Dates use the user's Asia/Calcutta calendar. urumi-local and the one-replica lab remain running. This checkpoint awaits review; Pod deletion, scaling, declarative reconciliation, and cleanup have not been run. No Urumi application workload has been deployed.
+**2026-10-11 — Stage 2.4B Pod deletion and controller reconciliation observed successfully.** Dates use the user's Asia/Calcutta calendar. urumi-local and the replacement one-replica lab remain running. This checkpoint awaits review; scaling, declarative replica-drift reconciliation, and cleanup have not been run. No Urumi application workload has been deployed.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
 A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the proposed local Minikube/Docker driver with k3d and Docker Desktop as the intended runtime. The assignment still permits Kind, k3d, or Minikube; its requirements have not changed.
 
+Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B began from that clean documentation checkpoint.
+
 No Urumi application, prototype, schema, dependency files, production application manifests, or project Helm chart exists. The cluster contains its default system resources plus the isolated nginx learning lab. Lab networking and healthy operation are verified, not completion of any full assignment runtime requirement; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
 ## Current documentation change
 
-- Record Stage 2.4A actual runtime observations in the lab README, with concise progress and journey summaries.
-- Record the approved Stage 2.3 and lab-manifest checkpoints while preserving earlier installation and validation history.
+- Append Stage 2.4B before/after identities, watch observations, recovery evidence, and limits to the lab README, with concise progress and journey summaries.
+- Record the approved Stage 2.4A checkpoint while preserving earlier runtime history.
 - Preserve all four approved YAML manifests, requirement/demo statuses, and architecture decisions. Only these three existing Markdown files change; this documentation update is not committed.
 
 ## Docker setup outcome
@@ -94,6 +96,14 @@ The Deployment has one desired/current/ready replica; inspected owner references
 
 The one-replica lab remains running. No Pod deletion, scaling, drift/reconciliation experiment, probe failure injection, cleanup, or HTTPS test was performed. Healthy operation is observed; application capacity and failure handling remain unverified. No Urumi application or Helm resources were created, and this step does not complete an assignment requirement.
 
+## Stage 2.4B controller reconciliation outcome
+
+The baseline was healthy: Deployment and ReplicaSet desired/current/ready 1/1/1, one Ready Pod, one ready Service backend, and external HTTP 200. After capturing identities and starting Pod/EndpointSlice watches, deleted only the captured nginx Pod. The same ReplicaSet created a replacement, which was scheduled on the same node, started from the cached image, and became Ready with zero restarts. The Pod UID changed and its IP changed from 10.42.0.9 to 10.42.0.10; Deployment/ReplicaSet UIDs, desired count, Service identity/ClusterIP, and Ingress identity/spec remained unchanged.
+
+Watches observed termination, replacement Pending/ContainerCreating/Running/Ready states, and the EndpointSlice moving from the old terminating backend through an empty endpoint list to the new ready backend. Events confirmed creation, scheduling, cached image availability, and container startup. Both in-cluster Service DNS access and localhost:8080 returned HTTP 200 afterward. Final Deployment/ReplicaSet counts are 1/1/1. The [lab's actual observations](../labs/kubernetes-basics/README.md#actual-observations) preserve the identity comparison and observed sequence.
+
+The empty-backend interval demonstrates why self-healing is not zero downtime. HTTP was not continuously sampled, so no outage duration or intermediate HTTP status is claimed. No manifests, replica counts, Service/Ingress configuration, or other workloads were changed. The replacement remains running; scaling, manifest/live-state drift, cleanup, and deliberate probe failures await later authorization.
+
 ## Validation and review record
 
 Stage 0's completed checks included exact transcription of 169 nonempty paragraphs, 119 list entries, and 29 heading depths; 40 local links/anchors; ignore rules; formatting; and complete governance diff review. Architecture v1's documentation checks passed on 2026-10-10: 56 local links across 9 Markdown files, consistent tracking IDs, unchanged assignment/source classifications, source checksum preservation, formatting, and complete diff review. These are historical checks, not evidence of working software.
@@ -131,6 +141,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized Stage 2.4A apply and inspection of the approved nginx learning manifests only. Show runtime observations, the three-file documentation diff, and Git status; leave the workload running and changes uncommitted, then stop for review. Do not delete the Pod, scale, reconcile replica drift, clean up, deliberately break probes, or deploy application/Helm resources. README edits are confined to its actual-observations section; its earlier authoring status is historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 2.4B deletion of only the current lab Pod and observation of controller reconciliation. Show the identity comparison, actual events/watch evidence, the three-file documentation diff, and Git status; leave the replacement running and changes uncommitted, then stop for review. Do not scale, reconcile replica drift, clean up, deliberately break probes, alter Service/Ingress or manifests, or create additional workloads. README edits are confined to its actual-observations section; earlier checkpoint statements remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

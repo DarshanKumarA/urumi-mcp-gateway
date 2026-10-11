@@ -268,6 +268,43 @@ Live Pod resources match the manifest: requests 50m CPU/32Mi memory, limits 250m
 
 The namespace and one-replica workload remain running for review. No Pod was deleted, no replica count changed, no resources cleaned up, and no commit created during this run. The later experiment steps remain future work; no Urumi application requirement is marked completed by this lab.
 
+### Stage 2.4B — Pod deletion and controller reconciliation
+
+**2026-10-11 — completed for review, not committed.** Started from approved baseline commit fc1c38c with context k3d-urumi-local, Deployment and ReplicaSet desired/current/ready counts 1/1/1, exactly one Ready nginx Pod, exactly one ready Service backend, and external HTTP 200. Captured identities before deleting only Pod nginx-lab-76c7f65877-pkdgp; its UID was rechecked immediately before deletion. No manifest, replica count, Deployment, ReplicaSet, Service, or Ingress configuration was changed.
+
+| Property | Before | After | Expected to change? |
+| --- | --- | --- | --- |
+| Deployment name | nginx-lab | nginx-lab | No |
+| Deployment UID | 450ffa99-1046-41ad-aa23-998ed3692f85 | 450ffa99-1046-41ad-aa23-998ed3692f85 | No |
+| Deployment desired/current/ready | 1/1/1 | 1/1/1 | Desired stays 1; observed availability can dip during replacement |
+| ReplicaSet name | nginx-lab-76c7f65877 | nginx-lab-76c7f65877 | Normally unchanged for simple Pod deletion |
+| ReplicaSet UID | 73b591e5-20d5-4f7e-ae76-3e8688d272fc | 73b591e5-20d5-4f7e-ae76-3e8688d272fc | No template rollout occurred |
+| ReplicaSet desired/current/ready | 1/1/1 | 1/1/1 | Desired stays 1; current/ready recover |
+| Pod name | nginx-lab-76c7f65877-pkdgp | nginx-lab-76c7f65877-bj9sz | Yes, a newly generated instance |
+| Pod UID | 4fb258e4-6bfd-43c6-b9b4-d185127674f2 | 4497ce51-f0fd-4c69-8d5d-ffe7505075b9 | Yes, definitive new identity |
+| Pod IP | 10.42.0.9 | 10.42.0.10 | May change; reuse is also possible |
+| Pod node | k3d-urumi-local-server-0 | k3d-urumi-local-server-0 | Placement is not a stable client contract; this lab has one node |
+| Pod readiness / restarts | Ready / 0 | Ready / 0 | New Pod has its own readiness/restart history |
+| Service name / UID | nginx-lab / d4087ec4-c4b3-4926-8a1a-11edca13605f | Same name and UID | No |
+| Service ClusterIP | 10.43.133.91 | 10.43.133.91 | No |
+| EndpointSlice name / UID | nginx-lab-fzdc6 / fa5472d6-c2cd-4311-b5d4-808bd151b56c | Same name and UID | Unchanged here; clients should not depend on a slice's identity |
+| Ready EndpointSlice backend | 10.42.0.9:80 | 10.42.0.10:80 | Tracks the current ready Pod |
+| Ingress name / UID | nginx-lab / 53518196-cc51-4e7f-8775-64086f8d9423 | Same name and UID | No |
+| Ingress rule | traefik class; hostless / Prefix to nginx-lab:80 | Identical spec | No |
+| External URL / status | http://localhost:8080/ / HTTP 200 | Same URL / HTTP 200 | URL stable; interruption during recovery is possible |
+
+Pod and EndpointSlice watches were established before deletion. The Pod watch actually showed the old Pod as 1/1 Terminating; the replacement appeared 0/1 Pending without a node, then Pending assigned to k3d-urumi-local-server-0, ContainerCreating, 0/1 Running at 10.42.0.10, and finally 1/1 Running. The old Pod also appeared 0/1 Completed during termination. The replacement was created while termination of the old object was still being observed; reconciliation does not require waiting for the old object to disappear completely.
+
+The EndpointSlice watch showed the old address with ready=false and terminating=true, then no endpoints, then 10.42.0.10 with ready=false, and finally that address with ready=true. This directly demonstrates a gap in ready backends. Watches were intentionally stopped with Ctrl+C after recovery; their interrupted exit status was not a reconciliation failure.
+
+Events corroborated SuccessfulCreate from the same ReplicaSet, Scheduled onto the existing server node, Pulled with the image already cached, Created, and Started for the replacement. The Ready wait and Deployment rollout check succeeded. Final inspection found exactly one Pod and one ready backend; Deployment and ReplicaSet counts were again 1/1/1. The new Pod's restart count is 0: this was replacement of an object, not restart of the old container.
+
+Post-replacement in-cluster wget through nginx-lab.kubernetes-basics.svc.cluster.local resolved to unchanged ClusterIP 10.43.133.91 and reported HTTP/1.1 200 OK. curl through localhost:8080 also reported HTTP/1.1 200 OK, Server: nginx/1.30.5, and the welcome page. nginx logs recorded successful Wget, curl, and kube-probe requests. No client URL, Service, or Ingress edits were needed because selection and ready-backend discovery followed the new Pod.
+
+Observed reconciliation: Deployment desired replicas remained 1; the ReplicaSet detected the loss of its active Pod when deletion began and created a replacement; the scheduler assigned a node; the kubelet/runtime started nginx; readiness became true; the EndpointSlice gained the new ready backend; both stable access paths worked afterward. A terminating Pod can still be visible while it no longer counts toward the controller's active desired population. EndpointSlice is discovery state, not an extra packet-forwarding hop.
+
+This demonstrates self-healing, not zero-downtime/high availability. There was an observed interval with no ready backend, but HTTP was not continuously sampled during it, so no outage duration or transient HTTP status is claimed. Temporary interruption is acceptable for this one-replica exercise. The replacement remains running; no scaling, declarative drift experiment, namespace cleanup, additional workload, or deliberate probe failure was performed.
+
 ## References
 
 - [Official nginx image tags](https://github.com/docker-library/official-images/blob/master/library/nginx)
