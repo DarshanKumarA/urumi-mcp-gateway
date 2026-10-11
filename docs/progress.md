@@ -2,18 +2,18 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.2B Kubernetes CLI toolchain installed and client validation passed.** Dates use the user's Asia/Calcutta calendar. Docker and the local CLI tools are available; no Kubernetes cluster has been created. This checkpoint awaits review.
+**2026-10-11 — Stage 2.3 local Kubernetes infrastructure created and validated.** Dates use the user's Asia/Calcutta calendar. The single-server urumi-local cluster is running with healthy essential system components. This checkpoint awaits review; no application workloads have been deployed.
 
-Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B began with a clean working tree at that checkpoint.
+Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 began with a clean working tree at that checkpoint.
 
 A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the proposed local Minikube/Docker driver with k3d and Docker Desktop as the intended runtime. The assignment still permits Kind, k3d, or Minikube; its requirements have not changed.
 
-No application, prototype, schema, dependency files, Kubernetes manifests, Helm chart, or deployment exists. Docker's disposable learning validation passed; no assignment runtime requirement is implemented or verified and every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
+No application, prototype, schema, dependency files, project Kubernetes manifests, or project Helm chart exists. The cluster contains only its default system resources. This establishes infrastructure prerequisites, not completion of any full assignment runtime requirement; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
 ## Current documentation change
 
-- Record successful Stage 2.2B tool validation in progress and one journey entry, including the existing kubectl reuse, official download sources, installed versions, and absence of any cluster/context.
-- Record the approved Stage 2.2A Git checkpoint while preserving its policy-block/manual-installation history.
+- Record Stage 2.3 prechecks, the exact creation command, actual cluster configuration, system health, startup retries, and validation limits in progress and one journey entry.
+- Record the approved Stage 2.2B Git checkpoint while preserving earlier installation and validation history.
 - Preserve all requirement/demo statuses and architecture decisions. No application files, deployment files, or dependencies are added to the repository; this documentation update is not committed.
 
 ## Docker setup outcome
@@ -35,7 +35,7 @@ The user subsequently installed Docker Desktop manually, started it, and authori
 | Docker Desktop Kubernetes | `docker desktop kubernetes status` reports disabled and "Kubernetes is stopped"; not enabled or used |
 | `docker run --rm hello-world` | Image initially absent; pulled from Docker Hub, printed "Hello from Docker!", exited 0 |
 | Cleanup and image cache | Zero hello-world containers, including stopped containers; zero total containers afterward. linux/amd64 image remains cached with one filesystem layer and command /hello |
-| Ready for k3d | Docker runtime prerequisite passed in Stage 2.2A; tool installation is recorded below. Cluster setup and full-system resource sizing remain future work |
+| Ready for k3d | Docker runtime prerequisite passed in Stage 2.2A; subsequent tool installation and cluster validation are recorded below. Full-system resource sizing remains future work |
 
 The single disposable container was the only container created in Stage 2.2A. That step did not install k3d/kubectl/Helm or create Kubernetes resources, project containers, Dockerfiles, or application directories. Docker Desktop's disabled Kubernetes integration is not the selected project cluster; k3d remains the accepted local cluster tool.
 
@@ -51,15 +51,46 @@ Installed k3d.k3d 5.9.0 and Helm.Helm 4.3.0 sequentially through WinGet, with ex
 | k3d | Create/manage local K3s cluster nodes as Docker containers | v5.9.0 | `k3d version` exit 0; reports default K3s v1.35.5-k3s1, not a running cluster |
 | Helm | Render charts and manage application releases using local/VPS values | v4.3.0 | `helm version` exit 0; no chart or release created |
 
-`kubectl config get-contexts` and `k3d cluster list` both returned empty listings. No default kubeconfig exists and no KUBECONFIG override is set. The initial `kubectl config current-context` returned "current-context is not set" (exit 1), the expected unconfigured state rather than a tool-installation failure. No context was created or changed. Docker Desktop Kubernetes still reports disabled/stopped, and Docker has zero containers. No cluster, Kubernetes resources, application files/directories, Dockerfiles, or Helm charts were created.
+At the Stage 2.2B checkpoint, `kubectl config get-contexts` and `k3d cluster list` both returned empty listings. No default kubeconfig existed and no KUBECONFIG override was set. The initial `kubectl config current-context` returned "current-context is not set" (exit 1), the expected unconfigured state rather than a tool-installation failure. No context was created or changed. Docker Desktop Kubernetes reported disabled/stopped, and Docker had zero containers. No cluster, Kubernetes resources, application files/directories, Dockerfiles, or Helm charts were created in that step.
 
-K3s is the Kubernetes distribution; k3d manages its local Docker-based cluster lifecycle. kubectl works with individual resources and operational details such as pod status, logs, and events. Helm manages chart-based releases; it complements kubectl rather than replacing that operational interface. Installing these CLIs provides executables, not a control plane or deployed workloads. The cluster image/version and resource/Ingress design remain for the next review. kubectl must be within one minor version of the chosen Kubernetes server; its current v1.36 client is within that range of k3d's reported v1.35 default, but no live compatibility test or cluster-version selection has occurred.
+K3s is the Kubernetes distribution; k3d manages its local Docker-based cluster lifecycle. kubectl works with individual resources and operational details such as pod status, logs, and events. Helm manages chart-based releases; it complements kubectl rather than replacing that operational interface. Installing these CLIs provides executables, not a control plane or deployed workloads. At Stage 2.2B, cluster version and resource/Ingress design remained for review. kubectl must be within one minor version of the chosen Kubernetes server; the v1.36 client is within that range of k3d's v1.35 default. Stage 2.3 below records the first live cluster validation.
+
+## First local Kubernetes cluster outcome
+
+Prechecks reconfirmed Docker Engine 29.8.2 reachable in Linux mode, no k3d clusters or kubectl contexts, and Docker Desktop Kubernetes disabled/stopped. TCP ports 6550, 8080, and 8443 had no existing bindings or Windows exclusions; temporary bind-and-release checks succeeded. Windows had approximately 2.79 GiB available of 15.73 GiB RAM immediately before creation. The Docker WSL environment separately reported about 6.93 GiB available within its virtual memory capacity; these figures are not additive. Headroom was judged sufficient for this infrastructure-only step against the [K3s server baseline](https://docs.k3s.io/installation/requirements) of 2 GB RAM, excluding application workloads.
+
+The user selected one server, no additional agents, the three host ports, and retained K3s defaults. Installed k3d v5.9.0 supported the following command without a syntax substitution. The API uses loopback; HTTP/HTTPS mappings use Docker's default host interfaces.
+
+```powershell
+k3d cluster create urumi-local --servers 1 --agents 0 --api-port 127.0.0.1:6550 --port "8080:80@loadbalancer" --port "8443:443@loadbalancer" --wait --timeout 5m
+```
+
+Creation completed successfully in about 54 seconds, using k3d's default rancher/k3s:v1.35.5-k3s1 image. k3d created infrastructure containers, the k3d-urumi-local Docker network and image volume, and the personal kubeconfig outside the repository. It selected the new context; kubeconfig credentials were not printed or copied into documentation.
+
+| Check / component | Observed result |
+| --- | --- |
+| Cluster and context | urumi-local: servers 1/1, agents 0/0, load balancer enabled; only context is k3d-urumi-local, selected |
+| API | https://127.0.0.1:6550 responds; `/readyz` returns ok |
+| Node and runtime | k3d-urumi-local-server-0, Ready, control-plane role, Kubernetes/K3s v1.35.5+k3s1; containerd 2.2.3-k3s1; no memory/disk pressure or scheduling taints observed |
+| Namespaces | default, kube-system, kube-public, kube-node-lease; all Active; no project namespace |
+| CoreDNS | Deployment available, Pod 1/1 Running; kube-dns ClusterIP Service present |
+| Traefik | Deployment available, Pod 1/1 Running; ServiceLB DaemonSet ready 1/1 with a 2/2 Running Pod; LoadBalancer Service exposes 80/443 |
+| Metrics-server | Deployment available, Pod 1/1 Running; metrics API works through `kubectl top nodes` |
+| Storage | local-path is the default StorageClass, provisioner rancher.io/local-path, Delete reclaim policy, WaitForFirstConsumer binding; provisioner Pod 1/1 Running. No PVC or persistence test created |
+| Infrastructure containers | k3d-urumi-local-server-0 (K3s), k3d-urumi-local-serverlb (k3d-proxy 5.9.0), and k3d-urumi-local-tools (k3d-tools 5.9.0) all running; tools helper is not a Kubernetes node |
+| Host mappings | serverlb publishes 127.0.0.1:6550 to 6443, host 8080 to 80, and host 8443 to 443; HTTP/HTTPS bindings appear on IPv4/IPv6 wildcard interfaces |
+| HTTP observation | http://127.0.0.1:8080/ returns expected Traefik 404 with no application Ingress route; HTTPS certificates/routing were not validated |
+| Desktop Kubernetes | Still disabled/stopped; this cluster is managed by k3d |
+
+Validation ran the requested cluster, Docker container, context, cluster-info, node, namespace, Pod, Service, and StorageClass listings. It additionally waited for node Ready, all four system Deployments Available, and both Traefik bootstrap Jobs Complete; inspected the ServiceLB DaemonSet and API readiness; and retrieved node metrics. Early Flannel subnet initialization warnings and a metrics-server image download EOF cleared through automatic retries without configuration changes. The Traefik installation Job completed after one container restart; its CRD Job also completed. Completed bootstrap Pods correctly show 0/1 Ready because their work has ended; all continuing system Pods were ready with zero restarts at the final check.
+
+Windows available RAM was about 1.28 GiB after startup. The node metrics snapshot showed about 727 MiB memory usage and no memory pressure was observed, but this is not total Windows/Docker overhead or an application capacity budget. Reassess host memory before expanding the environment. No project workload, nginx learning workload, application directory, Dockerfile, Helm chart, or additional CNI/NetworkPolicy tooling was created. k3d's nginx-based infrastructure proxy and K3s's automatic Traefik Helm Jobs are cluster internals, not project scaffolding. Stable application URLs, real persistent-volume behavior, TLS, and VPS compatibility remain unverified.
 
 ## Validation and review record
 
 Stage 0's completed checks included exact transcription of 169 nonempty paragraphs, 119 list entries, and 29 heading depths; 40 local links/anchors; ignore rules; formatting; and complete governance diff review. Architecture v1's documentation checks passed on 2026-10-10: 56 local links across 9 Markdown files, consistent tracking IDs, unchanged assignment/source classifications, source checksum preservation, formatting, and complete diff review. These are historical checks, not evidence of working software.
 
-Stage 2 preflight was read-only. Existing Git/Python/Node/npm and WSL were detected; the cluster toolchain was not. Approximately 24 logical CPUs and 110 GiB free disk supported initial planning, but only 2.6–2.8 GiB of 15.7 GiB RAM was available. Docker startup/container mode were untested at that point; Stage 2.2A now verifies them. Cluster operation, Ingress, and a full-system resource budget remain untested. Detailed engineering findings are in the journey.
+Stage 2 preflight was read-only. Existing Git/Python/Node/npm and WSL were detected; the cluster toolchain was not. Approximately 24 logical CPUs and 110 GiB free disk supported initial planning, but only 2.6–2.8 GiB of 15.7 GiB RAM was available. Docker startup/container mode were untested at that point; Stage 2.2A verified them. Stage 2.3 now verifies the empty cluster and HTTP forwarding to Traefik; application Ingress and a full-system resource budget remain untested. Detailed engineering findings are in the journey.
 
 The preceding k3d documentation checkpoint's checks passed on 2026-10-11 using inline Python and read-only Git commands. The table below records that historical checkpoint. No validation scripts or scaffolding were added.
 
@@ -75,21 +106,23 @@ Stage 2.2A documentation checks also passed: 58 local links across 9 Markdown fi
 
 The runtime evidence for Stage 2.2A is the Docker validation table above, including the actual hello-world run and cleanup; its documentation was subsequently committed as 84395d5. Stage 2.2B adds successful CLI version checks and empty cluster/context listings. Neither checkpoint proves a working k3d/Ingress deployment or satisfies the assignment's application demos.
 
-Stage 2.2B documentation validation passed: 58 local links across 9 Markdown files, Markdown tables/encoding/whitespace, unchanged assignment and requirement/demo statuses, and the original DOCX checksum. Only progress and the journey changed, with one new Stage 2.2B entry and the preceding commit reference recorded; no repository files/directories were added and the index remains empty. Full diff review accompanies this checkpoint; no credentials or application/generated files were introduced.
+Stage 2.2B documentation validation passed: 58 local links across 9 Markdown files, Markdown tables/encoding/whitespace, unchanged assignment and requirement/demo statuses, and the original DOCX checksum. Only progress and the journey changed, with one new Stage 2.2B entry and the preceding commit reference recorded; no repository files/directories were added. The full diff was reviewed, and the user subsequently approved commit 248f13c. No credentials or application/generated files were introduced.
+
+Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Markdown files, table widths, UTF-8/LF/final-newline/whitespace, and the original DOCX checksum. Only progress and the journey changed; the index is empty and no untracked files were introduced. Assignment, requirement/demo statuses, and other tracked files are unchanged. Added-text credential-pattern checks passed; the complete diff is shown for review. No commit is created in this step.
 
 ## Open and provisional work
 
-- Docker Desktop's WSL2/Linux runtime and kubectl/k3d/Helm clients are verified. Selecting compatible cluster versions, node count, memory allocation, and host ports needs the next reviewed plan. Recheck available memory before cluster creation; CLI validation does not establish workload capacity or cluster compatibility.
+- Docker Desktop's WSL2/Linux runtime, local CLIs, and the single-server K3s v1.35.5+k3s1 cluster are verified. API port 6550 and Ingress mappings 8080/8443 are established. No explicit node memory cap was selected; available host RAM is tight and full-stack workload capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
 - LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Chart dependencies, WordPress/MariaDB packaging, Ingress/DNS/TLS, storage, probes, and resources await the Kubernetes/store milestone. k3d alone does not establish stable URLs or prove VPS compatibility.
+- Chart dependencies, WordPress/MariaDB packaging, application Ingress/DNS/TLS, PVCs, probes, and resource sizing await later review. Default Traefik and local-path are healthy infrastructure, not proof of application URLs, persistence, or VPS compatibility.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-The user authorized Stage 2.2B CLI installation and validation only. Show tool versions, explain k3d/K3s/kubectl/Helm responsibilities, show Git status and the documentation diff, leave changes uncommitted, and stop for review. No cluster creation, Kubernetes resources, project containers, application code/directories, or Helm charts are authorized in this step. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 2.3 cluster infrastructure creation and inspection only. Show validation results, explain the Windows/Docker/k3d/K3s/node/Pod layers and kubeconfig/API concepts, show Git status and the complete documentation diff, leave changes uncommitted, and stop for review. No application code/directories, WooCommerce deployment, project Kubernetes workloads, Helm charts, or nginx learning workload are authorized in this step. Only progress and the journey are updated; older architecture/preflight statements retain their historical context, with current infrastructure evidence recorded here. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
