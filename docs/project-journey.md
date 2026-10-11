@@ -52,7 +52,7 @@ Preflight reviewed and k3d selected on 2026-10-11. This completes the preflight/
 
 ## Stage 2.2A — Docker Desktop setup and runtime validation
 
-Initial installation attempt blocked on 2026-10-11; the user then installed and started Docker Desktop manually. Runtime validation passed on 2026-10-11; documentation awaits review and remains uncommitted.
+Initial installation attempt blocked on 2026-10-11; the user then installed and started Docker Desktop manually. Runtime validation and documentation were reviewed and approved; committed as **84395d5** on 2026-10-11.
 
 - **Starting state and problem:** Clean main at 1f2aec9. Establish the Linux-container runtime that k3d will later use, before installing cluster tools or creating project workloads.
 - **Plan and rationale:** WinGet 1.29.380 identified Docker.DockerDesktop 4.94.0 and its Docker-hosted installer. The initial plan selected the official per-user path with WSL2/Linux containers and Docker Desktop Kubernetes disabled, covering the runtime need without all-users elevation. First-run agreement acceptance was left to the user.
@@ -61,6 +61,18 @@ Initial installation attempt blocked on 2026-10-11; the user then installed and 
 - **Learning validation:** One `docker run --rm hello-world` succeeded with exit 0. The Windows CLI sent Docker API requests through Desktop's local named pipe to the Linux engine. Because the image was absent locally, Docker pulled it from Docker Hub and cached its image data; inspection shows one immutable filesystem layer and the /hello command. Docker created an isolated container with a writable layer, ran /hello, and relayed its greeting through the engine and CLI to the terminal. On process exit, `--rm` removed the container and its writable layer. Both the hello-world container listing and total container count were zero afterward; the image remains cached for reuse.
 - **Learning and limits:** CLI availability, engine reachability, and Linux/WSL2 operation now have runtime evidence. An image is a reusable template; a container is a created runtime instance. Automatic container removal does not delete the cached image. This establishes the Docker prerequisite for k3d, not a Kubernetes cluster, stable Ingress, or full-system resource capacity.
 - **Repository and next step:** Only progress and this existing journey entry change; assignment, architecture, and requirement/demo statuses remain unchanged. No project containers, Dockerfiles, application directories, or Kubernetes resources were created, and no k3d/kubectl/Helm installation was performed. Stop for review before the next tooling step.
-- **Git reference:** Uncommitted documentation following 1f2aec9; no commit authorized for this step.
+- **Git reference:** 84395d5 — docs: record validated Docker runtime; based on 1f2aec9.
+
+## Stage 2.2B — Kubernetes CLI toolchain setup
+
+Tool installation and client validation completed on 2026-10-11; documentation awaits review and remains uncommitted. No cluster was created.
+
+- **Starting state and problem:** Clean main at 84395d5 with a verified Docker Desktop WSL2/Linux engine. Establish the CLIs needed for a later k3d/K3s environment without starting its control plane or deploying workloads.
+- **Concepts and decision:** K3s supplies Kubernetes; k3d manages K3s nodes in Docker; kubectl operates against the Kubernetes API; Helm packages and manages application releases. Reuse Docker Desktop's existing kubectl v1.36.1 and install k3d v5.9.0 plus Helm v4.3.0 through WinGet in user scope.
+- **Alternatives and rationale:** The official Kubernetes.kubectl package was available, but a duplicate install would introduce another binary/PATH choice without a present need. Verified k3d.k3d and Helm.Helm manifests download directly from the upstream k3d GitHub release and get.helm.sh. WinGet managed aliases/PATH and verified download hashes; no unofficial binary host, policy workaround, or elevation was needed.
+- **Validation performed:** All three version commands exited 0. k3d reports default K3s v1.35.5-k3s1; this is metadata, not a running server or an agreed cluster version. kubectl contexts and k3d clusters were empty, no kubeconfig was created, Desktop Kubernetes remained disabled, and Docker had zero containers. The unset-current-context result was expected. No API context was changed or Kubernetes resource created.
+- **Learning:** Installing tools does not create a cluster. Helm manages chart releases but kubectl is still needed to inspect resources, logs, and events. Existing shells may need a PATH refresh after installation. Version-command success proves executable availability; actual cluster compatibility, Ingress access, and resource capacity still need later validation.
+- **Repository and next step:** Only progress and this journey change, including recording the preceding approved commit. Assignment requirements, demo statuses, and architecture decisions remain unchanged. Stop for review before choosing cluster versions, sizing, and host port mappings or creating any cluster/chart/application files.
+- **Git reference:** Uncommitted documentation following 84395d5; no commit authorized for this step.
 
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.

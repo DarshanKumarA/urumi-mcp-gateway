@@ -2,9 +2,9 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.2A Docker Desktop runtime validation passed after manual installation.** Dates use the user's Asia/Calcutta calendar. The Linux-container runtime prerequisite for k3d is ready; no Kubernetes cluster has been created.
+**2026-10-11 — Stage 2.2B Kubernetes CLI toolchain installed and client validation passed.** Dates use the user's Asia/Calcutta calendar. Docker and the local CLI tools are available; no Kubernetes cluster has been created. This checkpoint awaits review.
 
-Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation, including the prior journey checkpoint update, was committed as **1f2aec9 — docs: select k3d after environment preflight**. This setup attempt began with a clean working tree.
+Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B began with a clean working tree at that checkpoint.
 
 A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the proposed local Minikube/Docker driver with k3d and Docker Desktop as the intended runtime. The assignment still permits Kind, k3d, or Minikube; its requirements have not changed.
 
@@ -12,7 +12,8 @@ No application, prototype, schema, dependency files, Kubernetes manifests, Helm 
 
 ## Current documentation change
 
-- Update only the existing Stage 2.2A records in progress and the journey: preserve the initial policy block, then record manual installation and successful runtime validation. Keep the preceding k3d commit reference.
+- Record successful Stage 2.2B tool validation in progress and one journey entry, including the existing kubectl reuse, official download sources, installed versions, and absence of any cluster/context.
+- Record the approved Stage 2.2A Git checkpoint while preserving its policy-block/manual-installation history.
 - Preserve all requirement/demo statuses and architecture decisions. No application files, deployment files, or dependencies are added to the repository; this documentation update is not committed.
 
 ## Docker setup outcome
@@ -34,9 +35,25 @@ The user subsequently installed Docker Desktop manually, started it, and authori
 | Docker Desktop Kubernetes | `docker desktop kubernetes status` reports disabled and "Kubernetes is stopped"; not enabled or used |
 | `docker run --rm hello-world` | Image initially absent; pulled from Docker Hub, printed "Hello from Docker!", exited 0 |
 | Cleanup and image cache | Zero hello-world containers, including stopped containers; zero total containers afterward. linux/amd64 image remains cached with one filesystem layer and command /hello |
-| Ready for k3d | Docker runtime prerequisite passed; k3d tooling/cluster setup and full-system resource sizing remain future work |
+| Ready for k3d | Docker runtime prerequisite passed in Stage 2.2A; tool installation is recorded below. Cluster setup and full-system resource sizing remain future work |
 
-The single disposable container was the only container created in this validation. No k3d, kubectl, or Helm installation, Kubernetes activation/resources, project containers, Dockerfiles, or application directories were created by this step. Docker Desktop's disabled Kubernetes integration is not the selected project cluster; k3d remains the accepted future local cluster tool.
+The single disposable container was the only container created in Stage 2.2A. That step did not install k3d/kubectl/Helm or create Kubernetes resources, project containers, Dockerfiles, or application directories. Docker Desktop's disabled Kubernetes integration is not the selected project cluster; k3d remains the accepted local cluster tool.
+
+## Kubernetes CLI toolchain outcome
+
+Stage 2.2B first checked availability. Refreshing only the command process's PATH from the existing Windows configuration exposed Docker Desktop's bundled kubectl v1.36.1. It already passed client validation, so no duplicate kubectl installation was needed. Kubernetes documents this bundled CLI and the separate Kubernetes.kubectl WinGet option in its [Windows installation guide](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/).
+
+Installed k3d.k3d 5.9.0 and Helm.Helm 4.3.0 sequentially through WinGet, with exact IDs/versions, the winget source, user scope, and prompts disabled. The manifests point directly to the [official k3d release](https://github.com/k3d-io/k3d/releases/tag/v5.9.0) and get.helm.sh respectively; WinGet verified each installer hash. These package-manager manifests are community-maintained, while the downloaded binaries come from the upstream projects. [Helm's installation guide](https://helm.sh/docs/intro/install/) documents its WinGet option. No policy block or user interaction occurred for these installations; WinGet added command aliases and PATH entries outside the repository.
+
+| Tool | Role in our architecture | Installed version | Validation result |
+| --- | --- | --- | --- |
+| kubectl | Inspect/manage Kubernetes resources through the future cluster API | v1.36.1, already supplied by Docker Desktop | `kubectl version --client` exit 0; retained existing binary |
+| k3d | Create/manage local K3s cluster nodes as Docker containers | v5.9.0 | `k3d version` exit 0; reports default K3s v1.35.5-k3s1, not a running cluster |
+| Helm | Render charts and manage application releases using local/VPS values | v4.3.0 | `helm version` exit 0; no chart or release created |
+
+`kubectl config get-contexts` and `k3d cluster list` both returned empty listings. No default kubeconfig exists and no KUBECONFIG override is set. The initial `kubectl config current-context` returned "current-context is not set" (exit 1), the expected unconfigured state rather than a tool-installation failure. No context was created or changed. Docker Desktop Kubernetes still reports disabled/stopped, and Docker has zero containers. No cluster, Kubernetes resources, application files/directories, Dockerfiles, or Helm charts were created.
+
+K3s is the Kubernetes distribution; k3d manages its local Docker-based cluster lifecycle. kubectl works with individual resources and operational details such as pod status, logs, and events. Helm manages chart-based releases; it complements kubectl rather than replacing that operational interface. Installing these CLIs provides executables, not a control plane or deployed workloads. The cluster image/version and resource/Ingress design remain for the next review. kubectl must be within one minor version of the chosen Kubernetes server; its current v1.36 client is within that range of k3d's reported v1.35 default, but no live compatibility test or cluster-version selection has occurred.
 
 ## Validation and review record
 
@@ -56,11 +73,13 @@ The preceding k3d documentation checkpoint's checks passed on 2026-10-11 using i
 
 Stage 2.2A documentation checks also passed: 58 local links across 9 Markdown files, table/encoding/whitespace checks, unchanged protected files and original DOCX checksum, and exactly two modified documentation files with no additions or staged changes. The full diff was reviewed; no credentials or application/generated files were introduced. No commit was created.
 
-The runtime evidence for Stage 2.2A is the Docker validation table above, including the actual hello-world run and cleanup. It does not prove a working k3d/Ingress deployment or satisfy the assignment's application demos.
+The runtime evidence for Stage 2.2A is the Docker validation table above, including the actual hello-world run and cleanup; its documentation was subsequently committed as 84395d5. Stage 2.2B adds successful CLI version checks and empty cluster/context listings. Neither checkpoint proves a working k3d/Ingress deployment or satisfies the assignment's application demos.
+
+Stage 2.2B documentation validation passed: 58 local links across 9 Markdown files, Markdown tables/encoding/whitespace, unchanged assignment and requirement/demo statuses, and the original DOCX checksum. Only progress and the journey changed, with one new Stage 2.2B entry and the preceding commit reference recorded; no repository files/directories were added and the index remains empty. Full diff review accompanies this checkpoint; no credentials or application/generated files were introduced.
 
 ## Open and provisional work
 
-- k3d is selected, and Docker Desktop's WSL2/Linux runtime is now verified. Installing k3d/kubectl/Helm, selecting compatible cluster versions, node count, memory allocation, and host ports need the next reviewed plan. Recheck available memory before cluster creation.
+- Docker Desktop's WSL2/Linux runtime and kubectl/k3d/Helm clients are verified. Selecting compatible cluster versions, node count, memory allocation, and host ports needs the next reviewed plan. Recheck available memory before cluster creation; CLI validation does not establish workload capacity or cluster compatibility.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
@@ -71,6 +90,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized resuming Docker validation after manual installation and one disposable hello-world run. Those checks passed with WSL2/Linux containers and Docker Desktop Kubernetes disabled. Show the results, explain the CLI-to-engine/image/container lifecycle, show the documentation diff and Git status, leave changes uncommitted, and stop for review. k3d/kubectl/Helm installation, cluster/resources, project containers, application files, and Dockerfiles remain outside this step. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 2.2B CLI installation and validation only. Show tool versions, explain k3d/K3s/kubectl/Helm responsibilities, show Git status and the documentation diff, leave changes uncommitted, and stop for review. No cluster creation, Kubernetes resources, project containers, application code/directories, or Helm charts are authorized in this step. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
