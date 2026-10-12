@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "urumi.mariadbName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mariadb
+spec:
+  serviceName: {{ include "urumi.mariadbName" . }}
+  replicas: 1
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  selector:
+    matchLabels:
+      {{- include "urumi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mariadb
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: mariadb
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      containers:
+        - name: mariadb
+          image: {{ .Values.mariadb.image | quote }}
+          imagePullPolicy: IfNotPresent
+          args:
+            - {{ printf "--port=%v" .Values.mariadb.port | quote }}
+          ports:
+            - name: mysql
+              containerPort: {{ .Values.mariadb.port }}
+          env:
+            - name: MARIADB_DATABASE
+              value: {{ .Values.mariadb.database | quote }}
+            - name: MARIADB_USER
+              value: {{ .Values.mariadb.username | quote }}
+            - name: MARIADB_ROOT_PASSWORD_FILE
+              value: /run/secrets/mariadb-root/root-password
+            - name: MARIADB_PASSWORD_FILE
+              value: /run/secrets/store-db/password
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: mariadb-root-secret
+              mountPath: /run/secrets/mariadb-root
+              readOnly: true
+            - name: store-db-secret
+              mountPath: /run/secrets/store-db
+              readOnly: true
+          startupProbe:
+            exec:
+              command: [healthcheck.sh, --connect, --innodb_initialized]
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            exec:
+              command: [healthcheck.sh, --connect]
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: [healthcheck.sh, --connect, --innodb_initialized]
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.mariadb.resources | nindent 12 }}
+      volumes:
+        - name: mariadb-root-secret
+          secret:
+            secretName: {{ .Values.mariadb.rootSecretName | quote }}
+            items:
+              - key: root-password
+                path: root-password
+        - name: store-db-secret
+          secret:
+            secretName: {{ .Values.mariadb.appSecretName | quote }}
+            items:
+              - key: password
+                path: password
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "urumi.labels" . | nindent 10 }}
+          app.kubernetes.io/component: mariadb
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- with .Values.mariadb.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.mariadb.persistence.size | quote }}

@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "urumi.wordpressName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "urumi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: wordpress
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: wordpress
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      containers:
+        - name: wordpress
+          image: {{ .Values.wordpress.image | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: {{ printf "%s:%v" (include "urumi.mariadbName" .) .Values.mariadb.port | quote }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.mariadb.database | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.mariadb.username | quote }}
+            - name: WORDPRESS_DB_PASSWORD_FILE
+              value: /run/secrets/store-db/password
+            - name: WORDPRESS_AUTH_KEY_FILE
+              value: /run/secrets/wordpress-auth/auth-key
+            - name: WORDPRESS_SECURE_AUTH_KEY_FILE
+              value: /run/secrets/wordpress-auth/secure-auth-key
+            - name: WORDPRESS_LOGGED_IN_KEY_FILE
+              value: /run/secrets/wordpress-auth/logged-in-key
+            - name: WORDPRESS_NONCE_KEY_FILE
+              value: /run/secrets/wordpress-auth/nonce-key
+            - name: WORDPRESS_AUTH_SALT_FILE
+              value: /run/secrets/wordpress-auth/auth-salt
+            - name: WORDPRESS_SECURE_AUTH_SALT_FILE
+              value: /run/secrets/wordpress-auth/secure-auth-salt
+            - name: WORDPRESS_LOGGED_IN_SALT_FILE
+              value: /run/secrets/wordpress-auth/logged-in-salt
+            - name: WORDPRESS_NONCE_SALT_FILE
+              value: /run/secrets/wordpress-auth/nonce-salt
+          volumeMounts:
+            - name: wordpress-data
+              mountPath: /var/www/html
+            - name: store-db-secret
+              mountPath: /run/secrets/store-db
+              readOnly: true
+            - name: wordpress-auth-secret
+              mountPath: /run/secrets/wordpress-auth
+              readOnly: true
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 60
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # INTERIM: listener only, not database/WooCommerce/bootstrap readiness.
+          # Replace with the accepted bounded inline PHP check BEFORE deployment.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.wordpress.resources | nindent 12 }}
+      volumes:
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: {{ default (include "urumi.wordpressName" .) .Values.wordpress.persistence.existingClaim | quote }}
+        - name: store-db-secret
+          secret:
+            secretName: {{ .Values.mariadb.appSecretName | quote }}
+            items:
+              - key: password
+                path: password
+        - name: wordpress-auth-secret
+          secret:
+            secretName: {{ .Values.wordpress.authSecretName | quote }}
+            items:
+              - key: auth-key
+                path: auth-key
+              - key: secure-auth-key
+                path: secure-auth-key
+              - key: logged-in-key
+                path: logged-in-key
+              - key: nonce-key
+                path: nonce-key
+              - key: auth-salt
+                path: auth-salt
+              - key: secure-auth-salt
+                path: secure-auth-salt
+              - key: logged-in-salt
+                path: logged-in-salt
+              - key: nonce-salt
+                path: nonce-salt

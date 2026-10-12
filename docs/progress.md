@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-12 — Store Architecture v1 and its RAM correction approved; documentation recorded for review, implementation not started.** Dates use the user's Asia/Calcutta calendar. Stage 2.4 cleanup and the completed fundamentals lab were approved and committed as **7462029 — docs: complete Kubernetes fundamentals lab**. The lab resources were removed and urumi-local was left running; this documentation step does not recheck or change the cluster. No Urumi application workload has been deployed.
+**2026-10-12 — Stage 3.2 initial store Helm templates created and statically validated; bootstrap and deployment remain pending.** Dates use the user's Asia/Calcutta calendar. Store Architecture v1 and its RAM correction are approved; their existing uncommitted documentation is preserved. Stage 2.4 cleanup was committed as **7462029 — docs: complete Kubernetes fundamentals lab**. The lab resources were removed and urumi-local was left running; this step does not recheck or change the cluster. No Urumi application workload has been deployed.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-No Urumi application, prototype, schema, dependency files, production application manifests, or project Helm chart exists. The cluster has returned to its default namespaces/system resources after lab cleanup. The fundamentals lab is complete, but no full assignment runtime requirement is marked implemented or verified; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
+An initial project Helm chart now exists, but no Urumi application source, prototype, schema, bootstrap Job/scripts or release exists. The cluster was left at its default namespaces/system resources after lab cleanup. The fundamentals lab is complete, but no full assignment runtime requirement is marked implemented or verified; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
 
 ## Current documentation change
 
-- Record accepted Store Architecture v1 in architecture and DEC-018–DEC-021, plus its chronological journey; clarify the requirements introduction without changing any matrix status or assignment scope.
-- Record the Stage 2.4D commit and replace stale current-state deployment-design deferrals, preserving historical observations.
-- Only architecture, decisions, progress, project-journey and the requirements introduction change. No charts, Secrets, application files or runtime changes; no staging or commit is authorized.
+- Preserve the preceding uncommitted Store Architecture v1/DEC-018–DEC-021 documentation and Stage 2.4D commit reference.
+- Add exactly eleven initial chart files; update architecture, progress, journey and relevant requirement plans/statuses to distinguish partial static templates from working runtime behavior. The decision register needs no further change in this step.
+- No bootstrap files, Secret objects/values, generated manifests in Git or runtime changes; no staging or commit is authorized.
 
 ## Stage 3 store design outcome
 
@@ -35,6 +35,39 @@ The design-stage source/registry checks support the selected WordPress 7.1.3/PHP
 Keep these starting budgets unchanged. Recheck host memory and Docker/WSL/node capacity immediately before first Helm install. Measure host/node/workload memory during MariaDB startup, WordPress startup, Job execution, normal storefront/admin use and checkout. Stop and tune on OOM kills, unexplained restarts, severe host pressure or insufficient scheduling capacity before adding further Urumi components. A passing gate permits cautious planning for an initial attempt; this step still authorizes documentation only.
 
 Documentation validation: 68 local links/anchors across 10 Markdown files resolve; changed tables, UTF-8/LF, final newlines and Git whitespace checks pass. All requirement/demo matrix rows, the original DOCX checksum, lab manifests and other tracked files are unchanged. Only the five authorized existing Markdown files differ; no staged/untracked files or credential-pattern matches were found. These checks provide no new runtime evidence.
+
+## Stage 3.2 initial Helm chart static validation
+
+Created Chart.yaml, three values files, _helpers.tpl and six resource templates under charts/urumi. No chart dependency, sidecar, custom image, ConfigMap, Namespace, Secret, bootstrap Job or bootstrap script was added. Each environment renders the same six objects in namespace urumi: PersistentVolumeClaim urumi-wordpress; Services urumi-wordpress and urumi-mariadb; Deployment urumi-wordpress; StatefulSet urumi-mariadb; Ingress urumi-wordpress. The future database claim is data-urumi-mariadb-0, generated by the StatefulSet controller rather than Helm rendering.
+
+Shared defaults pin the two approved Linux/amd64 image references, 2 GiB/5 GiB storage, the unchanged CPU/memory budgets and external Secret names. Local values set local-path and store.urumi.test; canonicalUrl is http://store.urumi.test:8080 and remains a value for later bootstrap. Production values use the reserved store.example.invalid hostname, HTTPS, a replace-with-production-tls-secret reference and replace-with-production-storage-class placeholders. They demonstrate configuration structure and are not ready for deployment. Namespace comes from --namespace; the chart does not own/create it.
+
+WordPress uses Recreate with one replica, full-webroot persistence, Secret-file references, startup/liveness TCP checks and an explicitly interim TCP readiness probe. **Replace readiness with the accepted dependency-aware check before installation.** MariaDB uses one replica, a headless internal Service, retained StatefulSet claims, Secret-file references and official healthcheck.sh connection/InnoDB probes. No readiness check or storage behavior was executed.
+
+| Static check | Result and limit |
+| --- | --- |
+| YAML parsing | Chart/values and all rendered documents parse; duplicate keys rejected. Helm templates are parsed after rendering, not as raw YAML |
+| Helm lint | Helm 4.3.0 strict lint passes for shared/local/production values; only informational icon recommendation |
+| Helm template | Local and production each render six resources with --namespace urumi --kube-version 1.35.5; no server access |
+| Kubernetes schema | Passed against official Kubernetes v1.35.5 OpenAPI definitions, matching the last validated cluster version. Local JSON Schema validation adapts Kubernetes IntOrString format and rejects unknown structured fields; it is not API admission validation |
+| Resource relationships | Checked names/namespace, stable selectors versus Pod labels, named Service target ports, Ingress backend, storage mounts/sizes/classes, exact image pins, resource budgets and probes |
+| Credential/exposure checks | All sensitive env settings reference projected Secret files, root credentials are DB-only, auth keys are WordPress-only; no Secret objects, plaintext credential env values, public DB Service/Ingress, hostPort or hostNetwork |
+| Configuration branches | Alternate release/namespace and DB port render consistently; existingClaim removes the WordPress PVC and reuses the supplied name; enabling TLS without a Secret name correctly fails rendering |
+
+Representative commands (already executed as local/static checks; rendered YAML was held in memory):
+
+```powershell
+helm lint charts/urumi --strict --kube-version 1.35.5 -f charts/urumi/values-local.yaml
+helm lint charts/urumi --strict --kube-version 1.35.5 -f charts/urumi/values-prod.yaml
+helm template urumi charts/urumi --namespace urumi --kube-version 1.35.5 -f charts/urumi/values-local.yaml
+helm template urumi charts/urumi --namespace urumi --kube-version 1.35.5 -f charts/urumi/values-prod.yaml
+```
+
+The schema source is the [official versioned Kubernetes OpenAPI file](https://github.com/kubernetes/kubernetes/blob/v1.35.5/api/openapi-spec/swagger.json). The [pinned WordPress configuration source](https://github.com/docker-library/wordpress/blob/5ec12a3ef21493a12f3d211e0d69d0c6a30a9794/wp-config-docker.php) and [MariaDB healthcheck source](https://github.com/MariaDB/mariadb-docker/blob/bdfe641466a5312bb97d06a1a4e1fb411c49e6b6/11.4/healthcheck.sh) support the selected file references/probe commands, not runtime success.
+
+Before deployment: implement/review bootstrap and final readiness; prepare the namespace and external Secrets through a separately authorized step; configure the local hosts mapping or real production DNS/TLS/storage; recheck image availability and host/node memory. No memory measurement was taken here; the accepted user-reported ~4.1 GiB gate passes only for an initial attempt, not full-stack capacity. No helm install/upgrade, Kubernetes apply/server dry-run, cluster inspection, image execution or hosts-file edit occurred.
+
+Repository validation passed for all 70 local links/anchors, Markdown tables, UTF-8/LF and whitespace. Exactly eleven requested chart files are new; the index is empty, and no generated render/schema files were saved. Credential-pattern checks of tracked files (including source DOCX text) and new/rendered chart content found no credential values. Nine requirement rows record partial template progress only; obligation text, IDs, source/classification, verification/demo fields and every demo row remain unchanged. Source DOCX checksum and lab files are preserved. The pre-existing decision-register edit is unchanged by Stage 3.2.
 
 ## Docker setup outcome
 
@@ -175,6 +208,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized recording accepted Store Architecture v1 and its RAM correction in existing documentation only. Show the complete documentation diff, validation and Git status, then stop for review. Do not create Helm files, Secrets or workloads, deploy anything, stage or commit. Leave the cluster and lab files unchanged. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized only Stage 3.2 chart file creation and static validation. Show the chart tree, complete new-file/documentation diffs, local/production inventories, resource explanations, deployment prerequisites and Git status, then stop for review. Do not create bootstrap files, Secrets or workloads, install/upgrade the release, apply resources, edit hosts, stage or commit. Leave the cluster and lab files unchanged. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

@@ -1,0 +1,22 @@
+{{- if not .Values.wordpress.persistence.existingClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "urumi.wordpressName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    # Skips Helm deletion; does not prevent namespace/PVC deletion or data loss.
+    helm.sh/resource-policy: keep
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- with .Values.wordpress.persistence.storageClass }}
+  storageClassName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.wordpress.persistence.size | quote }}
+{{- end }}

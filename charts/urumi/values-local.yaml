@@ -1,0 +1,16 @@
+# Host mapping belongs to a later authorized Windows setup step.
+# k3d already maps host 8080 to Traefik HTTP 80; Ingress host has no port.
+# Sizes, resource budgets and DB name/user inherit the shared defaults.
+wordpress:
+  canonicalUrl: http://store.urumi.test:8080
+  persistence:
+    storageClass: local-path
+  ingress:
+    className: traefik
+    host: store.urumi.test
+    tls:
+      enabled: false
+
+mariadb:
+  persistence:
+    storageClass: local-path

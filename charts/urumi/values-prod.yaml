@@ -1,0 +1,36 @@
+# Structural example only, not a deployable production configuration.
+# Replace the reserved domain, TLS Secret name and both StorageClass names.
+# Verify the target's Ingress class and Linux/amd64 architecture.
+# No TLS certificate, Secret or StorageClass is created by this chart.
+wordpress:
+  canonicalUrl: https://store.example.invalid
+  persistence:
+    storageClass: replace-with-production-storage-class
+    # Initial budget only; choose capacity for the target and data size.
+    size: 2Gi
+  ingress:
+    className: traefik
+    host: store.example.invalid
+    tls:
+      enabled: true
+      secretName: replace-with-production-tls-secret
+  # Independently configurable; unchanged until measurements justify tuning.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+mariadb:
+  persistence:
+    storageClass: replace-with-production-storage-class
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

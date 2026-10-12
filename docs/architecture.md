@@ -1,6 +1,6 @@
 # Architecture v1 and assignment boundaries
 
-Status: **A1–A13 committed as db49836; local k3d choice and Stage 2 fundamentals validated; Store Architecture v1 and corrected RAM gate accepted on 2026-10-12, recorded here for documentation review. No application implemented.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval does not authorize implementation or prove a requirement works.
+Status: **A1–A13 committed as db49836; Stage 2 fundamentals validated; Store Architecture v1 and corrected RAM gate accepted on 2026-10-12. Stage 3.2 adds initial store Helm templates with static validation only; no application deployed.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval does not authorize implementation or prove a requirement works.
 
 ## Assignment constraints
 
@@ -120,7 +120,7 @@ Finite WP-CLI Job -> same WordPress PVC, co-located on the WordPress node
 External Kubernetes Secrets -> only the workloads needing each credential
 ```
 
-- One application namespace `urumi` and one application chart/release. Create the namespace outside Helm release ownership to avoid namespace deletion during uninstall. No namespace, chart or release exists yet.
+- One application namespace `urumi` and one application chart/release. Create the namespace outside Helm release ownership to avoid namespace deletion during uninstall. Stage 3.2 creates the partial chart only; no application namespace or release has been created.
 - WordPress: one-replica Deployment with `Recreate`; a 2 GiB ReadWriteOnce PVC mounts the entire `/var/www/html`. The official entrypoint initializes an empty webroot. This replaces the proposed wp-content-only PVC/emptyDir/core-preparation scheme. Persisted core/plugins are not automatically replaced when the container image changes.
 - MariaDB: one-replica StatefulSet with a separate 5 GiB ReadWriteOnce claim at `/var/lib/mysql`, an internal headless Service, and no public port or Ingress. A StatefulSet supplies identity/storage continuity, not database replication or high availability. Internal addressing alone is not caller isolation.
 - Local storefront: `http://store.urumi.test:8080`, with a documented Windows hosts mapping to 127.0.0.1 and an Ingress selecting Traefik. Production host, TLS Secret reference, storage class and resource overrides use values; no duplicated environment templates. Migrating existing data between clusters requires a separate data-transfer procedure.
@@ -199,6 +199,16 @@ The chart references these Secrets; it never renders their values. Database name
 
 Immediately before the first Helm install, recheck host memory and Docker/WSL/node scheduling headroom. During runtime validation measure host, node and workload memory through MariaDB startup, WordPress startup, bootstrap, normal storefront/admin use and checkout. Stop and tune on OOM kills, unexplained restarts, severe host pressure or insufficient scheduling capacity before adding further Urumi components. The 2 GiB combined bootstrap-time container limits exclude host/cluster overhead and are not measured consumption.
 
+### Stage 3.2 template coverage and deployment prerequisites
+
+The initial [chart](../charts/urumi/Chart.yaml) has shared defaults and local/production values, stable release-based names/selectors, a WordPress Deployment/Service/Ingress/PVC and a MariaDB StatefulSet/headless Service. Namespaced resources use Helm's release namespace; use urumi for the application. No Namespace or Secret is rendered. MariaDB's data claim is generated later by the StatefulSet controller, not an extra top-level rendered resource. The chart requires Kubernetes >=1.32 for the stable StatefulSet PVC retention feature and selects Linux/amd64 nodes to match the pinned images.
+
+**This partial chart is not ready for installation.** WordPress readiness is explicitly interim TCP listener readiness, not proof that the database, WooCommerce or bootstrap is ready. Implement the accepted bounded PHP check alongside the later idempotent bootstrap Job before deployment; the chart does not create either bootstrap scripts or a Job. The canonicalUrl value is reserved for that bootstrap and does not yet configure the installed store. The admin/REST Secrets are not mounted into either long-running workload; root credentials are mounted only into MariaDB, app DB credentials into both, and auth keys/salts only into WordPress.
+
+The local values inherit 2 GiB/5 GiB storage and unchanged resource budgets while selecting local-path and store.urumi.test. Only canonicalUrl includes :8080; the Ingress host does not. Production values demonstrate TLS, configurable capacities/resources and a different StorageClass through explicit example.invalid / replace-with-* placeholders, not real infrastructure. Replace them and prepare external TLS/credential Secrets before an authorized production deployment. Empty storageClass in shared defaults omits storageClassName to use the cluster default; WordPress existingClaim skips PVC creation for deliberate reuse. The accepted retention and backup limits above still apply.
+
+Helm lint/render and offline Kubernetes v1.35.5 schema checks passed; selector, mount, credential-reference, probe and network checks are static evidence only. See [progress](progress.md#stage-32-initial-helm-chart-static-validation) for scope and commands. No API server, image execution, runtime probe, persistence or checkout test was involved.
+
 ## Additional upstreams and cross-server demonstration
 
 A12 selects arithmetic and store policy/reference servers for deterministic behavior, no external services, and an easily explained demo. Exact tool schemas and policy content remain to be designed. A harmless overlapping tool name on two servers may be introduced deliberately to demonstrate A4; no particular overlap tool is committed yet.
@@ -227,4 +237,4 @@ These stable OPEN IDs preserve the original questions and links. A13 records rev
 - Select the LLM/provider, chat-loop integration and response transport, exact WooCommerce REST/tool contracts, auxiliary tool schemas, and final interactive client. Define revenue demo data semantics and user A/B roles.
 - Implement and validate the accepted store contracts only in a separately authorized step. Confirm initial store settings, filesystem permissions, safe Job reruns, retained-claim reuse, probes, checkout and measured memory. Production TLS provisioning and non-store deployment details remain open. NetworkPolicy is deferred, not a first-core prerequisite.
 
-No bonus or stand-out item is selected by this approval. [progress.md](progress.md) records current evidence; [project-journey.md](project-journey.md) records how the design evolved. This step authorizes documentation only: no Helm files, deployment, Secrets or commit. Stop for review.
+No bonus or stand-out item is selected by this approval. [progress.md](progress.md) records current evidence; [project-journey.md](project-journey.md) records how the design evolved. Stage 3.2 authorizes the initial chart files and static checks only: no bootstrap files, release installation, Kubernetes apply, Secrets, hosts-file edits or commit. Stop for review.

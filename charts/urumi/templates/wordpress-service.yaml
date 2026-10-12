@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "urumi.wordpressName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "urumi.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: wordpress
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
