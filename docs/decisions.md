@@ -149,6 +149,45 @@ DEC-004 through DEC-016 were approved by the user on 2026-10-10 and their docume
 - **Technical references:** Reviewed the official [Minikube Docker-driver limitations](https://minikube.sigs.k8s.io/docs/drivers/docker/), [k3d overview](https://k3d.io/stable/), and [k3d Ingress port-mapping guide](https://k3d.io/stable/usage/exposing_services/). These support the design rationale, not evidence of successful operation on this machine.
 - **Requirements:** REQ-K8S-01, REQ-K8S-02, REQ-K8S-05, REQ-DEL-04; VID-02, VID-06. Requirement statuses and mandatory/optional classifications do not change.
 
+## Store Architecture v1 accepted decisions
+
+DEC-018–DEC-021 were accepted on 2026-10-12, including the corrected RAM conclusion. They resolve the store details deferred by DEC-013/DEC-014; those earlier entries remain historical. Full contracts and selected digests are in [Store Architecture v1](architecture.md#accepted-store-architecture-v1). Accepted means designed, not implemented or runtime-verified.
+
+### DEC-018 Store packaging and exposure
+
+- **Problem/constraints:** The mandatory store needs persistent Kubernetes workloads, stable Ingress access and one Helm deployment supporting local/production values.
+- **Decision:** One urumi application namespace and one application chart/release, using our own minimal templates and standard upstream images. WordPress is a one-replica Deployment with Recreate; MariaDB is a one-replica StatefulSet. WordPress uses ClusterIP plus existing Traefik, with local URL http://store.urumi.test:8080 and documented hosts mapping. MariaDB uses only an internal Kubernetes Service. COD supplies the checkout demo; business dates follow the store timezone.
+- **Alternatives/rationale:** A third-party WordPress chart or custom image adds behavior to learn and maintain before the required flow. Multiple releases are unnecessary for the initial core. A StatefulSet provides database identity/storage continuity, not replication or high availability; internal addressing is not network isolation.
+- **Consequences/validation:** Production host/TLS/storage differences belong in values. Validate rendered configurations, browser access, checkout and admin order visibility later; exact initial store settings and production TLS provisioning remain open. No chart, namespace or workload is created by this record.
+- **Requirements:** REQ-STORE-01, REQ-K8S-02, REQ-K8S-03, REQ-K8S-05, REQ-DEL-03; DEMO-01/02.
+
+### DEC-019 Finite bootstrap and independent health checks
+
+- **Problem/constraints:** Reproducible initial installation must not erase an existing store, and dependency failure must not cause healthy web processes to restart repeatedly.
+- **Decision:** A finite idempotent official WP-CLI Job waits for authenticated database access and initialized webroot files. Install only if absent, verify/install pinned WooCommerce, activate as needed, complete initial COD/demo configuration, verify and finish. Preserve passwords, users, products and orders. A different installed version requires an explicit upgrade plan. Use release-revision Job names, bounded retries/deadline and Helm workload/Job waiting; keep current status/logs until a later release operation/uninstall. Co-locate Job and WordPress on one node for their shared RWO claim and verify filesystem identities.
+- **Alternatives/rationale:** This supersedes the proposed pre-Apache init-container bootstrap. A pre-install hook lacks ordinary resource dependencies; a post-install hook with Helm --wait can deadlock against WooCommerce-dependent WordPress readiness. A normal Job can run while WordPress is Unready; revision naming avoids immutable Job-template updates.
+- **Health decision:** WordPress TCP startup/liveness independent of MariaDB; bounded inline PHP readiness checks loaded database state, active WooCommerce and initial bootstrap completion. No custom public health files. MariaDB uses its image-supplied connection/InnoDB health checks. The finite Job is observed through completion, deadline and retry status.
+- **Consequences/validation:** TCP liveness does not prove PHP request correctness. Test startup, safe/partial reruns, permissions, failure behavior and checkout. Do not mistake a DB connection failure for an uninstalled store. Pod restart does not automatically rerun a completed Job; rollback is not data restoration.
+- **Requirements:** REQ-STORE-01, REQ-K8S-04, REQ-K8S-06; DEMO-01/02, VID-02/06.
+
+### DEC-020 Persistent webroot retention and external Secrets
+
+- **Problem/constraints:** Persistent store data and Kubernetes Secrets are required. An ordinary Helm uninstall should not silently destroy store data.
+- **Decision:** WordPress uses a 2 GiB RWO claim for all /var/www/html; MariaDB uses a separate 5 GiB RWO claim at /var/lib/mysql. Retain the WordPress claim with helm.sh/resource-policy: keep; explicitly retain StatefulSet claims on deletion/scaling. Keep namespace and Secrets outside release ownership. Reuse retained claims and original credentials deliberately on reinstall.
+- **Alternatives/rationale:** Full-webroot persistence replaces the proposed wp-content-only PVC plus emptyDir/core preparation, using the standard image's empty-webroot initialization. It simplifies the first implementation, but image changes do not automatically replace persisted WordPress core/plugins. Retention is selected over automatic deletion to reduce accidental data loss.
+- **Credential decision:** External Secrets separate root DB, application DB, initial WordPress admin, and WordPress auth keys/salts. The future WooCommerce REST Secret belongs only to the custom MCP server. Chart values hold references only. The future PowerShell helper uses masked input/secure generation and in-memory stdin submission; it preserves existing values and avoids plaintext files, Helm --set credentials and payload logs. See the exact object/key contract in architecture.
+- **Consequences/validation:** Two volumes provide Pod-replacement durability only, not node-loss protection or backup. Helm rollback does not rewind database contents or persisted files. Namespace deletion can destroy retained claims and Secrets: never reuse the disposable Stage 2 cleanup procedure for urumi. Validate retention/reuse and credential scoping later. Backup requires recoverable copies outside the failure boundary and restore verification; no automatic backup tooling is selected here.
+- **Requirements:** REQ-K8S-04, REQ-SEC-01, REQ-DEL-04; VID-02/04/06.
+
+### DEC-021 Version baseline and measured capacity gate
+
+- **Problem/constraints:** The store needs compatible, reproducible components with resource requests/limits; sufficient memory for a first attempt is not evidence of full-system capacity.
+- **Decision:** Accept WordPress 7.1.3/PHP 8.3 Apache, WP-CLI 2.12.0/PHP 8.3, MariaDB 11.4.13 and WooCommerce 11.2.1 with the reviewed Linux/amd64 digests/archive checksum recorded in architecture. Reconfirm pins before deployment and handle application upgrades explicitly. Keep reviewed requests/limits as starting budgets to measure, not allocations increased because more RAM is available.
+- **Alternatives/rationale:** Floating tags are not reproducible. WooCommerce 11.2.1 supersedes the 11.2.0 candidate for its checkout fixes. Official metadata/source checks support the set but do not establish runtime compatibility; the stale plugin readme Stable tag and configuration-blob request failures are recorded in architecture.
+- **RAM correction:** The user's accepted 2026-10-12 report is approximately 15.7 GiB total, 11.6 GiB used, 4.1 GiB available. It supersedes the earlier ~1 GiB blocking conclusion: **PASS for initial Stage 3 deployment attempt; full-stack capacity still unproven.** This is not a fresh Codex measurement or deployment authorization.
+- **Consequences/validation:** Recheck memory immediately before first Helm install, including node scheduling headroom. Measure host/node/workload memory during MariaDB startup, WordPress startup, bootstrap, storefront/admin use and checkout. Stop and tune on OOM kills, unexplained restarts, severe host pressure or insufficient scheduling capacity before adding further components.
+- **Requirements:** REQ-STORE-01, REQ-K8S-07, REQ-DEL-04; DEMO-01/02, VID-02/06.
+
 ## Recording future decisions
 
 Use a new stable DEC ID with status/date, problem, source constraints and requirement IDs, choice, alternatives, rationale, consequences, and validation needs. Explicitly supersede old entries rather than rewriting history. Record chronological evolution in [project-journey.md](project-journey.md) and current evidence in [progress.md](progress.md). Unvalidated details remain open even when their surrounding architecture is accepted.

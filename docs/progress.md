@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-11 — Stage 2.4 Kubernetes fundamentals lab complete; Stage 2.4D cleanup and final validation succeeded.** Dates use the user's Asia/Calcutta calendar. The lab namespace and live resources are gone; urumi-local and its healthy system components remain running. The learning files remain in Git. This documentation checkpoint awaits review. No Urumi application workload has been deployed.
+**2026-10-12 — Store Architecture v1 and its RAM correction approved; documentation recorded for review, implementation not started.** Dates use the user's Asia/Calcutta calendar. Stage 2.4 cleanup and the completed fundamentals lab were approved and committed as **7462029 — docs: complete Kubernetes fundamentals lab**. The lab resources were removed and urumi-local was left running; this documentation step does not recheck or change the cluster. No Urumi application workload has been deployed.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -14,9 +14,27 @@ No Urumi application, prototype, schema, dependency files, production applicatio
 
 ## Current documentation change
 
-- Record Stage 2.4D namespace cleanup, resource absence, retained cluster health, external 404, and the completed lab's learning outcomes. Update the README's historical top-level status to its current state.
-- Record the approved Stage 2.4C checkpoint while preserving earlier runtime history.
-- Preserve all four approved YAML manifests, requirement/demo statuses, and architecture decisions. Only these three existing Markdown files change; this documentation update is not committed.
+- Record accepted Store Architecture v1 in architecture and DEC-018–DEC-021, plus its chronological journey; clarify the requirements introduction without changing any matrix status or assignment scope.
+- Record the Stage 2.4D commit and replace stale current-state deployment-design deferrals, preserving historical observations.
+- Only architecture, decisions, progress, project-journey and the requirements introduction change. No charts, Secrets, application files or runtime changes; no staging or commit is authorized.
+
+## Stage 3 store design outcome
+
+Store Architecture v1 is accepted, not implemented. One urumi namespace and one application chart/release will use our own minimal templates and standard images. WordPress is a one-replica Recreate Deployment with a 2 GiB full-webroot PVC at /var/www/html; MariaDB is a one-replica StatefulSet with a separate 5 GiB data PVC at /var/lib/mysql. The store uses ClusterIP/Traefik and store.urumi.test:8080; MariaDB remains internal. External Secrets, a finite idempotent WP-CLI Job, COD checkout, independent liveness/dependency-aware readiness, exact version pins, PVC retention and measured resource budgets are accepted. Exact contracts and digests live in [architecture](architecture.md#accepted-store-architecture-v1).
+
+The design-stage source/registry checks support the selected WordPress 7.1.3/PHP 8.3, WP-CLI 2.12.0, MariaDB 11.4.13 and WooCommerce 11.2.1 set; no image execution, installation, bootstrap, persistence or checkout test has occurred. WordPress core/plugin files persist independently of image changes. One database replica is not HA; retained volumes are not backups or node-loss protection; rollback does not rewind data/files. Namespace deletion is destructive and must not follow the disposable lab's cleanup pattern.
+
+**Memory: PASS for initial Stage 3 deployment attempt; full-stack capacity still unproven.** User-reported accepted figures on 2026-10-12: approximately 15.7 GiB total, 11.6 GiB used and 4.1 GiB available Windows RAM. This narrowly passes the approximately 4 GiB gate and supersedes the stale ~1 GiB blocking conclusion. No fresh measurement was taken for this documentation change.
+
+| Workload | CPU request / limit | Memory request / limit |
+| --- | --- | --- |
+| WordPress | 250m / 1000m | 512Mi / 1Gi |
+| MariaDB | 100m / 500m | 256Mi / 512Mi |
+| Bootstrap Job | 100m / 500m | 128Mi / 512Mi |
+
+Keep these starting budgets unchanged. Recheck host memory and Docker/WSL/node capacity immediately before first Helm install. Measure host/node/workload memory during MariaDB startup, WordPress startup, Job execution, normal storefront/admin use and checkout. Stop and tune on OOM kills, unexplained restarts, severe host pressure or insufficient scheduling capacity before adding further Urumi components. A passing gate permits cautious planning for an initial attempt; this step still authorizes documentation only.
+
+Documentation validation: 68 local links/anchors across 10 Markdown files resolve; changed tables, UTF-8/LF, final newlines and Git whitespace checks pass. All requirement/demo matrix rows, the original DOCX checksum, lab manifests and other tracked files are unchanged. Only the five authorized existing Markdown files differ; no staged/untracked files or credential-pattern matches were found. These checks provide no new runtime evidence.
 
 ## Docker setup outcome
 
@@ -146,17 +164,17 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 
 ## Open and provisional work
 
-- Docker Desktop's WSL2/Linux runtime, local CLIs, and the single-server K3s v1.35.5+k3s1 cluster are verified. API port 6550 and Ingress mappings 8080/8443 are established. No explicit node memory cap was selected; available host RAM is tight and full-stack workload capacity remains unproven.
+- Docker Desktop's WSL2/Linux runtime, local CLIs, and the single-server K3s v1.35.5+k3s1 cluster passed Stage 2 validation. API port 6550 and Ingress mappings 8080/8443 are established. No explicit node memory cap was selected. The corrected host RAM gate passes narrowly for initial Stage 3 deployment; recheck before installation and measure runtime usage, as full-stack capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
 - LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Chart dependencies, WordPress/MariaDB packaging, application Ingress/DNS/TLS, PVCs, probes, and resource sizing await later review. Default Traefik and local-path are healthy infrastructure, not proof of application URLs, persistence, or VPS compatibility.
+- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Their implementation and runtime validation remain pending; initial store settings, production TLS provisioning and non-store deployment details remain open. Existing infrastructure is not proof of store URLs, persistence, checkout or VPS compatibility.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-The user authorized Stage 2.4D deletion of only the lab namespace, final infrastructure/HTTP validation, and updates to the lab README, progress, and journey. Show cleanup evidence, final health, the three-file documentation diff, and Git status; leave urumi-local running and changes uncommitted, then stop for review. Do not recreate the lab, delete the cluster, alter the four YAML manifests, remove repository lab files, or create application components/other workloads. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized recording accepted Store Architecture v1 and its RAM correction in existing documentation only. Show the complete documentation diff, validation and Git status, then stop for review. Do not create Helm files, Secrets or workloads, deploy anything, stage or commit. Leave the cluster and lab files unchanged. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
