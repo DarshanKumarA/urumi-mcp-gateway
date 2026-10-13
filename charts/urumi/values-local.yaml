@@ -14,3 +14,7 @@ wordpress:
 mariadb:
   persistence:
     storageClass: local-path
+
+bootstrap:
+  # Non-secret demo identity; the password comes only from the external Secret.
+  adminEmail: admin@urumi.test

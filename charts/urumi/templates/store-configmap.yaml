@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "urumi.fullname" . }}-store-assets-r{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-bootstrap
+# Revision-specific assets prevent an old running Job from receiving new scripts.
+immutable: true
+data:
+  bootstrap-wordpress.sh: |
+    {{- required "Bootstrap shell asset is missing" (.Files.Get "files/store/bootstrap-wordpress.sh") | nindent 4 }}
+  configure-woocommerce.php: |
+    {{- required "Bootstrap PHP asset is missing" (.Files.Get "files/store/configure-woocommerce.php") | nindent 4 }}

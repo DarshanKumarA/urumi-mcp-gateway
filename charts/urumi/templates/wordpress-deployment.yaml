@@ -55,6 +55,14 @@ spec:
               value: /run/secrets/wordpress-auth/logged-in-salt
             - name: WORDPRESS_NONCE_SALT_FILE
               value: /run/secrets/wordpress-auth/nonce-salt
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: |
+                define('AUTOMATIC_UPDATER_DISABLED', true);
+                define('WP_AUTO_UPDATE_CORE', false);
+            - name: URUMI_BOOTSTRAP_VERSION
+              value: {{ .Values.bootstrap.version | quote }}
+            - name: URUMI_WC_VERSION
+              value: {{ .Values.woocommerce.version | quote }}
           volumeMounts:
             - name: wordpress-data
               mountPath: /var/www/html
@@ -76,13 +84,39 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 2
             failureThreshold: 3
-          # INTERIM: listener only, not database/WooCommerce/bootstrap readiness.
-          # Replace with the accepted bounded inline PHP check BEFORE deployment.
+          # Kubelet's timeout bounds DB/network stalls. Shutdown defaults to failure
+          # even if WordPress aborts with exit(0); output buffers hide diagnostics.
           readinessProbe:
-            tcpSocket:
-              port: http
+            exec:
+              command:
+                - php
+                - -d
+                - display_errors=0
+                - -d
+                - log_errors=0
+                - -r
+                - |
+                  $ok = false;
+                  ob_start();
+                  register_shutdown_function(function () use (&$ok) {
+                      for ($buffers = ob_get_level(); $buffers > 0; $buffers--) {
+                          if (!ob_end_clean()) { break; }
+                      }
+                      exit($ok ? 0 : 1);
+                  });
+                  $bootstrap = getenv('URUMI_BOOTSTRAP_VERSION');
+                  $version = getenv('URUMI_WC_VERSION');
+                  if (!$bootstrap || !$version) { exit(1); }
+                  define('DISABLE_WP_CRON', true); // This probe must not trigger background work.
+                  require '/var/www/html/wp-load.php';
+                  $wpdb->suppress_errors(true);
+                  $ok = is_blog_installed() && $wpdb->get_var('SELECT 1') === '1'
+                      && defined('WC_VERSION') && WC_VERSION === $version
+                      && class_exists('WooCommerce', false)
+                      && in_array('woocommerce/woocommerce.php', (array) get_option('active_plugins'), true)
+                      && get_option('urumi_bootstrap_version') === $bootstrap;
             periodSeconds: 10
-            timeoutSeconds: 2
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             {{- toYaml .Values.wordpress.resources | nindent 12 }}

@@ -34,3 +34,7 @@ mariadb:
     limits:
       cpu: 500m
       memory: 512Mi
+
+bootstrap:
+  # Replace this non-secret identity before an authorized deployment.
+  adminEmail: replace-admin@example.invalid

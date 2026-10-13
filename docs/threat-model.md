@@ -41,6 +41,14 @@ Approved credential ownership (A7): recoverable service values in Kubernetes Sec
 
 For A10, an internal ClusterIP does not block other cluster workloads from reaching the address. Gateway-held authentication supplies the initial additional caller boundary; access with a stolen credential remains a residual risk to explain. Calico/custom NetworkPolicy setup is not a prerequisite for the first core. NetworkPolicy may be added after the mandatory flow works if time allows or needed to strengthen the documented gateway-only boundary. This does not waive the assignment's gateway-only outcome or claim network-level isolation already exists.
 
+## Stage 3.3 store credential and bootstrap boundary
+
+Static implementation only; no deployed security evidence. ConfigMap assets contain code and non-secret configuration references. The Job projects only app DB, initial WordPress admin and WordPress auth keys/salts; root DB and future REST credentials are absent. Admin password input uses the mounted Secret through WP-CLI stdin, avoiding process arguments/plaintext temporary files. The Job has no public endpoint or Kubernetes API token. No Secret values or objects are rendered by Helm.
+
+Bootstrap distinguishes authenticated DB failure from an empty database, verifies the versioned archive checksum, disables unattended updates and refuses unknown ownership, changed contracts or conflicting established settings. It never resets users/passwords/products/orders. Checkpoints and the completion marker are ordinary database state, not authorization credentials or tamper-proof evidence. They do not defend against an administrator or malicious PHP with DB access. Ordinary error handling avoids raw DB/exception details; this is not a claim that arbitrary plugins cannot log sensitive data.
+
+Runtime Secret-file permissions, safe reruns and fail-closed readiness are still unverified; PHP syntax checking is also outstanding. Serialization of release operations is an operational requirement because Job revision names are not a concurrency lock. A partial core installation or interruption before ownership is recorded requires reviewed recovery. These controls implement the selected store contract; they do not select optional gateway hardening.
+
 ## Optional hardening and stand-out work
 
 No item in this section has been selected or implemented. IDs refer to the separate [optional register](requirements.md#optional-work-register). Selection requires an explicit reviewed scope; analysis alone does not authorize it.

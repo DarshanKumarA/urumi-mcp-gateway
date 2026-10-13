@@ -1,0 +1,168 @@
+{{- $jobName := printf "%s-store-bootstrap-r%v" (include "urumi.fullname" .) .Release.Revision -}}
+{{- if gt (len $jobName) 63 -}}
+{{- fail "Release name is too long for the revision-specific store Job (maximum Job name: 63 characters)" -}}
+{{- end }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $jobName }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: store-bootstrap
+spec:
+  completions: 1
+  parallelism: 1
+  backoffLimit: {{ .Values.bootstrap.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.bootstrap.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: store-bootstrap
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      # CLI Alpine's named www-data user differs from Apache's numeric identity.
+      securityContext:
+        runAsUser: 33
+        runAsGroup: 33
+        fsGroup: 33
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  {{- include "urumi.selectorLabels" . | nindent 18 }}
+                  app.kubernetes.io/component: wordpress
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: store-bootstrap
+          image: {{ .Values.bootstrap.image | quote }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/opt/urumi-store/bootstrap-wordpress.sh"]
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: {{ printf "%s:%v" (include "urumi.mariadbName" .) .Values.mariadb.port | quote }}
+            - name: WORDPRESS_DB_NAME
+              value: {{ .Values.mariadb.database | quote }}
+            - name: WORDPRESS_DB_USER
+              value: {{ .Values.mariadb.username | quote }}
+            - name: WORDPRESS_DB_PASSWORD_FILE
+              value: /run/secrets/store-db/password
+            - name: WORDPRESS_AUTH_KEY_FILE
+              value: /run/secrets/wordpress-auth/auth-key
+            - name: WORDPRESS_SECURE_AUTH_KEY_FILE
+              value: /run/secrets/wordpress-auth/secure-auth-key
+            - name: WORDPRESS_LOGGED_IN_KEY_FILE
+              value: /run/secrets/wordpress-auth/logged-in-key
+            - name: WORDPRESS_NONCE_KEY_FILE
+              value: /run/secrets/wordpress-auth/nonce-key
+            - name: WORDPRESS_AUTH_SALT_FILE
+              value: /run/secrets/wordpress-auth/auth-salt
+            - name: WORDPRESS_SECURE_AUTH_SALT_FILE
+              value: /run/secrets/wordpress-auth/secure-auth-salt
+            - name: WORDPRESS_LOGGED_IN_SALT_FILE
+              value: /run/secrets/wordpress-auth/logged-in-salt
+            - name: WORDPRESS_NONCE_SALT_FILE
+              value: /run/secrets/wordpress-auth/nonce-salt
+            - name: WORDPRESS_CONFIG_EXTRA
+              value: |
+                define('AUTOMATIC_UPDATER_DISABLED', true);
+                define('WP_AUTO_UPDATE_CORE', false);
+            - name: URUMI_ADMIN_PASSWORD_FILE
+              value: /run/secrets/wordpress-admin/admin-password
+            - name: URUMI_ADMIN_USERNAME
+              value: {{ .Values.bootstrap.adminUsername | quote }}
+            - name: URUMI_ADMIN_EMAIL
+              value: {{ .Values.bootstrap.adminEmail | quote }}
+            - name: URUMI_CANONICAL_URL
+              value: {{ .Values.wordpress.canonicalUrl | quote }}
+            - name: URUMI_SITE_TITLE
+              value: {{ .Values.store.title | quote }}
+            - name: URUMI_TIMEZONE
+              value: {{ .Values.store.timezone | quote }}
+            - name: URUMI_COUNTRY
+              value: {{ .Values.store.country | quote }}
+            - name: URUMI_CURRENCY
+              value: {{ .Values.store.currency | quote }}
+            - name: URUMI_BOOTSTRAP_VERSION
+              value: {{ .Values.bootstrap.version | quote }}
+            - name: URUMI_WC_VERSION
+              value: {{ .Values.woocommerce.version | quote }}
+            - name: URUMI_WC_ARCHIVE_URL
+              value: {{ .Values.woocommerce.archiveUrl | quote }}
+            - name: URUMI_WC_SHA256
+              value: {{ .Values.woocommerce.archiveSha256 | quote }}
+            - name: URUMI_WAIT_SECONDS
+              value: {{ .Values.bootstrap.waitTimeoutSeconds | quote }}
+            - name: URUMI_RETRY_SECONDS
+              value: {{ .Values.bootstrap.retryIntervalSeconds | quote }}
+            - name: URUMI_COMMAND_SECONDS
+              value: {{ .Values.bootstrap.commandTimeoutSeconds | quote }}
+            - name: URUMI_DB_CONNECT_SECONDS
+              value: {{ .Values.bootstrap.connectionTimeoutSeconds | quote }}
+          resources:
+            {{- toYaml .Values.bootstrap.resources | nindent 12 }}
+          volumeMounts:
+            - name: wordpress-data
+              mountPath: /var/www/html
+            - name: assets
+              mountPath: /opt/urumi-store
+              readOnly: true
+            - name: temporary
+              mountPath: /tmp
+            - name: store-db-secret
+              mountPath: /run/secrets/store-db
+              readOnly: true
+            - name: wordpress-admin-secret
+              mountPath: /run/secrets/wordpress-admin
+              readOnly: true
+            - name: wordpress-auth-secret
+              mountPath: /run/secrets/wordpress-auth
+              readOnly: true
+      volumes:
+        - name: wordpress-data
+          persistentVolumeClaim:
+            claimName: {{ default (include "urumi.wordpressName" .) .Values.wordpress.persistence.existingClaim | quote }}
+        - name: assets
+          configMap:
+            name: {{ include "urumi.fullname" . }}-store-assets-r{{ .Release.Revision }}
+            defaultMode: 0444
+        - name: temporary
+          emptyDir: {}
+        - name: store-db-secret
+          secret:
+            secretName: {{ .Values.mariadb.appSecretName | quote }}
+            items:
+              - key: password
+                path: password
+        - name: wordpress-admin-secret
+          secret:
+            secretName: {{ .Values.bootstrap.adminSecretName | quote }}
+            items:
+              - key: admin-password
+                path: admin-password
+        - name: wordpress-auth-secret
+          secret:
+            secretName: {{ .Values.wordpress.authSecretName | quote }}
+            items:
+              - key: auth-key
+                path: auth-key
+              - key: secure-auth-key
+                path: secure-auth-key
+              - key: logged-in-key
+                path: logged-in-key
+              - key: nonce-key
+                path: nonce-key
+              - key: auth-salt
+                path: auth-salt
+              - key: secure-auth-salt
+                path: secure-auth-salt
+              - key: logged-in-salt
+                path: logged-in-salt
+              - key: nonce-salt
+                path: nonce-salt

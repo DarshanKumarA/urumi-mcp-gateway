@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-12 — Stage 3.2 initial store Helm templates created and statically validated; bootstrap and deployment remain pending.** Dates use the user's Asia/Calcutta calendar. Store Architecture v1 and its RAM correction are approved; their existing uncommitted documentation is preserved. Stage 2.4 cleanup was committed as **7462029 — docs: complete Kubernetes fundamentals lab**. The lab resources were removed and urumi-local was left running; this step does not recheck or change the cluster. No Urumi application workload has been deployed.
+**2026-10-12 — Stage 3.3 bootstrap and dependency-aware readiness implemented; available static checks pass, PHP syntax and runtime validation pending.** Store design was committed as ab7f4b3 and the initial Helm foundation as 490c2de. This step leaves the cluster untouched and creates no namespace, Secrets, release or application containers.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-An initial project Helm chart now exists, but no Urumi application source, prototype, schema, bootstrap Job/scripts or release exists. The cluster was left at its default namespaces/system resources after lab cleanup. The fundamentals lab is complete, but no full assignment runtime requirement is marked implemented or verified; every assignment live demo remains unrun. The chronological story is in [project-journey.md](project-journey.md); individual rationale is in [decisions.md](decisions.md).
+The store chart now includes bootstrap scripts, a normal Job and dependency-aware readiness. No release or Urumi workload is deployed, no Secret helper exists, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Preserve the preceding uncommitted Store Architecture v1/DEC-018–DEC-021 documentation and Stage 2.4D commit reference.
-- Add exactly eleven initial chart files; update architecture, progress, journey and relevant requirement plans/statuses to distinguish partial static templates from working runtime behavior. The decision register needs no further change in this step.
-- No bootstrap files, Secret objects/values, generated manifests in Git or runtime changes; no staging or commit is authorized.
+- Record the Stage 3.3 implementation, accepted demo defaults, static evidence and remaining syntax/runtime gaps.
+- Record design/foundation checkpoints ab7f4b3 and 490c2de; prior validation sections remain historical.
+- Only the four new bootstrap assets/templates, four authorized chart modifications and six relevant documentation files change. No staging, commit or live changes.
 
 ## Stage 3 store design outcome
 
@@ -68,6 +68,31 @@ The schema source is the [official versioned Kubernetes OpenAPI file](https://gi
 Before deployment: implement/review bootstrap and final readiness; prepare the namespace and external Secrets through a separately authorized step; configure the local hosts mapping or real production DNS/TLS/storage; recheck image availability and host/node memory. No memory measurement was taken here; the accepted user-reported ~4.1 GiB gate passes only for an initial attempt, not full-stack capacity. No helm install/upgrade, Kubernetes apply/server dry-run, cluster inspection, image execution or hosts-file edit occurred.
 
 Repository validation passed for all 70 local links/anchors, Markdown tables, UTF-8/LF and whitespace. Exactly eleven requested chart files are new; the index is empty, and no generated render/schema files were saved. Credential-pattern checks of tracked files (including source DOCX text) and new/rendered chart content found no credential values. Nine requirement rows record partial template progress only; obligation text, IDs, source/classification, verification/demo fields and every demo row remain unchanged. Source DOCX checksum and lab files are preserved. The pre-existing decision-register edit is unchanged by Stage 3.2.
+
+## Stage 3.3 bootstrap and readiness static validation
+
+Created store-configmap.yaml, store-bootstrap-job.yaml, bootstrap-wordpress.sh and configure-woocommerce.php. Modified only the WordPress Deployment and shared/local/production values among existing chart files. No Secret helper, public health file, new image, dependency or test scaffold was added. The ConfigMap packages two non-secret files via .Files; the Job consumes the existing WordPress claim and three scoped Secrets. Startup/liveness remain TCP; readiness uses PHP/database/loaded WooCommerce/marker checks with failure-default shutdown and a 5-second kubelet timeout.
+
+The user accepted India (IN), Asia/Kolkata, INR and unrestricted free shipping with COD. The finite Job uses the pinned CLI image, 33:33 filesystem identity, required affinity to WordPress, 120-second separate dependency waits and command bounds, 5-second DB connection/read timeouts, one worker/completion, backoffLimit 1 and a 600-second overall deadline. Requests/limits remain the approved starting budgets. Owner/setting checkpoints distinguish known partial configuration from conflicting/unclaimed stores; no products/orders are created, no users/passwords reset, and mismatched plugin/contracts fail.
+
+| Check | Result and limit |
+| --- | --- |
+| Shell syntax | Git for Windows Bash -n passed; no bootstrap execution |
+| PHP / ShellCheck | Neither executable is available in Windows PATH or Git Bash; PHP syntax (script and inline readiness) and ShellCheck were not run |
+| Helm | 4.3.0 strict lint passes for shared/local/production values; informational icon recommendation only |
+| Rendering | Local and production each render eight objects: the previous six plus ConfigMap urumi-store-assets-r1 and Job urumi-store-bootstrap-r1; all in namespace urumi |
+| YAML/schema | Duplicate-key rejection and offline official Kubernetes v1.35.5 schema validation passed; not API admission testing |
+| Static semantics | Selectors/ports/retention/pins/budgets, ConfigMap file equality, Secret projections, Job affinity/shared claim/33:33 identity, bounded waits and positive readiness checks passed |
+| Configuration cases | Alternate release/namespace/DB port, existing WordPress claim reuse and missing TLS reference rejection passed |
+| Pins | Registry metadata resolved all three approved tags to the accepted Linux/amd64 digests; WooCommerce 11.2.1 archive downloaded in memory and matched its approved SHA-256/header; no image layers pulled/executed |
+| Safety | No Secret objects/public DB or Job endpoint; credential-pattern scan passed. Reviewed no xtrace, broad deletion, direct SQL mutation, resets, automatic version changes or product/order creation |
+| Helm lifecycle | Reviewed pinned Helm upgrade/client/rollback source: new revision targets precede obsolete-resource deletion; rollback reuses historical manifests. No install/upgrade/rollback was executed |
+
+The script uses only read-only SELECT 1 / SHOW TABLES for dependency/freshness checks; state changes use WordPress/WooCommerce APIs. Admin password is read by WP-CLI from the mounted Secret through stdin. Raw command output from sensitive install/activation steps is hidden, but nonzero status and named phase errors remain visible. PHP actions must return an explicit success acknowledgement; readiness defaults to nonzero even if WordPress exits zero early.
+
+Limits: a crash after initial core installation but before the ownership option, partially installed core/plugin files, an unclaimed store or changed contract requires deliberate review; no destructive automatic repair. Complete/stop the previous Job before another release operation because revision naming is not a lock. Rollback may recreate a missing historical Job or preserve a terminal one, and never restores data/files. The [architecture](architecture.md#helm-job-upgrade-and-rollback-contract) records evidence and recovery boundaries.
+
+Before deployment: obtain PHP syntax evidence, review non-secret admin/configuration placeholders, create the external namespace/Secrets via a later authorized step, configure hosts or real DNS/TLS/storage and recheck RAM/node capacity. Runtime work still includes fresh/partial/completed reruns, ownership/permissions, dependency-loss/readiness, Job timeout/failure, checkout, Pod replacement, retention and upgrade/rollback. Measure host/node/workload memory through startup, bootstrap and use. No new RAM measurement or full-stack capacity claim is made.
 
 ## Docker setup outcome
 
@@ -202,12 +227,12 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
 - LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Their implementation and runtime validation remain pending; initial store settings, production TLS provisioning and non-store deployment details remain open. Existing infrastructure is not proof of store URLs, persistence, checkout or VPS compatibility.
+- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Store templates/bootstrap/readiness are implemented for static review; PHP syntax and runtime validation remain pending. Demo defaults are accepted; deployment identity, production TLS and non-store details remain open. Existing infrastructure is not proof of store URLs, persistence, checkout or VPS compatibility.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-The user authorized only Stage 3.2 chart file creation and static validation. Show the chart tree, complete new-file/documentation diffs, local/production inventories, resource explanations, deployment prerequisites and Git status, then stop for review. Do not create bootstrap files, Secrets or workloads, install/upgrade the release, apply resources, edit hosts, stage or commit. Leave the cluster and lab files unchanged. Earlier observation sections remain historical. Follow [AGENTS.md](../AGENTS.md) for subsequent changes.
+The user authorized Stage 3.3 implementation and static validation only. Show all changed files/diffs, rendered inventories, safety findings and validation limits; stop for review. No install/upgrade/apply, namespace/Secrets/helper creation, hosts edits, image/workload execution, staging or commit. Earlier observation sections remain historical.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
