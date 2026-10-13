@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-12 — Stage 3.3 bootstrap and dependency-aware readiness implemented; available static checks pass, PHP syntax and runtime validation pending.** Store design was committed as ab7f4b3 and the initial Helm foundation as 490c2de. This step leaves the cluster untouched and creates no namespace, Secrets, release or application containers.
+**2026-10-13 — Stage 3.4 local store Secret helper implemented and validated offline; real Secret handling remains unverified.** Stage 3.3 was approved and committed as 17a54ab, following store design ab7f4b3 and Helm foundation 490c2de. This step creates no namespace, Secrets, release or workloads and runs neither Helm nor kubectl. PHP syntax and store runtime validation remain pending.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The store chart now includes bootstrap scripts, a normal Job and dependency-aware readiness. No release or Urumi workload is deployed, no Secret helper exists, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
+The store chart includes bootstrap scripts, a normal Job and dependency-aware readiness. A local Secret helper now exists with offline/mock evidence only. No release or Urumi workload is deployed, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record the Stage 3.3 implementation, accepted demo defaults, static evidence and remaining syntax/runtime gaps.
-- Record design/foundation checkpoints ab7f4b3 and 490c2de; prior validation sections remain historical.
-- Only the four new bootstrap assets/templates, four authorized chart modifications and six relevant documentation files change. No staging, commit or live changes.
+- Record the Stage 3.4 helper, credential boundaries, preservation behavior, offline/mock validation and remaining live checks.
+- Record Stage 3.3 checkpoint 17a54ab; retain earlier validation sections as history, including the PHP syntax gap.
+- Only scripts/setup-store-secrets.ps1 and six relevant documentation files change. No chart edits, staging, commit or live changes.
 
 ## Stage 3 store design outcome
 
@@ -93,6 +93,26 @@ The script uses only read-only SELECT 1 / SHOW TABLES for dependency/freshness c
 Limits: a crash after initial core installation but before the ownership option, partially installed core/plugin files, an unclaimed store or changed contract requires deliberate review; no destructive automatic repair. Complete/stop the previous Job before another release operation because revision naming is not a lock. Rollback may recreate a missing historical Job or preserve a terminal one, and never restores data/files. The [architecture](architecture.md#helm-job-upgrade-and-rollback-contract) records evidence and recovery boundaries.
 
 Before deployment: obtain PHP syntax evidence, review non-secret admin/configuration placeholders, create the external namespace/Secrets via a later authorized step, configure hosts or real DNS/TLS/storage and recheck RAM/node capacity. Runtime work still includes fresh/partial/completed reruns, ownership/permissions, dependency-loss/readiness, Job timeout/failure, checkout, Pod replacement, retention and upgrade/rollback. Measure host/node/workload memory through startup, bootstrap and use. No new RAM measurement or full-stack capacity claim is made.
+
+## Stage 3.4 local store Secret helper validation
+
+Created [setup-store-secrets.ps1](../scripts/setup-store-secrets.ps1), requiring installed PowerShell 7. Validate defaults to offline fixtures/disposable RNG samples; Check reads the fixed context/namespace/Secret contracts; Create is explicit and creates missing objects only after full preflight. Only Validate/default and in-memory substituted workflows were exercised. No real project credential was generated or retained, and no actual kubectl/Helm command was run.
+
+| Check | Result and limit |
+| --- | --- |
+| Syntax and entrypoint | PowerShell 7.6.5 parser, default Validate, explicit Validate and invalid-mode rejection pass |
+| Offline contracts | Four valid manifest fixtures, 28 invalid Secret fixtures and six invalid text inputs; disposable 32/64-byte RNG samples pass |
+| Mocked workflows | 12 cases pass: Check present/absent, Create preservation/creation, missing context/namespace, terminating namespace, invalid final Secret, lookup/JSON failure, concurrent create and partial creation failure |
+| Subprocess boundary | Harmless local PowerShell child echoes a non-secret fixture to both streams; create-path output is suppressed for success/failure, read output stays captured. Fixed kubectl argument separation checked independently |
+| Chart alignment | Exactly four names and eleven keys match the existing chart projections; chart not modified or rendered |
+| Repository safety | Credential-pattern scan including original DOCX text and new script passes; whitespace checks pass; no payload/temp/test files added |
+| Static analyzer | PSScriptAnalyzer unavailable; not installed or run |
+
+Validation found and corrected strict-mode access to an absent optional field, fixed-flag concatenation and an unintended .NET task result in the output pipeline. All listed cases pass after correction. Mock evidence is not API, RBAC, interactive-password or runtime Secret evidence.
+
+Existing Secrets are preserved; inconsistent keys/type/text require explicit repair. Random generation occurs only for absent DB/auth values in future Create execution; the admin password uses masked input. JSON/base64 data stay in process memory and stdin, never command arguments or files; child stderr and exception payloads are suppressed. Creation is not transactional across four objects: failures may leave already-created Secrets, and retries must inspect/preserve them. Managed strings cannot be guaranteed erased; retained-data credentials must be recovered rather than regenerated blindly.
+
+Next boundary: review this helper before separately authorizing namespace preparation, read-only Check and interactive creation. WooCommerce REST credentials remain deferred until WooCommerce is live. PHP syntax checking, memory recheck, deployment and every store runtime demonstration remain incomplete.
 
 ## Docker setup outcome
 
@@ -233,6 +253,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized Stage 3.3 implementation and static validation only. Show all changed files/diffs, rendered inventories, safety findings and validation limits; stop for review. No install/upgrade/apply, namespace/Secrets/helper creation, hosts edits, image/workload execution, staging or commit. Earlier observation sections remain historical.
+The user authorized Stage 3.4 helper implementation and static/offline validation only. Show the complete script, documentation diff, contract, checks and limitations, then stop for review. No namespace/Secret creation or mutation, actual kubectl/Helm calls, hosts edits, workload deployment, staging or commit. Earlier observation sections remain historical.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

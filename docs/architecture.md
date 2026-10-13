@@ -1,6 +1,6 @@
 # Architecture v1 and assignment boundaries
 
-Status: **Store Architecture v1 committed as ab7f4b3; initial Helm foundation committed as 490c2de. Stage 3.3 implements bootstrap and dependency-aware WordPress readiness for static review; nothing deployed. PHP syntax and all runtime behavior remain unverified.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval and static checks do not prove a runtime requirement works.
+Status: **Stage 3.3 bootstrap/readiness committed as 17a54ab, following store design ab7f4b3 and Helm foundation 490c2de. Stage 3.4 adds a local Secret helper with offline validation only; no Secrets or workloads created. PHP syntax and store runtime behavior remain unverified.** The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval and static checks do not prove a runtime requirement works.
 
 ## Assignment constraints
 
@@ -185,7 +185,25 @@ Reinstallation must deliberately reuse retained claims and original credentials;
 | urumi-wordpress-auth | auth-key, secure-auth-key, logged-in-key, nonce-key, auth-salt, secure-auth-salt, logged-in-salt, nonce-salt | WordPress and Job via corresponding WORDPRESS_*_FILE settings |
 | urumi-woocommerce-rest (later) | consumer-key, consumer-secret | Future custom WooCommerce MCP only; credentials issued by WooCommerce |
 
-The chart references these Secrets; it never renders their values. Database name urumi_store and user urumi_wp are non-secret configuration. The future PowerShell helper accepts masked input, generates absent DB passwords/salts securely, sends in-memory payloads through kubectl stdin and reports names/status only. No plaintext Helm --set, tracked values, temporary credential files or payload logs. Existing Secrets are preserved; missing/inconsistent keys require deliberate repair, not automatic rotation. No helper or Secret exists yet, and future WooCommerce credentials are not generated during initial store bootstrap.
+The chart references these Secrets; it never renders their values. Database name urumi_store and user urumi_wp are non-secret configuration. The [local helper](../scripts/setup-store-secrets.ps1) implements the four current Secret contracts; no actual Secret has been created. WooCommerce REST credentials remain deferred until WooCommerce is live and can issue them for the custom MCP server.
+
+### Local store Secret preparation
+
+The helper requires the already-installed PowerShell 7 runtime and fixes context k3d-urumi-local and namespace urumi; neither is an override parameter. Its modes are:
+
+| Mode | Behavior | Evidence so far |
+| --- | --- | --- |
+| Validate (default) | Offline manifest/key fixtures and immediately discarded RNG samples; no kubectl, interactive input, disk payload or project credentials | Executed locally |
+| Check | Read-only context/active-namespace check, then inspect all four Secrets; report preserved or absent/would-create | Mocked only; no live cluster reads in Stage 3.4 |
+| Create | Same preflight, then masked admin input and create missing Secrets only | Mocked only; not authorized/executed against Kubernetes |
+
+The safe local command is `pwsh -NoProfile -File scripts/setup-store-secrets.ps1 -Mode Validate`. Check/Create use the same entrypoint with their explicit mode only in a later authorized step. The namespace must already exist and be Active; the helper never creates it. Existing objects must match identity, Opaque type, the exact case-sensitive key set and nonempty base64-encoded UTF-8 text without NUL, newlines or edge whitespace. It checks every existing Secret before generating or writing anything. Inconsistent objects stop for explicit repair; no rotation, deletion, patch, replace or apply path exists. This validates structure, not agreement with credentials already persisted in database/webroot volumes; retained-data recovery must reuse original credentials.
+
+Absent DB/root passwords use 32 cryptographically random bytes (256 bits, 44 base64 characters); each auth key/salt uses 64 bytes (512 bits, 88 characters). Kubernetes data applies a separate base64 encoding to that credential text. Admin input uses Read-Host -AsSecureString and is requested before any creation. Input validation avoids the bootstrap's one-line/password-trimming ambiguity; it does not introduce a password-strength policy. No external salt service, Get-Random, timestamp or GUID supplies entropy.
+
+JSON exists only in memory and enters kubectl through stdin. ProcessStartInfo uses an argument list containing only fixed flags/names, no shell and no credentials. Standard output is captured internally; raw stderr is drained/discarded. Failures report only the operation/Secret name and return nonzero. API requests have a 15-second timeout, stdin writing 10 seconds, process exit 30 seconds and pipe draining bounded waits. The helper uses create -f -, so a concurrent creator produces a failure rather than overwriting existing values. A timeout can leave an accepted write, and a later failure can leave earlier creations: rerun by checking current state, never deleting or rotating automatically. Read-back verifies keys after each successful create.
+
+Mutable byte buffers and unmanaged password buffers are cleared; immutable .NET strings cannot be reliably zeroed. Use a trusted local session without tracing/debugging/transcription; this helper does not provide a secret vault or defend against host-level inspection/logging. Base64 is not encryption. Future runtime validation must cover real masked input, kubectl access, API/admission errors, safe reruns and workload credential consumption. Sources: [.NET cryptographic RNG](https://learn.microsoft.com/en-us/dotnet/api/system.security.cryptography.randomnumbergenerator.getbytes), [redirected subprocess streams](https://learn.microsoft.com/en-us/dotnet/api/system.diagnostics.processstartinfo.redirectstandardoutput), [masked input](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.utility/read-host), [kubectl create](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_create/).
 
 ### Resource budgets and current RAM gate
 
@@ -201,7 +219,7 @@ Immediately before the first Helm install, recheck host memory and Docker/WSL/no
 
 ### Stage 3.3 bootstrap and readiness implementation
 
-Stage 3.2's six-resource chart was committed as 490c2de with interim readiness. The current [chart](../charts/urumi/Chart.yaml) adds a revision-specific immutable ConfigMap and a normal Job: local/production rendering now produces eight resources. Namespace, credentials and TLS Secrets remain external. No deployment has occurred; the Chart.yaml description remains the Stage 3.2 text because metadata changes were outside this step's file scope.
+Stage 3.2's six-resource chart was committed as 490c2de with interim readiness. Stage 3.3, committed as 17a54ab, adds a revision-specific immutable ConfigMap and a normal Job: local/production rendering produced eight resources. Namespace, credentials and TLS Secrets remain external. Its approved metadata cleanup gives Chart.yaml a stable platform description. No deployment has occurred, and Stage 3.4 does not run Helm or alter the chart.
 
 The [shell orchestrator](../charts/urumi/files/store/bootstrap-wordpress.sh) and [PHP configurator](../charts/urumi/files/store/configure-woocommerce.php) are loaded by Helm .Files into the ConfigMap, not interpolated as templates. They contain code and credential-file paths, never credential values. Configuration travels through non-secret env vars; actual passwords/salts come from existing Secret references. The Job mounts only application DB, initial admin and WordPress auth Secrets, not the DB root or future REST credentials. Admin password input uses WP-CLI's stdin prompt, not an argument or newly written plaintext file.
 
@@ -255,4 +273,4 @@ These stable OPEN IDs preserve the original questions and links. A13 records rev
 - Select the LLM/provider, chat-loop integration and response transport, exact WooCommerce REST/tool contracts, auxiliary tool schemas, and final interactive client. Define revenue demo data semantics and user A/B roles.
 - Implement and validate the accepted store contracts only in a separately authorized step. Confirm initial store settings, filesystem permissions, safe Job reruns, retained-claim reuse, probes, checkout and measured memory. Production TLS provisioning and non-store deployment details remain open. NetworkPolicy is deferred, not a first-core prerequisite.
 
-No bonus or stand-out item is selected. Stage 3.3 authorizes implementation and static validation only; no live Kubernetes changes, Secret helper, image execution, hosts edits, staging or commit. Stop for review. [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from historical milestones.
+No bonus or stand-out item is selected. Stage 3.4 authorizes the local Secret helper and documentation with offline validation only; no Kubernetes changes, namespace/Secret creation, Helm, deployment, hosts edits, staging or commit. Stop for review. [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from historical milestones.

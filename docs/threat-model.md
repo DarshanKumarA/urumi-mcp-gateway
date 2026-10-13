@@ -1,6 +1,6 @@
 # Threat model draft
 
-Status: analysis aligned with approved Architecture v1, with this documentation update awaiting review; no security controls are implemented or verified. The [original assignment](source/urumi-mcp-gateway-assignment.docx) and [assignment.md](assignment.md) define scope. This document supports REQ-DEL-05 and the mandatory security-posture video coverage (VID-04). Discussing a risk does not commit the project to every possible mitigation.
+Status: analysis aligned with approved Architecture v1; store credential references and the Stage 3.4 helper have static/offline evidence only, with no deployed security verification. This update awaits review. The [original assignment](source/urumi-mcp-gateway-assignment.docx) and [assignment.md](assignment.md) define scope. This document supports REQ-DEL-05 and the mandatory security-posture video coverage (VID-04). Discussing a risk does not commit the project to every possible mitigation.
 
 ## Assets actors and trust boundaries
 
@@ -27,7 +27,7 @@ This section records mandatory controls separately from the analysis topics abov
 
 | Assignment requirement | Required behavior | Planned verification / unresolved point |
 | --- | --- | --- |
-| REQ-SEC-01 | No hardcoded secrets; credentials, including LLM API keys, live in Kubernetes Secrets | Review repository/values and runtime references without revealing values; Secret creation/update mechanism open. Base64 encoding is not encryption |
+| REQ-SEC-01 | No hardcoded secrets; credentials, including LLM API keys, live in Kubernetes Secrets | Store helper implemented with offline/mock checks; real creation/consumption and other credential paths remain unverified. Base64 encoding is not encryption |
 | REQ-WOO-08, REQ-GW-07 | WooCommerce MCP server internal-only and callable only by gateway; both chat and external clients go through gateway | A10: ClusterIP, no upstream public Ingress/NodePort/LoadBalancer, and gateway-held authentication. Validate positive gateway path, rejection without that credential, and external non-exposure; network isolation is not yet proven |
 | REQ-GW-05 | Browser and MCP clients never receive upstream credentials | Inspect response/log paths and credential movement; admin submission of a credential must not imply it is returned later |
 | REQ-TEAM-01, REQ-TEAM-02 | Admin/member boundaries with admin management of servers/members and invitation capability | A6/A13: email/password with server-side sessions; manually shared single-use expiring invitations. Test role enforcement and redemption; session/token protection details open |
@@ -48,6 +48,16 @@ Static implementation only; no deployed security evidence. ConfigMap assets cont
 Bootstrap distinguishes authenticated DB failure from an empty database, verifies the versioned archive checksum, disables unattended updates and refuses unknown ownership, changed contracts or conflicting established settings. It never resets users/passwords/products/orders. Checkpoints and the completion marker are ordinary database state, not authorization credentials or tamper-proof evidence. They do not defend against an administrator or malicious PHP with DB access. Ordinary error handling avoids raw DB/exception details; this is not a claim that arbitrary plugins cannot log sensitive data.
 
 Runtime Secret-file permissions, safe reruns and fail-closed readiness are still unverified; PHP syntax checking is also outstanding. Serialization of release operations is an operational requirement because Job revision names are not a concurrency lock. A partial core installation or interruption before ownership is recorded requires reviewed recovery. These controls implement the selected store contract; they do not select optional gateway hardening.
+
+## Stage 3.4 local Secret preparation boundary
+
+The [helper](../scripts/setup-store-secrets.ps1) targets only the four current store Secrets. Root DB material belongs only to MariaDB; the shared app DB password belongs to MariaDB/WordPress/bootstrap; initial admin input belongs only to bootstrap; auth keys/salts belong to WordPress/bootstrap. WooCommerce REST credentials remain deferred until the store can issue them for the custom MCP server.
+
+Default offline validation cannot reach kubectl. Future Check is read-only; Create requires all existing objects to pass preflight, preserves them and submits only absent objects through create -f -. A name race fails instead of overwriting another Secret. Missing/mismatched keys, wrong type/identity or invalid credential text stop for explicit repair. This does not authenticate against the database or recover credentials for retained volumes.
+
+Cryptographic generation, masked admin input, in-memory JSON/stdin and a single subprocess wrapper avoid command-line/file/console payloads. Raw stderr, create responses and exception details are not forwarded. Byte/unmanaged buffers are cleared where possible; immutable managed strings, host inspection/logging and external Kubernetes audit/admission systems are outside that guarantee. Do not trace/debug/transcript credential-bearing execution. Read access to these Secrets remains powerful; base64 is not encryption.
+
+Offline fixtures, mocked control flow and harmless process-pipe tests are the only new evidence. API access, actual interactive input, partial writes/timeouts and workload consumption remain unverified. Failure may leave some newly created objects; preserve and inspect them on retry, without automatic deletion or rotation. No optional gateway hardening is selected.
 
 ## Optional hardening and stand-out work
 
