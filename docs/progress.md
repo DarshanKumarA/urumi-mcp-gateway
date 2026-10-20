@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-13 — Stage 3.4 local store Secret helper implemented and validated offline; real Secret handling remains unverified.** Stage 3.3 was approved and committed as 17a54ab, following store design ab7f4b3 and Helm foundation 490c2de. This step creates no namespace, Secrets, release or workloads and runs neither Helm nor kubectl. PHP syntax and store runtime validation remain pending.
+**2026-10-20 — Stage 3.5 namespace, hostname and four store Secret key/type contracts verified; current RAM blocks application deployment.** Stage 3.4 was approved and committed as 0cee761, following bootstrap/readiness 17a54ab, store design ab7f4b3 and Helm foundation 490c2de. The user completed the hosts entry and ran the committed helper's Create/Check locally with masked admin input. Independent read-only checks confirm the prepared environment. Available host RAM is 3.372 GiB, below the approximately 3.5 GiB floor. No project Helm release or application workloads exist; PHP syntax and store runtime validation remain pending.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The store chart includes bootstrap scripts, a normal Job and dependency-aware readiness. A local Secret helper now exists with offline/mock evidence only. No release or Urumi workload is deployed, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
+The store chart includes bootstrap scripts, a normal Job and dependency-aware readiness. The helper's initial live Check observed absent objects; the user subsequently reported successful local Create/Check. Independent checks verified the four existing Secret identities, Opaque types and exact case-sensitive key sets without inspecting credential values. Workload credential consumption remains unverified. No release or Urumi workload is deployed, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record the Stage 3.4 helper, credential boundaries, preservation behavior, offline/mock validation and remaining live checks.
-- Record Stage 3.3 checkpoint 17a54ab; retain earlier validation sections as history, including the PHP syntax gap.
-- Only scripts/setup-store-secrets.ps1 and six relevant documentation files change. No chart edits, staging, commit or live changes.
+- Record Stage 3.5's initial preparation, manual completion, independent read-only verification and current RAM deployment stop.
+- Record Stage 3.4 checkpoint 0cee761; retain earlier validation sections as history, including the PHP syntax gap.
+- Only progress and project-journey documentation changes. No chart/helper edits, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -113,6 +113,45 @@ Validation found and corrected strict-mode access to an absent optional field, f
 Existing Secrets are preserved; inconsistent keys/type/text require explicit repair. Random generation occurs only for absent DB/auth values in future Create execution; the admin password uses masked input. JSON/base64 data stay in process memory and stdin, never command arguments or files; child stderr and exception payloads are suppressed. Creation is not transactional across four objects: failures may leave already-created Secrets, and retries must inspect/preserve them. Managed strings cannot be guaranteed erased; retained-data credentials must be recovered rather than regenerated blindly.
 
 Next boundary: review this helper before separately authorizing namespace preparation, read-only Check and interactive creation. WooCommerce REST credentials remain deferred until WooCommerce is live. PHP syntax checking, memory recheck, deployment and every store runtime demonstration remain incomplete.
+
+## Stage 3.5 local environment preparation
+
+### Initial preparation and manual handoff
+
+Fresh preflight on 2026-10-20 began from clean main at 0cee761. The user revised the host operating gate: approximately 4 GiB available preferred; approximately 3.8 GiB accepted for a cautious initial deployment path; 3.5–3.8 GiB permits only preparation that does not materially increase memory usage; below approximately 3.5 GiB stops preparation. Recheck before application deployment. Resource budgets, probes, persistence and required system components remain unchanged. Earlier design-stage RAM readings above are historical, not current capacity evidence.
+
+| Observation | Actual result |
+| --- | --- |
+| Windows RAM | Initial total/used/available: 15.726 / 12.193 / 3.533 GiB; final: 15.726 / 12.048 / 3.678 GiB. Preparation-only band; no application deployment |
+| Docker and k3d | Engine 29.9.1 reachable in Linux mode, desktop-linux context; urumi-local server 1/1 with load balancer |
+| Kubernetes | Explicit/current context k3d-urumi-local; node k3d-urumi-local-server-0 Ready, v1.35.5+k3s1, MemoryPressure False |
+| Node memory | Allocatable 6064276Ki (about 5.78 GiB); usage 602Mi initially, 606Mi finally (10%). Allocatable differs from the prior run; this step did not change runtime limits |
+| System health and ports | Traefik, CoreDNS, metrics-server and local-path-provisioner each 1/1 Ready at both checks; load balancer maps host 8080 to 80, 8443 to 443, and 127.0.0.1:6550 to 6443 |
+| Namespace | urumi was absent; created directly with kubectl and verified Active. Outside Helm ownership; no application resources added |
+| Hostname | No active hosts entry and Windows resolver could not resolve store.urumi.test. Append attempt denied by Windows permissions; file unchanged. Handed off for manual elevated edit |
+| Secret Check | Committed helper Check completed against the live cluster: urumi-mariadb-root, urumi-store-db, urumi-wordpress-admin and urumi-wordpress-auth all absent. Type/key verification deferred until creation |
+| Release/workload boundary | No Ingress objects or Urumi application workloads. Only system traefik and traefik-crd Helm releases exist |
+
+The initial run stopped before Create because this tool session does not provide a user-controlled masked password prompt. The user was given the committed helper command for a local PowerShell 7 terminal, with admin input only at its masked prompt, and the exact hosts entry `127.0.0.1 store.urumi.test`. No project credential generation or Secret submission occurred in that agent run.
+
+### Post-create verification
+
+The user reported completing the hosts edit and the committed helper's Create followed by Check from their own PowerShell 7 terminal using masked admin-password entry. The resumed agent run made no environment or Secret changes. It did not rerun helper Check, which internally retrieves and decodes credential text; instead, kubectl Go-template output was restricted to Secret identity, type, lifecycle and key names. No full Secret YAML/JSON, encoded values, plaintext credentials or stdin payloads were output or decoded.
+
+| Secret | Type | Required key-name verification |
+| --- | --- | --- |
+| urumi-mariadb-root | Opaque | Exact one-key set: root-password |
+| urumi-store-db | Opaque | Exact one-key set: password |
+| urumi-wordpress-admin | Opaque | Exact one-key set: admin-password |
+| urumi-wordpress-auth | Opaque | Exact eight-key set: auth-key, secure-auth-key, logged-in-key, nonce-key, auth-salt, secure-auth-salt, logged-in-salt, nonce-salt |
+
+All four objects exist in urumi, are not terminating, and have no extra or mis-cased keys. These independent checks verify structure only; the user's local helper Check is the reported evidence for credential-text validation. Authentication and workload consumption remain untested.
+
+Windows resolves store.urumi.test to exactly 127.0.0.1 and namespace urumi remains Active. Docker 29.9.1/Linux, urumi-local and context k3d-urumi-local are healthy. Node k3d-urumi-local-server-0 is Ready on v1.35.5+k3s1 with MemoryPressure False, 6064276Ki allocatable (about 5.78 GiB) and 612Mi current usage (10%). Traefik, CoreDNS, metrics-server and local-path-provisioner each remain 1/1 Ready; ports 8080/8443/6550 retain their mappings.
+
+Fresh Windows total/used/available RAM is **15.726 / 12.354 / 3.372 GiB**. Environment preparation is verified, but this reading is below the approximately 3.5 GiB deployment floor: **do not deploy**. Recheck headroom before any later application deployment; keep approved budgets, probes, persistence and required infrastructure unchanged.
+
+Only system traefik and traefik-crd Helm releases exist; no Ingress objects or WordPress/MariaDB/Urumi application workloads exist. No Helm install, Secret recreation/modification, hosts edit or WooCommerce REST credential creation occurred in this verification run. Stop for review. PHP syntax and all store runtime requirements remain unverified.
 
 ## Docker setup outcome
 
@@ -253,6 +292,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-The user authorized Stage 3.4 helper implementation and static/offline validation only. Show the complete script, documentation diff, contract, checks and limitations, then stop for review. No namespace/Secret creation or mutation, actual kubectl/Helm calls, hosts edits, workload deployment, staging or commit. Earlier observation sections remain historical.
+Stage 3.5 preparation is verified after the user's manual hosts/Secret actions and independent read-only checks. Current host RAM is below the deployment floor; no application deployment is permitted. Stop for review with only progress/journey documentation changed. No Secret mutation, Helm install, application workloads, chart/helper changes, staging or commit in this verification run. Earlier observation sections remain historical.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

@@ -173,12 +173,25 @@ Implemented for static review on 2026-10-12 from clean main at 490c2de; no deplo
 
 ## Stage 3.4 — Local store Secret preparation helper
 
-Implemented and checked offline on 2026-10-13 from clean main at 17a54ab; awaiting user review, with no Kubernetes or Helm execution.
+Implemented and checked offline on 2026-10-13 from clean main at 17a54ab, then reviewed, approved and committed as 0cee761; no Kubernetes or Helm execution during that milestone.
 
 - **Problem/choice:** The chart consumes external credentials but had no preparation helper. Add one PowerShell 7 script for the four current store Secrets, with fixed local context/namespace, safe default Validate mode, read-only Check and explicit create-only execution. Check all existing contracts first and preserve them; never auto-create the namespace or rotate/repair credentials.
 - **Credential reasoning:** Generate DB/auth material with .NET cryptographic randomness, take the chosen admin password through masked input and submit in-memory JSON on stdin. Avoid process arguments/files, suppress raw subprocess diagnostics and report only names/status. WooCommerce REST credentials must wait until WooCommerce is live. Structural validation cannot prove credentials match retained data, and managed strings cannot be reliably erased.
 - **Evidence/learning:** Parser and offline fixtures pass; 12 mocked workflows cover preservation, failures and partial creation. Separate harmless child-process tests verify stream suppression/capture. Validation caught optional-field access under strict mode, PowerShell flag grouping and stray .NET task output; these were corrected. The four names/eleven keys match chart references; credential scan passes. PSScriptAnalyzer is unavailable.
 - **Next boundary:** Review the script and document its limitations before authorizing any real namespace/Secret work. Mocked success does not prove Kubernetes access, masked console behavior or workload credentials. PHP syntax and all store runtime evidence remain pending; no project credentials were retained or used.
-- **Git reference:** Uncommitted Stage 3.4 helper/documentation over 17a54ab; nothing staged or committed.
+- **Git reference:** 0cee761 — feat: add secure store secret setup; seven approved files, with parser/default Validate, credential scan and whitespace checks repeated before commit.
+
+## Stage 3.5 — Live environment preparation and post-create verification
+
+Resumed on 2026-10-20 from clean main at 0cee761. Earlier attempts stopped at the host-memory gate without changes; this run used fresh measurements and the user's revised operating thresholds.
+
+- **Operating decision:** Prefer about 4 GiB available host RAM; accept about 3.8 GiB for a cautious deployment path; allow only negligible-memory preparation in the 3.5–3.8 GiB band and stop below about 3.5 GiB. Initial-run availability was 3.533–3.678 GiB out of 15.726 GiB. Keep requests/limits, probes, persistence and system components unchanged and recheck before deployment.
+- **Infrastructure evidence:** Docker 29.9.1/Linux and urumi-local were healthy; context k3d-urumi-local, Ready v1.35.5+k3s1 node and four required system Deployments healthy. Node allocatable was about 5.78 GiB, usage 602–606 MiB and MemoryPressure False. Host mappings 8080/8443/6550 remained correct. No project release or conflicting Ingress existed.
+- **Initial changes/checks:** Created only namespace urumi outside Helm ownership and verified Active. The committed helper's live Check reported all four store Secrets absent. No application workloads or credentials were created during that agent run.
+- **Manual boundary and completion:** Windows denied the hosts append, and Create needed a user-controlled masked prompt. The user then reported adding the exact hosts entry and completing the committed helper's Create/Check locally with masked admin input. No password or payload was supplied through chat.
+- **Independent verification:** The resumed read-only run confirmed store.urumi.test resolves to 127.0.0.1, urumi is Active, and all four Secrets are Opaque with exact case-sensitive key sets of 1/1/1/8, without extra keys. Projected output contained identity/type/lifecycle/key names only; helper Check was not rerun because it reads/decodes credential text. Credential-value validity is user-reported helper evidence; workload consumption remains untested.
+- **Final health/capacity:** Infrastructure remained healthy with node Ready and MemoryPressure False, about 5.78 GiB allocatable and 612 MiB used (10%). Windows total/used/available was 15.726 / 12.354 / 3.372 GiB. Preparation is verified, but current RAM is below the deployment floor. No project Helm release, Ingress or application workload exists.
+- **Learning/next step:** Environment preparation and Secret key/type validity do not prove store readiness or capacity. Stop for review, recover/recheck host headroom and obtain outstanding PHP syntax evidence before an authorized deployment. No Helm installation, Secret mutation during verification, WooCommerce REST credentials or application deployment occurred; all store runtime evidence remains pending.
+- **Git reference:** Operational observations documented over 0cee761; uncommitted for review.
 
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
