@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-20 — Stage 3.6 first store deployment succeeded: Helm release urumi revision 1 deployed, MariaDB/WordPress Ready, bootstrap Complete and basic HTTP checks passed.** Stage 3.5 preparation was approved and committed as 11b24f2, following helper 0cee761, bootstrap/readiness 17a54ab, design ab7f4b3 and chart foundation 490c2de. Fresh available host RAM was 3.998 GiB immediately before installation and 3.966 GiB after HTTP checks, with a sampled startup low of 1.797 GiB. No OOM, application restart or node MemoryPressure was observed. PHP syntax validation now passes in the pinned deployed environment; checkout, persistence/failure experiments and full-stack capacity remain unverified.
+**2026-10-20 — Stage 3.7 checkout is paused; the deterministic permalink fix and explicit bootstrap v1-to-v2 migration are implemented for static review only.** Stage 3.6 was committed as 5ef62e0. The live release remains revision 1/marker 1 with Plain permalinks, product 11/SKU URUMI-DEMO-001 and no order. No upgrade or live routing change occurred. Earlier acceptance found /shop/ showing the blog despite HTTP 200; query URLs work. Migration/route runtime evidence, checkout/admin verification, persistence/failure tests and full-stack capacity remain incomplete.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. The homepage/shop and admin-login route are reachable; admin login, demo products and orders have not been exercised. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
+The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. Product 11 is published and purchasable through its generated URL; the /shop/ route still needs correction and validation. Admin login and checkout have not been exercised, and the observed order count is zero. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record Stage 3.6's exact install, runtime observations, recovered warnings, PHP lint, HTTP checks and remaining tests.
-- Record Stage 3.5 checkpoint 11b24f2; retain earlier measurements and validation limits as history. Stage 3.6 closes the earlier PHP syntax gap.
-- Only progress and project-journey documentation changes. No chart/helper edits, staging or commit.
+- Preserve Stage 3.7 configuration/product evidence and failed /shop/ content check; checkout was subsequently paused by the user.
+- Record the source-controlled permalink contract, recognized migration/retry states, static evidence and future upgrade/rollback boundary.
+- Four chart files and one regression fixture change alongside architecture/decisions/requirements/progress/journey. No deployment, Secret changes, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -218,6 +218,69 @@ Final Windows total/used/available was 15.726 / 11.761 / 3.966 GiB; node allocat
 
 Remaining runtime work: manual admin login, approved demo products/checkout/order verification, memory during admin use/checkout, persistence across Pod replacement, dependency-failure probe behavior, safe bootstrap rerun/recovery and retained-claim reuse. Any later upgrade/rollback exercise needs separate review and release serialization; none occurred here. No demo product/order or WooCommerce REST credential was created, and MCP implementation has not begun. Stop at this successful first-deployment boundary; leave release and persistent state running/intact.
 
+## Stage 3.7 business-flow acceptance — awaiting manual checkout
+
+Started on 2026-10-20 from clean main at 5ef62e0. No Helm values, release, Kubernetes resources, Secrets or persistent claims were changed. The only intended application-data mutation was the requested demo product, using WooCommerce CRUD in the existing WordPress PHP container.
+
+Preflight confirmed context k3d-urumi-local, Helm urumi revision 1 deployed, WordPress/MariaDB 1/1 Ready, bootstrap Job Complete (recorded duration 2m38s), zero container restarts, Ready node and MemoryPressure False. Homepage and /shop/ returned HTTP 200; the stronger catalog-content check below subsequently failed.
+
+Non-sensitive PHP inspection loaded WordPress with cron spawning disabled, suppressed raw diagnostics and returned only selected business fields. It verified active WooCommerce 11.2.1, currency INR, country IN, timezone Asia/Kolkata, taxes disabled and guest checkout enabled. COD is enabled with no shipping-method restriction. There are no custom shipping zones; fallback zone 0 has exactly one enabled free_shipping method (instance 1) with no minimum/coupon requirement. Shipping is unrestricted under the accepted demo baseline.
+
+Before creation, wc_get_product_id_by_sku and wc_get_products found no URUMI-DEMO-001. A second lookup immediately before saving again guarded against duplicates. WC_Product_Simple setters and save created exactly one product; a subsequent SKU query returned only ID 11. No direct SQL mutation, REST credential or admin login was used.
+
+| Product field | Observed value |
+| --- | --- |
+| ID / name | 11 / Urumi Demo Mug |
+| SKU / type | URUMI-DEMO-001 / simple |
+| Regular and current price | 499 INR |
+| Status / stock | publish / instock |
+| Catalog visibility / purchasable | visible / true |
+| Physical shipping | Required |
+| Public URL | http://store.urumi.test:8080/?product=urumi-demo-mug |
+
+The product page returned 200 and contained the name, SKU, ₹499.00 and Add to cart control. The public WooCommerce Store API returned product 11 with is_purchasable=true, is_in_stock=true, INR and price 49900 with two minor digits (₹499.00). The generated product archive at http://store.urumi.test:8080/?post_type=product returned 200 and displayed the single demo product, its price and Add to cart. These are HTTP/HTML/API observations, not a rendered-browser or completed cart/checkout test.
+
+**Failed acceptance check:** http://store.urumi.test:8080/shop/ returned 200 but showed the WordPress blog/Hello world post, without the product, price or Add to cart. Inspection found an empty permalink_structure (plain permalinks), published shop page 5 with slug shop, generated shop URL http://store.urumi.test:8080/?page_id=5 and the working query-string archive above. The bootstrap does not establish pretty permalinks. This explains why the requested /shop/ route is not a validated catalog; its earlier Stage 3.6 HTTP 200 observation remains true but was insufficient evidence. No permalink/rewrite/bootstrap change was made. The initial content assertion correctly failed; a separate Windows console Unicode-output failure was resolved by escaping display output, without changing the store.
+
+The WooCommerce order baseline at 16:09:11 +05:30 was zero orders across registered order statuses and zero checkout drafts. After product creation, a read-only order query still returned zero. No cart submission or order was created by the agent. The user must complete one guest checkout through the verified product page using synthetic details, quantity 1, free shipping and COD, then privately log in and inspect WooCommerce > Orders. Expected total is ₹499.00; the expected physical-product COD status is Processing, which is not yet observed. Report only the order ID and success/failure, without customer details, credentials or an order URL containing its access key. Verify the new order through supported WooCommerce APIs after that handoff and recheck health/memory during/after checkout. The /shop/ routing acceptance issue remains open independently.
+
+| Memory snapshot | Windows total / used / available GiB | Node usage | MariaDB / WordPress |
+| --- | --- | --- | --- |
+| Preflight | 15.726 / 11.985 / 3.741 | 1020Mi (17%) | 101Mi / 128Mi |
+| After product creation | 15.726 / 11.997 / 3.729 | 1032Mi (17%) | 101Mi / 139Mi |
+| Before manual checkout handoff | 15.726 / 11.986 / 3.740 | 1066Mi (18%) | 102Mi / 173Mi |
+
+Node allocatable remained 6064276Ki (about 5.78 GiB). At handoff both application Pods were Ready, all three Pod restart counts were zero, no OOMKilled/previous termination appeared in container status, bootstrap remained Complete and MemoryPressure was False. Homepage and /shop/ still returned 200, with the known /shop/ content failure. These samples precede checkout and do not demonstrate checkout peaks or full-stack capacity.
+
+Stage 3.7 is not complete: /shop/ catalog routing, browser checkout, one-order verification, admin visibility and post-checkout health remain pending. Persistence deletion/recovery and dependency-loss testing remain incomplete. No Helm operation, Pod/PVC deletion, Secret mutation, WooCommerce REST credentials, MCP implementation, staging or commit occurred. Only progress/journey documentation changes accompany this partial runtime evidence.
+
+### Stage 3.7 permalink correction — static review only
+
+The user paused checkout to repair the source of truth instead of changing only live options. The previous progress/journey edits remain in the worktree. Current deployed data still includes product 11 and zero placed orders; this step does not perform application configuration or business mutations.
+
+The old code accepted only an exact contract and marker match. A new Helm Job with unchanged version 1 would verify existing settings, not add permalinks; changing only the expected version would fail preflight. Version 2 now explicitly recognizes a matching completed version-1 store, validates all existing settings, applies /%postname%/ with the official WP-CLI hard flush, and verifies persisted shop/product routing and Apache directives before advancing ownership and marker. Interrupted old/target states are recognized; unrelated settings/versions are rejected. No WordPress/WooCommerce reinstall, product creation, credential reset or volume replacement is part of the migration.
+
+Source changes are limited to bootstrap-wordpress.sh (Apache CLI context and bounded rewrite/finalize sequence), configure-woocommerce.php (migration guards, verification and marker-last completion), shared values.yaml (bootstrap version 2) and WordPress readiness (target permalink check). Job/ConfigMap templates and both environment values files remain unchanged. The new tests/store/bootstrap-migration.php fixture checks actual function declarations with stubbed WordPress APIs and options in memory; it never executes the bootstrap entrypoint or loads WordPress/database state.
+
+Read-only inspection of the existing pinned Apache container confirmed rewrite_module, AllowOverride All and shared-PVC webroot/.htaccess permissions 33:33 with modes 755/644. The Job's existing identity can support the planned writes. PHP syntax was checked by sending source to php -n -l /dev/stdin in that existing container; shell syntax used sh -n on stdin. The isolated fixture also ran there without loading WordPress or writing files/options. This is validation process execution, not a bootstrap rerun or live migration.
+
+| Validation | Result / limit |
+| --- | --- |
+| Shell syntax | Passed sh -n; orchestrator not executed |
+| PHP syntax | Configurator, fixture and local/production inline readiness passed php -n -l |
+| Isolated migration fixtures | 50 assertions passed: preserved settings/data sentinels, idempotency, drift/refusal, missing DB/rules, failed Apache persistence, interrupted completion, fresh-v2 completion and product-structure normalization |
+| Helm | Strict local/production lint passed; icon recommendation is informational |
+| Render/schema | Eight expected resources per environment; all 16 validated against upstream Kubernetes v1.35.5 OpenAPI schemas |
+| Structural checks | Duplicate keys, selectors, named ports, mounts, affinity, bounds, retention and exact Secret references checked; no Secret/Namespace object or public MariaDB |
+| Repository checks | Credential scans of changed/new files and renders passed; 51 local links/anchors, 30 Markdown tables and git diff --check passed; index empty |
+| Runtime boundary | No Helm install/upgrade/rollback, bootstrap execution, permalink change, checkout, Secret mutation or resource deletion; migration HTTP behavior remains untested |
+
+Final source review found WordPress's internal product structure may omit a leading slash. The verifier now normalizes boundary slashes and fixtures cover both representations plus rejection of another product base. PHP/fixture validation and both lint/render/schema checks passed again after that correction.
+
+Future reviewed upgrade: recheck memory/health and terminal old Jobs, serialize release operations, then upgrade urumi using the same chart/local values and bounded watcher/Job wait without automatic rollback. Revision 2 creates r2 Job/assets and replaces the Recreate WordPress Pod using its current claim; new readiness waits for marker 2. The bootstrap Job can run while WordPress is unready because affinity uses labels/node, not readiness. Verify Job success, marker/readiness, unchanged product 11/SKU, real /shop/ content and /product/urumi-demo-mug/ before resuming checkout. Preserve both claims and database throughout.
+
+If migration fails, retain diagnostics/data and inspect the old/target option/file states before retrying. Contract and marker writes are ordered but not atomic with rewrite persistence. After marker 2, the old revision's marker-1 readiness will fail; Helm rollback cannot rewind persisted options/.htaccess and must not be automatic. See [DEC-024](decisions.md#dec-024-deterministic-permalinks-and-a-recognized-bootstrap-migration) and the [migration lifecycle](architecture.md#stage-37-deterministic-permalinks-and-explicit-v1-to-v2-migration). Stop for source/static review; no runtime migration is authorized in this step.
+
 ## Docker setup outcome
 
 Initial rechecks found no Docker CLI, Desktop executable/install record, Docker process/service, or engine pipe. WinGet 1.29.380 identified Docker.DockerDesktop 4.94.0 from Docker Inc., hosted on desktop.docker.com. WSL 2.5.9 and its required Windows features were already present. The intended setup was WSL2 with Linux containers and Docker Desktop's built-in Kubernetes disabled and unused.
@@ -351,12 +414,12 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
 - LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Stage 3.6 verified initial local bootstrap/readiness, PHP syntax and basic store/admin-login HTTP routes with the accepted demo defaults. Manual admin login, checkout, persistence/recovery and dependency-failure tests remain pending; production identity/TLS, non-store components and VPS compatibility remain open.
+- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Stage 3.6 verified initial bootstrap/readiness and PHP syntax. Stage 3.7 verified business configuration and product 11 through generated URLs, but /shop/ content failed. Routing correction, manual checkout/admin order visibility, post-checkout health, persistence/recovery and dependency-failure tests remain pending; production identity/TLS, non-store components and VPS compatibility remain open.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-Stage 3.6 first deployment and basic validation succeeded using the unchanged committed chart. Stop for review with only progress/journey documentation changed. Leave the release, claims, namespace and Secrets intact. No demo data, checkout, persistence deletion test, WooCommerce REST credentials, MCP work, upgrade/uninstall, staging or commit is authorized at this boundary. Earlier observation sections remain historical.
+Stage 3.7 checkout is paused for review of the source-only permalink migration. The live route remains unfixed until a separately authorized upgrade validates it. Do not call the business flow accepted until catalog routing, checkout, order/admin visibility and post-checkout health are verified. Leave release, claims, namespace, Secrets and product 11 intact; do not recreate the SKU. No persistence deletion test, WooCommerce REST credentials, MCP work, upgrade/uninstall, staging or commit. Earlier observation sections remain historical.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

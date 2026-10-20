@@ -41,7 +41,24 @@ function urumi_contract() {
         'Canonical URL is invalid.');
     urumi_require(in_array($contract['TIMEZONE'], timezone_identifiers_list(), true),
         'Business timezone is invalid.');
+    urumi_require($contract['BOOTSTRAP_VERSION'] === '2', 'Unsupported target bootstrap version.');
+    $contract['PERMALINK_STRUCTURE'] = '/%postname%/';
     return $contract;
+}
+function urumi_validate_owner($contract, $owner, $marker) {
+    $legacy = $contract;
+    $legacy['BOOTSTRAP_VERSION'] = '1';
+    unset($legacy['PERMALINK_STRUCTURE']);
+    // The target-owner/marker-1 pair is the recognized crash window between
+    // the last two writes. No other contract/version transition is adopted.
+    urumi_require(($owner === $legacy && $marker === '1')
+        || ($owner === $contract && in_array($marker, [null, '1', '2'], true)),
+        'Unclaimed store or unsupported bootstrap transition; explicit review required.');
+}
+function urumi_validate_permalink($marker, $current) {
+    urumi_require($current === '/%postname%/'
+        || ($marker !== '2' && $current === ''),
+        'Permalink setting conflicts with the recognized Plain-to-postname transition.');
 }
 function urumi_save($key, $value) {
     update_option($key, $value, false);
@@ -69,6 +86,56 @@ function urumi_pages($complete) {
             'WooCommerce page initialization failed.');
     }
 }
+function urumi_verify_rewrites() {
+    global $wp_rewrite;
+    if (!function_exists('extract_from_markers')) {
+        require_once ABSPATH . 'wp-admin/includes/misc.php';
+    }
+    urumi_require(get_option('permalink_structure') === '/%postname%/',
+        'Expected permalink structure is missing.');
+    // Compare persisted rules, not a helper that silently regenerates missing rules.
+    $rules = get_option('rewrite_rules');
+    urumi_require(is_array($rules) && count($rules) > 1,
+        'Persisted WordPress rewrite rules are missing.');
+    urumi_require(trim((string) $wp_rewrite->get_extra_permastruct('product'), '/') === 'product/%product%',
+        'Unexpected WooCommerce product permalink base; no overwrite performed.');
+    $product_rule = false;
+    $shop_rule = false;
+    foreach ($rules as $pattern => $query) {
+        $regex = '#^' . str_replace('#', '\\#', $pattern) . '#';
+        if (is_string($query) && preg_match($regex, 'product/urumi-route-check/')
+            && str_contains($query, 'product=$matches[')) {
+            $product_rule = true;
+        }
+        if (is_string($query) && preg_match($regex, 'shop/')
+            && $query === 'index.php?post_type=product') {
+            $shop_rule = true;
+        }
+    }
+    $shop_id = wc_get_page_id('shop');
+    // WooCommerce's shop is a product archive, not a singular page query.
+    urumi_require($product_rule && $shop_rule && get_permalink($shop_id) === home_url('/shop/')
+        && get_post_type_archive_link('product') === home_url('/shop/'),
+        'Shop/product rewrite verification failed.');
+    $expected = trim($wp_rewrite->mod_rewrite_rules());
+    $actual = trim(implode("\n", extract_from_markers(ABSPATH . '.htaccess', 'WordPress')));
+    urumi_require($expected !== '' && $actual === $expected,
+        'Persisted Apache WordPress rewrite block differs; hard flush was not verified.');
+}
+function urumi_record_completion($contract) {
+    if (get_option('urumi_bootstrap_contract', null) !== $contract) {
+        urumi_save('urumi_bootstrap_contract', $contract);
+    }
+    // Last write. A retry also recognizes target ownership with the old marker.
+    if (get_option('urumi_bootstrap_version', null) !== $contract['BOOTSTRAP_VERSION']) {
+        urumi_save('urumi_bootstrap_version', $contract['BOOTSTRAP_VERSION']);
+    }
+}
+function urumi_finalize($contract) {
+    urumi_configure($contract);
+    urumi_verify_rewrites();
+    urumi_record_completion($contract);
+}
 function urumi_configure($contract) {
     global $wpdb;
     $wpdb->suppress_errors(true);
@@ -84,9 +151,14 @@ function urumi_configure($contract) {
         && isset(get_woocommerce_currencies()[$contract['CURRENCY']]),
         'Country or currency is invalid.');
     $marker = get_option('urumi_bootstrap_version', null);
-    urumi_require($marker === null || $marker === $contract['BOOTSTRAP_VERSION'],
-        'Bootstrap version differs; a reviewed migration is required.');
+    urumi_validate_owner($contract, get_option('urumi_bootstrap_contract', null), $marker);
+    urumi_validate_permalink($marker, get_option('permalink_structure'));
     $complete = $marker !== null;
+    urumi_require(!is_multisite() && home_url() === site_url(),
+        'Only the existing single-site, root-webroot layout is supported.');
+    $htaccess = ABSPATH . '.htaccess';
+    urumi_require(file_exists($htaccess) ? is_writable($htaccess) : is_writable(ABSPATH),
+        'The bootstrap identity cannot persist Apache rewrite rules.');
 
     // A completed store is verification-only. Partial runs may resume only from
     // the recorded original value or our intended value, never an unknown edit.
@@ -149,10 +221,7 @@ function urumi_configure($contract) {
         urumi_require(get_option($key, null) === $entry['target'], 'Final settings verification failed.');
     }
     urumi_require($wpdb->get_var('SELECT 1') === '1', 'Final database verification failed.');
-    // Last write, only after every preceding verification succeeded.
-    if (!$complete) {
-        urumi_save('urumi_bootstrap_version', $contract['BOOTSTRAP_VERSION']);
-    }
+    // Completion is deliberately deferred until a fresh process verifies the flush.
 }
 
 try {
@@ -186,13 +255,24 @@ try {
         $contract = urumi_contract();
         $owner = get_option('urumi_bootstrap_contract', null);
         if ($mode === 'claim') {
-            urumi_require($owner === null, 'The installation already has a bootstrap contract.');
+            urumi_require($owner === null && get_option('urumi_bootstrap_version', null) === null,
+                'The installation already has bootstrap ownership or a marker.');
             urumi_save('urumi_bootstrap_contract', $contract);
         } else {
-            urumi_require($owner === $contract,
-                'Unclaimed store or changed bootstrap contract; explicit review required.');
-            if ($mode === 'configure') {
-                urumi_configure($contract);
+            $marker = get_option('urumi_bootstrap_version', null);
+            urumi_validate_owner($contract, $owner, $marker);
+            urumi_validate_permalink($marker, get_option('permalink_structure'));
+            if ($marker !== null) {
+                urumi_require(is_file(WP_PLUGIN_DIR . '/woocommerce/woocommerce.php')
+                    && in_array('woocommerce/woocommerce.php', (array) get_option('active_plugins'), true),
+                    'Completed store WooCommerce is missing/inactive; refusing automatic repair.');
+            }
+            if ($mode === 'configure' || $mode === 'finalize') {
+                if ($mode === 'finalize') {
+                    urumi_finalize($contract);
+                } else {
+                    urumi_configure($contract);
+                }
             } else {
                 urumi_require($mode === 'preflight', 'Unknown bootstrap action.');
             }

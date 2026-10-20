@@ -14,6 +14,10 @@ assets=/opt/urumi-store
 export HOME=/tmp
 export WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
 mkdir -p "$WP_CLI_CACHE_DIR" /tmp/urumi-bootstrap
+[ "$URUMI_BOOTSTRAP_VERSION" = 2 ] || fail "this script supports bootstrap version 2 only"
+# The CLI image has no Apache; describe the verified target Apache environment.
+export WP_CLI_CONFIG_PATH=/tmp/urumi-bootstrap/wp-cli.yml
+printf 'apache_modules:\n  - mod_rewrite\n' > "$WP_CLI_CONFIG_PATH"
 
 php_step() {
     timeout -s KILL "$URUMI_COMMAND_SECONDS" php -d display_errors=0 -d log_errors=0 \
@@ -22,7 +26,7 @@ php_step() {
 wp_step() {
     timeout -s KILL "$URUMI_COMMAND_SECONDS" php -d memory_limit=256M \
         -d display_errors=0 -d log_errors=0 /usr/local/bin/wp \
-        --path=/var/www/html --skip-themes --no-color "$@"
+        --path=/var/www/html --no-color "$@"
 }
 wp_action() {
     action=$1
@@ -108,4 +112,11 @@ fi
 log "Verifying loaded WooCommerce and applying resumable demo configuration."
 wp_action configure \
     || fail "demo configuration or acknowledgement failed; review persisted bootstrap state"
+log "Applying deterministic permalinks and flushing Apache rewrite rules."
+# Load plugins AND themes. structure launches a fresh process for the hard flush,
+# so WooCommerce registers routes using the new structure, not stale in-memory state.
+wp_step rewrite structure '/%postname%/' --hard >/dev/null 2>&1 \
+    || fail "permalink update or hard flush failed; completion marker was not advanced"
+wp_action finalize \
+    || fail "rewrite verification or final acknowledgement failed; review bootstrap state"
 log "Bootstrap verified successfully."
