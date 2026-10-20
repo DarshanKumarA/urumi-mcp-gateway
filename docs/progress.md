@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-20 — Stage 3.5 namespace, hostname and four store Secret key/type contracts verified; current RAM blocks application deployment.** Stage 3.4 was approved and committed as 0cee761, following bootstrap/readiness 17a54ab, store design ab7f4b3 and Helm foundation 490c2de. The user completed the hosts entry and ran the committed helper's Create/Check locally with masked admin input. Independent read-only checks confirm the prepared environment. Available host RAM is 3.372 GiB, below the approximately 3.5 GiB floor. No project Helm release or application workloads exist; PHP syntax and store runtime validation remain pending.
+**2026-10-20 — Stage 3.6 first store deployment succeeded: Helm release urumi revision 1 deployed, MariaDB/WordPress Ready, bootstrap Complete and basic HTTP checks passed.** Stage 3.5 preparation was approved and committed as 11b24f2, following helper 0cee761, bootstrap/readiness 17a54ab, design ab7f4b3 and chart foundation 490c2de. Fresh available host RAM was 3.998 GiB immediately before installation and 3.966 GiB after HTTP checks, with a sampled startup low of 1.797 GiB. No OOM, application restart or node MemoryPressure was observed. PHP syntax validation now passes in the pinned deployed environment; checkout, persistence/failure experiments and full-stack capacity remain unverified.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,12 +10,12 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The store chart includes bootstrap scripts, a normal Job and dependency-aware readiness. The helper's initial live Check observed absent objects; the user subsequently reported successful local Create/Check. Independent checks verified the four existing Secret identities, Opaque types and exact case-sensitive key sets without inspecting credential values. Workload credential consumption remains unverified. No release or Urumi workload is deployed, and every assignment live demo remains unrun. The fundamentals lab is complete; its evidence does not establish store behavior. See [journey](project-journey.md) and [decisions](decisions.md).
+The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. The homepage/shop and admin-login route are reachable; admin login, demo products and orders have not been exercised. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record Stage 3.5's initial preparation, manual completion, independent read-only verification and current RAM deployment stop.
-- Record Stage 3.4 checkpoint 0cee761; retain earlier validation sections as history, including the PHP syntax gap.
+- Record Stage 3.6's exact install, runtime observations, recovered warnings, PHP lint, HTTP checks and remaining tests.
+- Record Stage 3.5 checkpoint 11b24f2; retain earlier measurements and validation limits as history. Stage 3.6 closes the earlier PHP syntax gap.
 - Only progress and project-journey documentation changes. No chart/helper edits, staging or commit.
 
 ## Stage 3 store design outcome
@@ -153,6 +153,71 @@ Fresh Windows total/used/available RAM is **15.726 / 12.354 / 3.372 GiB**. Envir
 
 Only system traefik and traefik-crd Helm releases exist; no Ingress objects or WordPress/MariaDB/Urumi application workloads exist. No Helm install, Secret recreation/modification, hosts edit or WooCommerce REST credential creation occurred in this verification run. Stop for review. PHP syntax and all store runtime requirements remain unverified.
 
+## Stage 3.6 first live store deployment
+
+Started from clean main at 11b24f2 on 2026-10-20. The chart, helper, image pins and resource budgets were unchanged. Initial sandbox access to Windows CIM/local Kubernetes was denied; approved escalation allowed the authorized checks and deployment. No infrastructure-health conclusion was drawn from sandbox errors.
+
+Preflight confirmed Docker 29.9.1/Linux, urumi-local, current/explicit context k3d-urumi-local, Ready v1.35.5+k3s1 node with MemoryPressure False, all four required system Deployments healthy, urumi Active, correct hostname/ports and four exact Opaque Secret key sets. No project release, workloads, Ingress or PVCs existed. Secret output contained only identity/type/key names. local-path uses WaitForFirstConsumer and Delete reclaim policy.
+
+Helm 4.3.0 strict local lint passed (informational icon recommendation only). The exact local rendering passed duplicate-key, inventory, namespace, selector/port, retention, pinned-image, unchanged-budget, probe, Job-affinity/deadline and ConfigMap-asset checks. API-server strict dry-run accepted all eight objects without persisting them. No Namespace or Secret object rendered; MariaDB had no public exposure.
+
+```powershell
+helm template urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --kube-version 1.35.5 --values charts/urumi/values-local.yaml
+helm install urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --wait=watcher --wait-for-jobs --timeout 15m
+```
+
+Installation was conditional on an immediate fresh memory check: total/used/available 15.726 / 11.728 / 3.998 GiB, passing the accepted approximately 3.8 GiB attempt threshold. Helm waited in an observed background process; no atomic/rollback-on-failure flag was used. It exited successfully with release urumi, namespace urumi, revision 1, status deployed. No upgrade, rollback or uninstall occurred.
+
+| Rendered resource | Live result |
+| --- | --- |
+| ConfigMap urumi-store-assets-r1 | Immutable, two authored script assets |
+| Job urumi-store-bootstrap-r1 | Complete, 1/1, duration 2m38s; 600-second deadline and backoffLimit 1 |
+| Deployment urumi-wordpress | One desired/current/ready replica, Recreate |
+| StatefulSet urumi-mariadb | One desired/current/ready replica; generated data-urumi-mariadb-0 |
+| Service urumi-wordpress | ClusterIP 10.43.241.167, port 80; ready backend 10.42.0.59 |
+| Service urumi-mariadb | Headless ClusterIP, port 3306; backend 10.42.0.60; no external IP, NodePort or host network |
+| PVC urumi-wordpress | Bound, 2Gi RWO/local-path; Helm keep annotation present |
+| Ingress urumi-wordpress | Traefik, store.urumi.test, path / to WordPress Service port 80 |
+
+| Pod | Observed final state |
+| --- | --- |
+| urumi-wordpress-7cfddbc665-rnlxl | Running, 1/1 Ready, started, zero restarts |
+| urumi-mariadb-0 | Running, 1/1 Ready, started, zero restarts |
+| urumi-store-bootstrap-r1-wkff8 | Succeeded/Completed, exit 0, zero restarts; 0/1 Ready is normal for the finished Job |
+
+Both claims are Bound: urumi-wordpress maps to PV pvc-864a302a-0a39-4880-b522-558a4c830845 (2Gi), and controller-generated data-urumi-mariadb-0 maps to PV pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331 (5Gi). Both PVs have Delete reclaim policy. StatefulSet whenDeleted/whenScaled remain Retain; WordPress retains its Helm keep annotation. Binding and configuration do not prove backup, deletion safety or node-loss durability; no persistence deletion test was performed.
+
+Observed sequence: PVCs waited for consumers, provisioned/bound, and all three Pods scheduled on k3d-urumi-local-server-0. Initial image pulls hit Docker image-CDN EOF errors and ImagePullBackOff; normal Kubernetes retries recovered without image changes or manual pull workarounds. MariaDB became Ready first. Its two early startup-probe socket failures resolved during initialization, without restart. WordPress readiness initially failed before bootstrap completion, then passed. One AlreadyMountedVolume warning reported requested fsGroup 33 versus existing volume GID 0 on the shared WordPress claim; the Job nevertheless completed, and no permissions were changed. The warning remains an observation, not proof of portability across other storage/node setups.
+
+Live images, probes and resource quantities match the committed chart. An initial exact-string resource comparison failed because Kubernetes canonicalized WordPress CPU limit 1000m to 1; numeric quantity comparison passed, with no chart/resource change. MariaDB uses official healthcheck.sh startup/readiness (--connect --innodb_initialized) and liveness (--connect). WordPress startup/liveness remain TCP-only and database-independent by configuration; database-loss fault injection was not performed. WordPress final PHP readiness passed with installed WordPress, successful database access, active/loaded WooCommerce 11.2.1 and bootstrap marker 1.
+
+Bootstrap logs were captured through an exact allowlist of authored non-secret messages. They showed authenticated DB access, confirmed empty database, WordPress installation, exact WooCommerce archive download/verification, configuration verification, and ended with `Bootstrap verified successfully.` No unrecognized lines were present. Together with Job Complete and WordPress Ready, this supports the pinned WooCommerce activation/version, completion marker and verified IN/Asia-Kolkata/INR/free-shipping/COD configuration. No admin password, database credential, salt or Secret payload was displayed.
+
+PHP syntax validation used the already deployed pinned WordPress container:
+
+```text
+kubectl --context=k3d-urumi-local --namespace=urumi --request-timeout=15s exec -i deployment/urumi-wordpress -c wordpress -- php -l /dev/stdin
+```
+
+Python supplied the exact local configure-woocommerce.php bytes on stdin; a second invocation supplied the rendered inline readiness PHP with an opening PHP tag. Both exited 0 with `No syntax errors detected in /dev/stdin`. This parsed code without executing it or writing persistent files. No Windows PHP installation occurred. Syntax evidence was obtained after deployment as authorized for Stage 3.6; it was not available at the earlier static milestones.
+
+Basic unauthenticated HTTP requests returned 200 for http://store.urumi.test:8080/ and /shop/, both with title Urumi Demo Store and WordPress/WooCommerce HTML. /wp-admin/ redirected to wp-login.php and returned the login form with HTTP 200. No admin login or password entry occurred. Only WordPress has an Ingress; MariaDB remains internal.
+
+| Runtime snapshot | Windows available RAM | Node current memory |
+| --- | --- | --- |
+| Initial preflight | 4.033 GiB | 624Mi (10%) |
+| Immediately before install | 3.998 GiB | Not resampled at this instant |
+| Resources scheduled/image pulls | 3.821 GiB | 677Mi (11%) |
+| MariaDB Ready, other images retrying | 3.052 GiB | 856Mi (14%) |
+| WordPress/bootstrap containers Running | 1.797 GiB | 902Mi (15%) |
+| Job Complete, WordPress Ready | 2.309 GiB | 1016Mi (17%) |
+| Subsequent ready-state sample | 2.283 GiB | 1104Mi (18%) |
+| After basic HTTP checks | 3.966 GiB | 937Mi (15%) |
+
+Final Windows total/used/available was 15.726 / 11.761 / 3.966 GiB; node allocatable remained 6064276Ki (about 5.78 GiB). Final workload samples were MariaDB 100Mi and WordPress 58Mi. The fast bootstrap's individual Pod memory was not captured before completion; snapshots are not measured peaks. Application restarts stayed zero, no OOMKilled termination was observed, MemoryPressure stayed False, and required system Deployments remained 1/1 Ready. The transient host-memory dip does not establish full-stack capacity: retain budgets and remeasure before additional runtime work/components.
+
+Remaining runtime work: manual admin login, approved demo products/checkout/order verification, memory during admin use/checkout, persistence across Pod replacement, dependency-failure probe behavior, safe bootstrap rerun/recovery and retained-claim reuse. Any later upgrade/rollback exercise needs separate review and release serialization; none occurred here. No demo product/order or WooCommerce REST credential was created, and MCP implementation has not begun. Stop at this successful first-deployment boundary; leave release and persistent state running/intact.
+
 ## Docker setup outcome
 
 Initial rechecks found no Docker CLI, Desktop executable/install record, Docker process/service, or engine pipe. WinGet 1.29.380 identified Docker.DockerDesktop 4.94.0 from Docker Inc., hosted on desktop.docker.com. WSL 2.5.9 and its required Windows features were already present. The intended setup was WSL2 with Linux containers and Docker Desktop's built-in Kubernetes disabled and unused.
@@ -281,17 +346,17 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 
 ## Open and provisional work
 
-- Docker Desktop's WSL2/Linux runtime, local CLIs, and the single-server K3s v1.35.5+k3s1 cluster passed Stage 2 validation. API port 6550 and Ingress mappings 8080/8443 are established. No explicit node memory cap was selected. The corrected host RAM gate passes narrowly for initial Stage 3 deployment; recheck before installation and measure runtime usage, as full-stack capacity remains unproven.
+- Docker/Linux and the single-server K3s v1.35.5+k3s1 cluster remained healthy through Stage 3.6. API port 6550 and Ingress mappings 8080/8443 are established; observed node allocatable memory is about 5.78 GiB. Fresh host RAM passed the first-install gate, then dipped and recovered during startup. Recheck before additional runtime work/components and measure use; full-stack capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
 - SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
 - LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Store templates/bootstrap/readiness are implemented for static review; PHP syntax and runtime validation remain pending. Demo defaults are accepted; deployment identity, production TLS and non-store details remain open. Existing infrastructure is not proof of store URLs, persistence, checkout or VPS compatibility.
+- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Stage 3.6 verified initial local bootstrap/readiness, PHP syntax and basic store/admin-login HTTP routes with the accepted demo defaults. Manual admin login, checkout, persistence/recovery and dependency-failure tests remain pending; production identity/TLS, non-store components and VPS compatibility remain open.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-Stage 3.5 preparation is verified after the user's manual hosts/Secret actions and independent read-only checks. Current host RAM is below the deployment floor; no application deployment is permitted. Stop for review with only progress/journey documentation changed. No Secret mutation, Helm install, application workloads, chart/helper changes, staging or commit in this verification run. Earlier observation sections remain historical.
+Stage 3.6 first deployment and basic validation succeeded using the unchanged committed chart. Stop for review with only progress/journey documentation changed. Leave the release, claims, namespace and Secrets intact. No demo data, checkout, persistence deletion test, WooCommerce REST credentials, MCP work, upgrade/uninstall, staging or commit is authorized at this boundary. Earlier observation sections remain historical.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
