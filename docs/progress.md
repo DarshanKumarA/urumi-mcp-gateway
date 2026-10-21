@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-21 — Stage 3.7C v2-to-v3 public Live migration is implemented and statically validated; runtime application is pending.** Checkout/visibility evidence was approved and committed as cd93a43. Product 11/SKU URUMI-DEMO-001 and guest COD order 12 remain the preserved business baseline: quantity 1, 499 INR, free shipping, Processing, user-confirmed admin visibility. The last runtime inspection found revision/marker 2 and Coming Soon enabled; no live options or release were changed here. Stage 3.7 remains open until anonymous catalog/product content passes. Controlled persistence/dependency-loss tests and full-stack capacity remain unproven; the prior low-memory/restart observations below are historical, not fresh measurements for a future upgrade.
+**2026-10-21 — Stage 3.7 COMPLETE: revision-3 Live migration and anonymous storefront acceptance passed.** The first attempt stopped at 2.675 GiB available RAM. On resumption, fresh checks passed at 4.060 GiB, with 3.982 GiB immediately before the single authorized upgrade. Release urumi is revision 3/deployed; bootstrap r3 completed in 11s, ownership/marker are 3 and both visibility options are no. Anonymous catalog/product content now passes. Product 11 and the single Processing guest COD order 12 are preserved; no new checkout occurred. WordPress/MariaDB are Ready with no new unexpected restarts, no visible OOMKilled and MemoryPressure=False. Controlled Stage 3.8 persistence/dependency-loss tests and full-stack capacity remain unproven.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The committed store chart runs locally with finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Product 11 is published, in stock and purchasable according to WooCommerce; exactly one matching SKU and one stored checkout order exist. Manual guest checkout/admin visibility are user-confirmed, and the order is independently verified. Current anonymous storefront presentation still fails acceptance despite HTTP 200 and healthy probes. Deliberate persistence-under-Pod-replacement and dependency-loss validation remain pending; no broader assignment completion is implied. See [journey](project-journey.md) and [decisions](decisions.md).
+The committed store chart runs locally with finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Product 11 is published, in stock and anonymously purchasable; exactly one matching SKU and one stored checkout order exist. Manual guest checkout/admin visibility are user-confirmed, and the order is independently verified and preserved through the visibility migration. Anonymous shop/product body content now passes, completing Stage 3.7. Deliberate persistence-under-Pod-replacement and dependency-loss validation remain pending; no broader assignment completion is implied. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record the deterministic Live contract, explicit v2-to-v3 transition, conflict/resume rules, readiness invariant and rollback limits.
-- Preserve checkout success, product 11/order 12 and the unproven historical cause/time of Coming Soon values; runtime correction is still pending.
-- Four chart files, the existing regression fixture and six existing documents change. No Helm upgrade, live bootstrap/option write, new checkout, Secret change, persistence experiment, staging or commit.
+- Record both the initial memory stop and the resumed, successful revision-3 migration; migration source remains unchanged.
+- Record actual anonymous content, business-data/credential-state preservation, storage continuity, health and memory evidence; mark Stage 3.7 complete only within its business-flow scope.
+- Only progress/journey change. One authorized live upgrade followed a read-only preview; no further checkout, order edit, Secret change, rollback, persistence experiment, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -414,6 +414,60 @@ Local helm template uses revision 1 by default, so preview asset/Job names have 
 Read-only pinned-source inspection confirmed WooCommerce 11.2.1's fresh installation code adds yes/yes defaults, consistent with official visibility documentation. This is a code-path finding, not proof of when the current database values were set. No manual admin toggle or arbitrary option reset substitutes for source-controlled configuration. The fixture proves selected code paths in isolation, not real option-hook, cache, concurrency or storefront behavior.
 
 Future authorized runtime work must recover/recheck host headroom, confirm terminal previous Jobs and serialize one upgrade. Preserve product 11 and Processing order 12, inspect migration/readiness and anonymous visible-body output excluding scripts, and confirm the single order is unchanged without placing another. Completed v3 drift fails rather than being silently repaired. After marker 3, historical marker-2 readiness fails and Helm rollback cannot rewind persisted database/files. Stop for source/static review; runtime visibility acceptance, Stage 3.7 completion and Stage 3.8 persistence/dependency-loss tests remain pending.
+
+### Stage 3.7D Live migration — accepted at revision 3
+
+On 2026-10-21 the first attempt from 44a16df stopped before preview/upgrade: Windows total/used/available RAM was 15.726/13.051/2.675 GiB, below the approximately 3.5 GiB floor. Infrastructure was healthy but no business-state query or migration ran. The user later resumed after recovering headroom; the complete gate was repeated rather than reusing that measurement. Only the two operational documents were already modified; chart/fixture source remained committed and unchanged.
+
+The resumed gate found 4.060 GiB available, Docker Linux/k3d healthy, context k3d-urumi-local, node Ready and MemoryPressure=False. Traefik/CoreDNS/metrics-server/local-path-provisioner were each 1/1 Ready. Release urumi remained revision 2/deployed, WordPress/MariaDB Ready with one existing restart each, and r2 bootstrap Complete (11s) with no Running/Terminating bootstrap Pod. Both claims were Bound and the hostname resolved to 127.0.0.1. Read-only APIs freshly verified product 11, exactly one SKU/order, Processing order 12, marker/ownership 2, postname permalinks and yes/yes visibility. Anonymous shop/product requests returned 200 but their visible bodies contained the pre-launch messages, not the product name.
+
+The read-only Helm client dry-run preview rendered revision 3 and eight resources. Comparison against the released r2 manifest found changes only to approved ConfigMap scripts/name, Job name/assets reference/bootstrap version and WordPress bootstrap environment/readiness. MariaDB StatefulSet/Service and WordPress PVC/Service/Ingress were semantically unchanged; retention remained configured, MariaDB internal, no Secret/Namespace object and no product/order state managed by Helm.
+
+After another RAM measurement (3.982 GiB available), this exact live command ran once:
+
+```text
+helm upgrade urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --wait=watcher --wait-for-jobs --timeout 15m
+```
+
+Helm returned success at revision 3/deployed. Observed old WordPress terminating, then replacement urumi-wordpress-886bfd79c-h5f79 Running but initially unready, r3 bootstrap ContainerCreating -> Running -> Succeeded, and final WordPress Ready. The Job urumi-store-bootstrap-r3 ran from 15:40:09Z to 15:40:20Z (21:10:09 to 21:10:20 +05:30), **11 seconds**, with zero failures/restarts. Its approved log messages confirmed installed WordPress preservation, configuration/rewrite checks, Live migration and successful bootstrap. Two readiness-failure events at 15:40:16–17Z preceded completion; their diagnostic bodies were intentionally empty. An inspection assertion initially expected an exit-code string, then was corrected after checking the actual event format; no runtime/source fix was needed. The live readiness command subsequently exited 0. TCP startup/liveness stayed unchanged.
+
+Fresh API reads verified exact ownership matching the rendered v3 contract, marker 3, coming_soon=no, store_pages_only=no, /%postname%/, active WooCommerce 11.2.1 and every stored business-setting checkpoint. Marker-last ordering is established by the reviewed implementation/fixtures and successful final verification, not separate runtime observation of each database write. Private before/after comparisons of user IDs/stored credential state and product/order object state matched; neither credential values, customer details nor comparison digests were displayed or recorded here.
+
+| Preservation check | Actual result |
+| --- | --- |
+| Product | ID 11, SKU URUMI-DEMO-001, exactly one match, published, in stock, price 499 INR; unchanged |
+| Order | Exactly one order, ID 12, Processing; product 11, quantity 1, subtotal/total 499 INR, COD, guest, free_shipping instance 1 at zero cost; unchanged |
+| MariaDB continuity | Same Pod UID ff2ac162-040f-4137-8fb7-6fb54011db64; Ready; one pre-existing restart remained one |
+| WordPress replacement | Old UID ee09b388-aa2a-418e-ad2c-8c2c41d42293 replaced by 1634ae34-194a-4dd4-8854-88c0739d4c24 through Recreate; Ready with zero restarts |
+| WordPress storage | Same claim UID 864a302a-0a39-4880-b522-558a4c830845 and PV pvc-864a302a-0a39-4880-b522-558a4c830845, Bound |
+| MariaDB storage | Same claim UID d3e6142a-b6b9-4e67-8880-a564f41ba331 and PV pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331, Bound |
+
+Anonymous HTTP clients sent no cookies/authentication and parsed visible HTML body text excluding scripts/styles/templates/noscript. /shop/ returned 200 with Shop heading, WooCommerce catalog classes, visible Urumi Demo Mug, INR price and product link. /product/urumi-demo-mug/ returned 200 with the product heading, postid-11/published/in-stock/purchasable metadata, visible 499 INR and enabled Add to cart button value 11. Neither showed Coming Soon or the prior pre-launch messages. Homepage remained 200 with its unchanged Blog heading; /shop/ is the catalog. This is HTML/content/control evidence, not a browser screenshot or another checkout.
+
+| Memory sample | Windows total / used / available GiB | Node usage |
+| --- | --- | --- |
+| Resumed preflight | 15.726 / 11.666 / 4.060 | 1241Mi (20%) |
+| Immediately before live upgrade | 15.726 / 11.744 / 3.982 | Not resampled at this exact instant |
+| Lowest sampled available during upgrade | 15.726 / 12.080 / 3.647 | 1242Mi (20%) |
+| After migration/acceptance | 15.726 / 11.901 / 3.826 | 1087Mi (18%) |
+
+Node allocatable remained 6064280Ki (about 5.78 GiB); final MariaDB/WordPress usage was 129/116Mi. No OOMKilled appeared in sampled container states, no new unexpected restart occurred and MemoryPressure stayed False. These samples do not prove the absolute peak or full-stack capacity.
+
+| Stage 3.7 acceptance criterion | Result / evidence |
+| --- | --- |
+| Deterministic configuration | Pass: IN, Asia/Kolkata, INR, taxes off, guest/COD enabled, unrestricted free shipping, exact v3 ownership/settings |
+| Permalink routing | Pass: /%postname%/ preserved; normal shop/product routes work |
+| Demo product | Pass: product 11 and unique SKU preserved, published/in stock at 499 INR |
+| Guest checkout | Pass: prior single manual checkout plus preserved guest order 12; no new order placed |
+| COD | Pass: enabled and payment method cod on order 12 |
+| Free shipping | Pass: enabled unrestricted method; order shipping free_shipping, zero cost |
+| Stored order | Pass: one Processing order 12 with product 11, quantity 1 and total 499 INR |
+| Admin visibility | Pass: user's earlier personal confirmation retained; no automated login |
+| Anonymous shop visibility | Pass: actual catalog/product text visible, no Coming Soon presentation |
+| Anonymous product visibility | Pass: product 11, price and enabled Add to cart visible without authentication |
+| Post-migration health | Pass: revision 3/deployed, WordPress/MariaDB Ready, r3 Complete, stable storage and no new restart/OOM/MemoryPressure |
+
+**Stage 3.7 is complete.** Stage 3.8 must separately validate controlled WordPress/MariaDB Pod-replacement persistence and database-dependency-loss behavior; this upgrade does not substitute for those experiments. No Secret modification, REST credential creation, extra checkout, order edit, uninstall, rollback, deliberate persistence test, staging or commit occurred. Existing PV reclaim policy remains Delete: retention is not permission to delete claims/namespaces and is not backup. Automatic Helm rollback remains unsafe because it does not rewind persisted database/files and older readiness expects marker 2.
 
 ## Docker setup outcome
 
