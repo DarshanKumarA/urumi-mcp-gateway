@@ -61,9 +61,9 @@ woocommerce:
   archiveSha256: 5317434cb381b5fdc7c1dd6ee258324f08c390976aaf8d1199f2a0e9a3ab8586
 
 bootstrap:
-  # Contract v2 explicitly migrates a completed v1 store to postname permalinks.
+  # Contract v3 explicitly migrates a completed v2 store to public Live visibility.
   # This is not the Helm release revision; other transitions are rejected.
-  version: "2"
+  version: "3"
   image: docker.io/library/wordpress:cli-2.12.0-php8.3@sha256:07e56f9242a5c5e194bb0191c0f95a07fd1eefe712a231fc444d67eb51bb01e8
   adminSecretName: urumi-wordpress-admin
   adminUsername: urumi-admin

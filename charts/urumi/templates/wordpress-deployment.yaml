@@ -115,6 +115,8 @@ spec:
                       && class_exists('WooCommerce', false)
                       && in_array('woocommerce/woocommerce.php', (array) get_option('active_plugins'), true)
                       && get_option('permalink_structure') === '/%postname%/'
+                      && get_option('woocommerce_coming_soon') === 'no'
+                      && get_option('woocommerce_store_pages_only') === 'no'
                       && get_option('urumi_bootstrap_version') === $bootstrap;
             periodSeconds: 10
             timeoutSeconds: 5

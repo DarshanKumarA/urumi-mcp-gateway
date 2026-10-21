@@ -59,6 +59,14 @@ Cryptographic generation, masked admin input, in-memory JSON/stdin and a single 
 
 Offline fixtures, mocked control flow and harmless process-pipe tests are the only new evidence. API access, actual interactive input, partial writes/timeouts and workload consumption remain unverified. Failure may leave some newly created objects; preserve and inspect them on retry, without automatic deletion or rotation. No optional gateway hardening is selected.
 
+## Stage 3.7C public storefront and migration boundary
+
+Public Live catalog access implements the assignment's storefront flow and the user's deterministic demo contract; it is not optional hardening. The v3 migration uses the existing bootstrap identity and WordPress option APIs. No new credentials, permissions, Secret mounts or public administrative endpoint are introduced. Publishing the catalog does not authorize exposing order customer details, credentials or private checkout access keys.
+
+Matching ownership, completed business/rewrite checks, a small allowlist of visibility states and marker-last completion bound migration scope. Unknown states and completed-v3 visibility drift fail rather than being adopted. Finalize reads both Live values in a separate process before advancing ownership/marker. These checks are not tamper-proof against database administrators or malicious PHP; option hooks still execute normally. Release serialization remains operational, not a database lock.
+
+Readiness verifies both Live options without external HTTP, while independent startup/liveness remain unchanged. Anonymous HTML acceptance is separate because healthy options/probes do not prove visible content. The 95 fixture assertions use in-memory stubs/data sentinels and never load WordPress or its database; syntax validation alone uses PHP already in the pinned container. No live option modification, Secret retrieval or runtime migration is part of this step. Existing order 12/product 11 remain valuable state; rollback cannot rewind database/files, and no automatic downgrade is defined. No optional security feature is selected.
+
 ## Optional hardening and stand-out work
 
 No item in this section has been selected or implemented. IDs refer to the separate [optional register](requirements.md#optional-work-register). Selection requires an explicit reviewed scope; analysis alone does not authorize it.

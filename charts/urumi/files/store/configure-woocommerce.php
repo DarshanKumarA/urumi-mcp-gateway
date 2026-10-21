@@ -41,24 +41,55 @@ function urumi_contract() {
         'Canonical URL is invalid.');
     urumi_require(in_array($contract['TIMEZONE'], timezone_identifiers_list(), true),
         'Business timezone is invalid.');
-    urumi_require($contract['BOOTSTRAP_VERSION'] === '2', 'Unsupported target bootstrap version.');
+    urumi_require($contract['BOOTSTRAP_VERSION'] === '3', 'Unsupported target bootstrap version.');
     $contract['PERMALINK_STRUCTURE'] = '/%postname%/';
+    $contract['COMING_SOON'] = 'no';
+    $contract['STORE_PAGES_ONLY'] = 'no';
     return $contract;
 }
 function urumi_validate_owner($contract, $owner, $marker) {
     $legacy = $contract;
-    $legacy['BOOTSTRAP_VERSION'] = '1';
-    unset($legacy['PERMALINK_STRUCTURE']);
-    // The target-owner/marker-1 pair is the recognized crash window between
-    // the last two writes. No other contract/version transition is adopted.
-    urumi_require(($owner === $legacy && $marker === '1')
-        || ($owner === $contract && in_array($marker, [null, '1', '2'], true)),
+    $legacy['BOOTSTRAP_VERSION'] = '2';
+    unset($legacy['COMING_SOON'], $legacy['STORE_PAGES_ONLY']);
+    // Target ownership with marker 2 is the final two-write crash window.
+    // Older v1 stores require the separately reviewed v1-to-v2 migration first.
+    urumi_require(($owner === $legacy && $marker === '2')
+        || ($owner === $contract && in_array($marker, [null, '2', '3'], true)),
         'Unclaimed store or unsupported bootstrap transition; explicit review required.');
 }
 function urumi_validate_permalink($marker, $current) {
     urumi_require($current === '/%postname%/'
-        || ($marker !== '2' && $current === ''),
-        'Permalink setting conflicts with the recognized Plain-to-postname transition.');
+        || ($marker === null && $current === ''),
+        'Completed stores must preserve postname permalinks; only fresh bootstrap may start Plain.');
+}
+function urumi_validate_visibility($contract, $owner, $marker) {
+    $current = [get_option('woocommerce_coming_soon', null),
+        get_option('woocommerce_store_pages_only', null)];
+    if ($owner === $contract && $marker !== null) {
+        // Advancing ownership happens only after both values have been verified.
+        urumi_require($current === ['no', 'no'], 'Established v3 Live visibility has drifted.');
+    } else {
+        // Pinned WooCommerce defaults, first-write interruption, or target state.
+        // Missing options, wrong types and the unrelated yes/no pair are refused.
+        urumi_require(in_array($current, [['yes', 'yes'], ['no', 'yes'], ['no', 'no']], true),
+            'Visibility conflicts with the recognized Coming Soon-to-Live transition.');
+    }
+}
+function urumi_verify_live() {
+    urumi_require(get_option('woocommerce_coming_soon', null) === 'no'
+        && get_option('woocommerce_store_pages_only', null) === 'no',
+        'Persisted public Live visibility is not verified.');
+}
+function urumi_make_live($contract) {
+    // Verify all existing configuration and routes before either visibility write.
+    urumi_configure($contract);
+    urumi_verify_rewrites();
+    foreach (['woocommerce_coming_soon', 'woocommerce_store_pages_only'] as $key) {
+        if (get_option($key, null) !== 'no') {
+            urumi_save($key, 'no');
+        }
+    }
+    urumi_verify_live();
 }
 function urumi_save($key, $value) {
     update_option($key, $value, false);
@@ -134,6 +165,7 @@ function urumi_record_completion($contract) {
 function urumi_finalize($contract) {
     urumi_configure($contract);
     urumi_verify_rewrites();
+    urumi_verify_live();
     urumi_record_completion($contract);
 }
 function urumi_configure($contract) {
@@ -153,6 +185,7 @@ function urumi_configure($contract) {
     $marker = get_option('urumi_bootstrap_version', null);
     urumi_validate_owner($contract, get_option('urumi_bootstrap_contract', null), $marker);
     urumi_validate_permalink($marker, get_option('permalink_structure'));
+    urumi_validate_visibility($contract, get_option('urumi_bootstrap_contract', null), $marker);
     $complete = $marker !== null;
     urumi_require(!is_multisite() && home_url() === site_url(),
         'Only the existing single-site, root-webroot layout is supported.');
@@ -221,7 +254,11 @@ function urumi_configure($contract) {
         urumi_require(get_option($key, null) === $entry['target'], 'Final settings verification failed.');
     }
     urumi_require($wpdb->get_var('SELECT 1') === '1', 'Final database verification failed.');
-    // Completion is deliberately deferred until a fresh process verifies the flush.
+    if ($complete) {
+        // A v2/v3 migration must not silently repair established routing drift.
+        urumi_verify_rewrites();
+    }
+    // Completion waits for a fresh process to verify rewrites AND Live visibility.
 }
 
 try {
@@ -267,9 +304,11 @@ try {
                     && in_array('woocommerce/woocommerce.php', (array) get_option('active_plugins'), true),
                     'Completed store WooCommerce is missing/inactive; refusing automatic repair.');
             }
-            if ($mode === 'configure' || $mode === 'finalize') {
+            if (in_array($mode, ['configure', 'make-live', 'finalize'], true)) {
                 if ($mode === 'finalize') {
                     urumi_finalize($contract);
+                } elseif ($mode === 'make-live') {
+                    urumi_make_live($contract);
                 } else {
                     urumi_configure($contract);
                 }

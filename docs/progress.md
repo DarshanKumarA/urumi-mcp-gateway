@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-21 — Stage 3.7 order verification passed, but anonymous storefront visibility blocks final acceptance.** Stage 3.7B was approved and committed as 5670cd3. The user completed one guest checkout and confirmed admin order visibility. Read-only WooCommerce APIs verify order 12, one unit of product 11/SKU URUMI-DEMO-001, 499 INR, free shipping, COD and Processing status. Helm remains revision 2/deployed with marker 2 and /%postname%/. However, anonymous shop/product requests currently show WooCommerce's pre-launch page; coming-soon mode is enabled. Workloads are Ready, but each application container has one prior restart correlated with a node reboot. No OOMKilled is visible and MemoryPressure is False. Available host RAM is only 2.033 GiB at the final sample. No visibility repair, further checkout or Stage 3.8 experiment was performed.
+**2026-10-21 — Stage 3.7C v2-to-v3 public Live migration is implemented and statically validated; runtime application is pending.** Checkout/visibility evidence was approved and committed as cd93a43. Product 11/SKU URUMI-DEMO-001 and guest COD order 12 remain the preserved business baseline: quantity 1, 499 INR, free shipping, Processing, user-confirmed admin visibility. The last runtime inspection found revision/marker 2 and Coming Soon enabled; no live options or release were changed here. Stage 3.7 remains open until anonymous catalog/product content passes. Controlled persistence/dependency-loss tests and full-stack capacity remain unproven; the prior low-memory/restart observations below are historical, not fresh measurements for a future upgrade.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -14,9 +14,9 @@ The committed store chart runs locally with finite bootstrap, external Secret re
 
 ## Current documentation change
 
-- Record the single manually placed order, user-confirmed admin visibility, read-only verification and post-checkout health.
-- Record the current coming-soon presentation failure, restart evidence and limited host memory without rewriting earlier migration observations or claiming Stage 3.7 complete.
-- Only progress/journey files change. No order/product mutation, visibility setting change, Helm operation, Secret access, deletion experiment, staging or commit.
+- Record the deterministic Live contract, explicit v2-to-v3 transition, conflict/resume rules, readiness invariant and rollback limits.
+- Preserve checkout success, product 11/order 12 and the unproven historical cause/time of Coming Soon values; runtime correction is still pending.
+- Four chart files, the existing regression fixture and six existing documents change. No Helm upgrade, live bootstrap/option write, new checkout, Secret change, persistence experiment, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -389,6 +389,31 @@ Helm urumi remains revision 2/deployed. WordPress/MariaDB are 1/1 Ready; the r2 
 | After read-only inspection | 15.726 / 13.694 / 2.033 | 1270Mi (21%) | 129Mi / 291Mi |
 
 Node allocatable is 6064280Ki (about 5.78 GiB). These are after-checkout samples; memory during the manual checkout was not measured. Host headroom is below the operating floor for new deployment/runtime experiments, despite current node health. Recover/recheck memory before Stage 3.8. Next: separately review a reproducible public-visibility correction, preserve order 12, then validate anonymous catalog/product content. Stage 3.8 must separately demonstrate persistent data and claim reuse across controlled Pod replacement; no Pod/PVC deletion, Helm change, automatic rollback, password/Secret change, REST credential creation, staging or commit occurred here.
+
+### Stage 3.7C deterministic Live visibility — source/static review only
+
+Implemented on 2026-10-21 from clean main at cd93a43. The successful manual transaction does not establish anonymous storefront visibility: Coming Soon protected both shop/product presentation. The existing v2 bootstrap verifies its previous settings and rewrites but ignores those two visibility options; changing only the expected version fails shell/PHP target and ownership guards.
+
+The user now explicitly requires bootstrap to finish in public Live state. Contract v3 adds coming_soon=no and store_pages_only=no, preserving the previous fields and business-setting checkpoint. Matching completed v2 may transition through yes/yes -> no/yes -> no/no. Owned fresh/partial v3 accepts the same bounded pairs; v3 ownership with marker 2 or 3 requires no/no already. Unknown ownership/versions, missing/mistyped options, yes/no, completed permalink drift and unrelated setting conflicts fail. Direct v1-to-v3 upgrade is not adopted; v1 first needs the reviewed v2 migration.
+
+Completed-store configuration and DB/Apache rewrites are checked before visibility changes. The finite shell retains its configure/hard-rewrite sequence, then make-live uses supported option APIs for the two intentional writes. A separate finalize process verifies the persisted no/no state and all previous invariants before ownership v3 and marker 3 last; finalization cannot repair a lost visibility write. Readiness adds both Live checks without frontend HTTP. TCP startup/liveness, pins, resources, Secret references, Job bounds/affinity and storage remain unchanged. See [DEC-025](decisions.md#dec-025-public-live-store-contract-and-v2-to-v3-migration) and the [state table](architecture.md#stage-37c-public-live-visibility-and-explicit-v2-to-v3-migration).
+
+| Static check | Result / boundary |
+| --- | --- |
+| Shell syntax | Passed sh -n through LF stdin; script not executed. The first checker attempt converted input to CRLF on Windows and failed; binary LF transport corrected the checker without a source change |
+| PHP syntax | Configurator, fixture and both rendered readiness programs passed php -n -l in the existing pinned WordPress container; no files/options written |
+| Regression fixture | 95 assertions passed using function declarations and in-memory WordPress stubs only; no live database/WordPress loading |
+| Fixture coverage | v2 migration, product 11/order 12/user sentinels, completed v3, fresh/partial v3, interrupted visibility/ownership/marker writes, marker-last ordering, stale/missing rules, inactive WooCommerce and invalid ownership/settings/visibility refusals |
+| Helm | Strict local/production lint passed; chart icon suggestion informational |
+| Rendering/schema | Exactly eight objects per environment; all 16 validated against official Kubernetes v1.35.5 OpenAPI definitions; duplicate keys rejected |
+| Structural/security | Selectors/ports/mounts/affinity/deadlines, exact Secret key references, retained claims, image pins, unchanged budgets, independent probes and rendered credential scans passed; no Secret/Namespace object or public MariaDB |
+| Runtime boundary | No Helm operation that persists changes, no apply/server dry-run, bootstrap entrypoint, live option write, checkout/order edit, credential creation or deletion test |
+
+Local helm template uses revision 1 by default, so preview asset/Job names have r1; expected bootstrap version is 3 independently. Future live revision 3 would render r3 names. Inventory remains one ConfigMap, one Job, WordPress Deployment, MariaDB StatefulSet, two Services, WordPress PVC and WordPress Ingress; the StatefulSet creates its separate database claim at runtime.
+
+Read-only pinned-source inspection confirmed WooCommerce 11.2.1's fresh installation code adds yes/yes defaults, consistent with official visibility documentation. This is a code-path finding, not proof of when the current database values were set. No manual admin toggle or arbitrary option reset substitutes for source-controlled configuration. The fixture proves selected code paths in isolation, not real option-hook, cache, concurrency or storefront behavior.
+
+Future authorized runtime work must recover/recheck host headroom, confirm terminal previous Jobs and serialize one upgrade. Preserve product 11 and Processing order 12, inspect migration/readiness and anonymous visible-body output excluding scripts, and confirm the single order is unchanged without placing another. Completed v3 drift fails rather than being silently repaired. After marker 3, historical marker-2 readiness fails and Helm rollback cannot rewind persisted database/files. Stop for source/static review; runtime visibility acceptance, Stage 3.7 completion and Stage 3.8 persistence/dependency-loss tests remain pending.
 
 ## Docker setup outcome
 

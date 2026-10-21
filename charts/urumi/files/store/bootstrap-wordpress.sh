@@ -14,7 +14,7 @@ assets=/opt/urumi-store
 export HOME=/tmp
 export WP_CLI_CACHE_DIR=/tmp/wp-cli-cache
 mkdir -p "$WP_CLI_CACHE_DIR" /tmp/urumi-bootstrap
-[ "$URUMI_BOOTSTRAP_VERSION" = 2 ] || fail "this script supports bootstrap version 2 only"
+[ "$URUMI_BOOTSTRAP_VERSION" = 3 ] || fail "this script supports bootstrap version 3 only"
 # The CLI image has no Apache; describe the verified target Apache environment.
 export WP_CLI_CONFIG_PATH=/tmp/urumi-bootstrap/wp-cli.yml
 printf 'apache_modules:\n  - mod_rewrite\n' > "$WP_CLI_CONFIG_PATH"
@@ -117,6 +117,10 @@ log "Applying deterministic permalinks and flushing Apache rewrite rules."
 # so WooCommerce registers routes using the new structure, not stale in-memory state.
 wp_step rewrite structure '/%postname%/' --hard >/dev/null 2>&1 \
     || fail "permalink update or hard flush failed; completion marker was not advanced"
+log "Applying verified public Live storefront configuration."
+wp_action make-live \
+    || fail "Live visibility migration failed; completion marker was not advanced"
+# A separate WP-CLI/PHP process rereads persisted visibility before completion.
 wp_action finalize \
     || fail "rewrite verification or final acknowledgement failed; review bootstrap state"
 log "Bootstrap verified successfully."
