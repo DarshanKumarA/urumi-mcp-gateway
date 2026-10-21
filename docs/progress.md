@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-20 — Stage 3.7 checkout is paused; the deterministic permalink fix and explicit bootstrap v1-to-v2 migration are implemented for static review only.** Stage 3.6 was committed as 5ef62e0. The live release remains revision 1/marker 1 with Plain permalinks, product 11/SKU URUMI-DEMO-001 and no order. No upgrade or live routing change occurred. Earlier acceptance found /shop/ showing the blog despite HTTP 200; query URLs work. Migration/route runtime evidence, checkout/admin verification, persistence/failure tests and full-stack capacity remain incomplete.
+**2026-10-20 — Stage 3.7B migration and routing acceptance passed; stop for review before checkout.** Stage 3.7A source was approved and committed as b87d9cf. The first runtime attempt stopped at 2.963 GiB available host RAM; the resumed attempt measured 4.170 GiB and 4.149 GiB immediately before the approved upgrade. Helm urumi is now revision 2/deployed, ownership and marker are 2, and /%postname%/ routing works. Product 11/SKU URUMI-DEMO-001 survived unchanged, with zero orders. WordPress and MariaDB are Ready, both claims remain Bound, and no restart/OOM/MemoryPressure failure was observed. Checkout/admin verification, deliberate persistence/dependency-loss tests and full-stack capacity remain incomplete.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. Product 11 is published and purchasable through its generated URL; the /shop/ route still needs correction and validation. Admin login and checkout have not been exercised, and the observed order count is zero. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
+The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. Product 11 is published and purchasable through /product/urumi-demo-mug/; /shop/ now renders the catalog with that product. Admin login and checkout have not been exercised, and the observed order count is zero. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Preserve Stage 3.7 configuration/product evidence and failed /shop/ content check; checkout was subsequently paused by the user.
-- Record the source-controlled permalink contract, recognized migration/retry states, static evidence and future upgrade/rollback boundary.
-- Four chart files and one regression fixture change alongside architecture/decisions/requirements/progress/journey. No deployment, Secret changes, staging or commit.
+- Record the Stage 3.7A checkpoint, initial Stage 3.7B memory stop and successful resumed revision-2 migration.
+- Preserve the Plain-permalink root cause and rollback limitations; distinguish observed route/data preservation from pending checkout and broader runtime tests.
+- Only progress/journey files change. The authorized Helm upgrade applied the committed migration; no chart/resource-budget edits, Secret changes, checkout, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -280,6 +280,69 @@ Final source review found WordPress's internal product structure may omit a lead
 Future reviewed upgrade: recheck memory/health and terminal old Jobs, serialize release operations, then upgrade urumi using the same chart/local values and bounded watcher/Job wait without automatic rollback. Revision 2 creates r2 Job/assets and replaces the Recreate WordPress Pod using its current claim; new readiness waits for marker 2. The bootstrap Job can run while WordPress is unready because affinity uses labels/node, not readiness. Verify Job success, marker/readiness, unchanged product 11/SKU, real /shop/ content and /product/urumi-demo-mug/ before resuming checkout. Preserve both claims and database throughout.
 
 If migration fails, retain diagnostics/data and inspect the old/target option/file states before retrying. Contract and marker writes are ordered but not atomic with rewrite persistence. After marker 2, the old revision's marker-1 readiness will fail; Helm rollback cannot rewind persisted options/.htaccess and must not be automatic. See [DEC-024](decisions.md#dec-024-deterministic-permalinks-and-a-recognized-bootstrap-migration) and the [migration lifecycle](architecture.md#stage-37-deterministic-permalinks-and-explicit-v1-to-v2-migration). Stop for source/static review; no runtime migration is authorized in this step.
+
+### Stage 3.7B controlled migration — initial memory-gate stop
+
+Attempted on 2026-10-20 from clean main at b87d9cf. The approved source and static checks are committed; runtime execution remains gated by fresh host headroom.
+
+| Pre-upgrade check | Actual observation |
+| --- | --- |
+| Windows total / used / available RAM | 15.726 / 12.763 / 2.963 GiB; below the approximately 3.5 GiB stop threshold |
+| Docker / k3d / context | Engine 29.9.1, Linux; urumi-local server 1/1 and load balancer present; current context k3d-urumi-local |
+| Kubernetes node | Ready=True, MemoryPressure=False; allocatable 6064276Ki, usage 1078Mi (18%) |
+| System Deployments | Traefik, CoreDNS, metrics-server and local-path-provisioner each 1/1 Ready |
+| Helm / applications | urumi revision 1 deployed; WordPress Deployment and MariaDB StatefulSet each 1/1 Ready |
+| Bootstrap serialization | urumi-store-bootstrap-r1 Complete, 1/1, recorded duration 2m38s; its only Pod Succeeded, with no deletion timestamp; no running or terminating bootstrap Pod |
+| Restarts / termination state | Zero restarts across the two application Pods and completed bootstrap Pod; no OOMKilled or previous termination reason visible |
+| Persistent claims | urumi-wordpress 2Gi and data-urumi-mariadb-0 5Gi both Bound on local-path |
+| Hostname | store.urumi.test resolved to 127.0.0.1 |
+
+Stopped before release preview or Helm upgrade. No application PHP inspection, product/order recount, marker/ownership verification, HTTP routing acceptance or idempotency runtime check was performed after the failed memory gate. Product 11 and the zero-order baseline remain prior evidence; preservation through migration is not yet tested. No Secret values were retrieved, and no resources, credentials or persistent application state were changed.
+
+Recover host headroom, then repeat the complete pre-upgrade gate immediately before the authorized command. Keep resource budgets, probes and persistence unchanged. Runtime work must still verify the recognized v1-to-v2 migration, product preservation, real catalog/product contents, marker/readiness and health before checkout resumes. Revision-1 rollback cannot restore persisted options/files and is not an automatic recovery path after marker 2. Checkout, persistence and dependency-loss tests remain incomplete.
+
+### Stage 3.7B resumed migration — runtime acceptance passed
+
+Resumed on 2026-10-20 after the user recovered host memory. The preceding stopped attempt remains historical evidence. Only its two operational documentation files were dirty; chart/test source still matched b87d9cf.
+
+**Gate and preview:** Windows total/used/available RAM was 15.726 / 11.556 / 4.170 GiB. Docker/Linux, k3d, context, node, four system Deployments, hostname and both application workloads passed again. The revision-1 bootstrap Job was terminal, with no Running or Terminating bootstrap Pod. Read-only WooCommerce inspection confirmed exact matching v1 ownership/settings, marker 1, Plain permalinks, active WooCommerce 11.2.1, the sole matching product 11 at 499 INR and zero orders/checkout drafts. User identity/registration metadata was captured without password fields.
+
+The server dry-run rendered revision 2 without persisting it. Its eight resources were ConfigMap urumi-store-assets-r2, Job urumi-store-bootstrap-r2, Deployment urumi-wordpress, StatefulSet urumi-mariadb, Services urumi-wordpress/urumi-mariadb, PVC urumi-wordpress and Ingress urumi-wordpress. Manifest comparison found only approved asset content, revision-specific names/references, expected bootstrap version 2 and the permalink readiness condition changed. StatefulSet, both Services, Ingress and explicit PVC were identical. Both retention policies remained present; no Secret/Namespace object or public MariaDB exposure appeared. Product/order/user data is not represented as a Helm resource.
+
+Fresh RAM immediately before execution was 4.149 GiB available. Ran exactly once, without automatic rollback:
+
+```powershell
+helm upgrade urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --wait=watcher --wait-for-jobs --timeout 15m
+```
+
+Helm returned exit 0, revision 2, deployed, at 21:31:51 +05:30. The Pod watch captured the old WordPress Pod terminating; the r2 bootstrap Pod becoming Pending, scheduled, ContainerCreating and Running; and the replacement WordPress Pod becoming Pending, ContainerCreating, Running/unready, then Ready. The Job reached Complete in 11s with exit 0. Events recorded one readiness failure without diagnostic output during startup; it resolved, with no liveness failure reported for the replacement Pod. MariaDB's Pod UID stayed unchanged and it remained Ready.
+
+Allowlisted Job logs confirmed the existing-installation preserve-users/passwords branch, deterministic permalink/hard-flush step and final "Bootstrap verified successfully." No install/reset/download branch was reported. WordPress changed from urumi-wordpress-7cfddbc665-rnlxl to urumi-wordpress-5cbc5bb6b8-l4zcs. The completed Job Pod is urumi-store-bootstrap-r2-x8wgm; the old revision-specific Job/assets were removed by Helm reconciliation. Both existing claims stayed Bound to the same PVs (2Gi WordPress, 5Gi MariaDB); PV reclaim policy remains Delete, so retention is still not backup or protection against direct deletion.
+
+| Runtime acceptance | Observed result |
+| --- | --- |
+| /shop/ | HTTP 200; title Shop - Urumi Demo Store; WooCommerce product-archive/shop body classes; Urumi Demo Mug, INR price and Add to cart; no Hello world blog content |
+| /product/urumi-demo-mug/ | HTTP 200; single-product/postid-11 page, correct SKU, 499 INR and Add to cart |
+| Query-style product URL | Still HTTP 200 with product 11; normal path is now independently verified |
+| Product preservation | ID 11, URUMI-DEMO-001, regular/current price 499 INR, publish, instock; exactly one SKU match |
+| Orders | Zero registered-status orders and zero checkout drafts before and after; no checkout performed |
+| Users/passwords | Same sole user ID and registration timestamp; preserve branch and source contain no password-reset operation on this path. No password/hash field inspected and no login test performed |
+| WooCommerce | 11.2.1 active |
+| Completed bootstrap | Exact v2 ownership, marker 2 and /%postname%/; existing settings, persisted shop/product rewrite rules and Apache managed block verified |
+| Final readiness | Exact live WordPress readiness command exited 0; WordPress/MariaDB each 1/1 Ready |
+
+Completed-state verification loaded the committed function declarations without the bootstrap entrypoint, required exact owner/marker 2 first, then used the completed-settings verification branch and rewrite verifier. It did not call finalize, completion writes, rewrite flush or the full bootstrap. Together with the previously passing 50 isolated assertions, this shows completed v2 is recognized and verifies; it is not a second live Job/rerun or exhaustive failure-recovery test.
+
+| Memory snapshot | Windows total / used / available GiB | Node usage | MariaDB / WordPress |
+| --- | --- | --- | --- |
+| Resumed preflight | 15.726 / 11.556 / 4.170 | 1068Mi (18%) | Not sampled |
+| Immediately before upgrade | 15.726 / 11.577 / 4.149 | Not resampled | Not sampled |
+| After fast Job completion | 15.726 / 11.682 / 4.045 | 1021Mi (17%) | 101Mi / 16Mi |
+| After acceptance checks | 15.726 / 11.771 / 3.955 | 1030Mi (17%) | 102Mi / 115Mi |
+
+Node allocatable remained 6064276Ki. All observed application/Job restart counts were zero; no OOMKilled/previous termination was visible and MemoryPressure stayed False. The 11-second Job finished before a per-Job memory sample was captured; these snapshots are not peaks or full-stack capacity proof.
+
+The Plain-permalink defect was corrected through committed bootstrap migration, not manual live settings. Checkout, user-controlled admin/order visibility, checkout memory and deliberate persistence/dependency-loss tests remain pending. Do not automatically roll back: revision-1 readiness expects marker 1, while Helm rollback cannot restore current database options or persisted .htaccess. No Secrets, passwords, product/order data or resource budgets were changed by the agent outside the approved migration. Stop for runtime review; no further upgrade, checkout, staging or commit.
 
 ## Docker setup outcome
 
