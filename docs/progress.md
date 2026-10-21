@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-20 — Stage 3.7B migration and routing acceptance passed; stop for review before checkout.** Stage 3.7A source was approved and committed as b87d9cf. The first runtime attempt stopped at 2.963 GiB available host RAM; the resumed attempt measured 4.170 GiB and 4.149 GiB immediately before the approved upgrade. Helm urumi is now revision 2/deployed, ownership and marker are 2, and /%postname%/ routing works. Product 11/SKU URUMI-DEMO-001 survived unchanged, with zero orders. WordPress and MariaDB are Ready, both claims remain Bound, and no restart/OOM/MemoryPressure failure was observed. Checkout/admin verification, deliberate persistence/dependency-loss tests and full-stack capacity remain incomplete.
+**2026-10-21 — Stage 3.7 order verification passed, but anonymous storefront visibility blocks final acceptance.** Stage 3.7B was approved and committed as 5670cd3. The user completed one guest checkout and confirmed admin order visibility. Read-only WooCommerce APIs verify order 12, one unit of product 11/SKU URUMI-DEMO-001, 499 INR, free shipping, COD and Processing status. Helm remains revision 2/deployed with marker 2 and /%postname%/. However, anonymous shop/product requests currently show WooCommerce's pre-launch page; coming-soon mode is enabled. Workloads are Ready, but each application container has one prior restart correlated with a node reboot. No OOMKilled is visible and MemoryPressure is False. Available host RAM is only 2.033 GiB at the final sample. No visibility repair, further checkout or Stage 3.8 experiment was performed.
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +10,13 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The committed store chart now runs locally with its finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Successful bootstrap and readiness provide initial workload credential-consumption evidence without exposing values. Product 11 is published and purchasable through /product/urumi-demo-mug/; /shop/ now renders the catalog with that product. Admin login and checkout have not been exercised, and the observed order count is zero. This is partial store runtime evidence, not completion of all assignment requirements or live demos. See [journey](project-journey.md) and [decisions](decisions.md).
+The committed store chart runs locally with finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Product 11 is published, in stock and purchasable according to WooCommerce; exactly one matching SKU and one stored checkout order exist. Manual guest checkout/admin visibility are user-confirmed, and the order is independently verified. Current anonymous storefront presentation still fails acceptance despite HTTP 200 and healthy probes. Deliberate persistence-under-Pod-replacement and dependency-loss validation remain pending; no broader assignment completion is implied. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record the Stage 3.7A checkpoint, initial Stage 3.7B memory stop and successful resumed revision-2 migration.
-- Preserve the Plain-permalink root cause and rollback limitations; distinguish observed route/data preservation from pending checkout and broader runtime tests.
-- Only progress/journey files change. The authorized Helm upgrade applied the committed migration; no chart/resource-budget edits, Secret changes, checkout, staging or commit.
+- Record the single manually placed order, user-confirmed admin visibility, read-only verification and post-checkout health.
+- Record the current coming-soon presentation failure, restart evidence and limited host memory without rewriting earlier migration observations or claiming Stage 3.7 complete.
+- Only progress/journey files change. No order/product mutation, visibility setting change, Helm operation, Secret access, deletion experiment, staging or commit.
 
 ## Stage 3 store design outcome
 
@@ -343,6 +343,52 @@ Completed-state verification loaded the committed function declarations without 
 Node allocatable remained 6064276Ki. All observed application/Job restart counts were zero; no OOMKilled/previous termination was visible and MemoryPressure stayed False. The 11-second Job finished before a per-Job memory sample was captured; these snapshots are not peaks or full-stack capacity proof.
 
 The Plain-permalink defect was corrected through committed bootstrap migration, not manual live settings. Checkout, user-controlled admin/order visibility, checkout memory and deliberate persistence/dependency-loss tests remain pending. Do not automatically roll back: revision-1 readiness expects marker 1, while Helm rollback cannot restore current database options or persisted .htaccess. No Secrets, passwords, product/order data or resource budgets were changed by the agent outside the approved migration. Stop for runtime review; no further upgrade, checkout, staging or commit.
+
+### Stage 3.7 order verification — business flow passed, public visibility pending
+
+Verified on 2026-10-21 from clean main at 5670cd3 after the user reported exactly one manual guest checkout with synthetic details and personally confirmed the order in WooCommerce administration. The agent did not log in, submit another checkout, alter the order or use REST credentials.
+
+Supported wc_get_orders, WC_Order and order-item getters returned only selected non-sensitive evidence. There is exactly one shop order across registered statuses/trash and zero checkout drafts. Guest checkout is confirmed by the guest account association; no customer identity/contact fields were emitted. Product 11 remains the sole URUMI-DEMO-001 match, published, in stock, catalog-visible and purchasable.
+
+| Order evidence | Observed value |
+| --- | --- |
+| Order ID | 12 |
+| Created, store timezone | 2026-10-21 07:54:15 +05:30 (Asia/Kolkata) |
+| Created, UTC | 2026-10-21 02:24:15Z |
+| Actual WooCommerce status | processing (Processing); checkout submission is complete, not the order's fulfillment status |
+| Payment | cod (Cash on Delivery) |
+| Product / SKU | 11 / URUMI-DEMO-001 |
+| Quantity / unit price | 1 / 499 INR |
+| Line total / order total | 499 INR / 499.00 INR |
+| Shipping | free_shipping, instance 1, charge 0 INR |
+| Admin visibility | User personally confirmed WooCommerce > Orders; no agent admin login |
+
+The initial inspection used WC_DateTime::date('c'), which formats an offset-adjusted timestamp with gmdate and misleadingly labels it +00:00. Rechecking the native date format and timestamp converted through wp_timezone confirmed 07:54:15 +05:30 / 02:24:15Z above. No stored timestamp was changed.
+
+**Current presentation failure:** Homepage, /shop/ and /product/urumi-demo-mug/ return HTTP 200. Shop/product body classes still identify the correct WooCommerce routes, so this is not evidence that Plain permalinks returned. But anonymous visible body text on both store routes says the store is in the works and will launch soon; no product listing or usable Add to cart appears there. Read-only options are woocommerce_coming_soon=yes and woocommerce_store_pages_only=yes. Product 11 remains available through the public Store API and supported product getters. These visibility options are not managed by the current chart/bootstrap; their change time/cause is not established. Do not attribute them to checkout or a user action without evidence.
+
+The shop content assertion failed. A weaker product string assertion initially passed because embedded script data contained the product details; parsing visible body text with scripts/styles excluded exposed the same pre-launch presentation. This reinforces that HTTP status, page classes, metadata and backend purchasability alone do not prove visitor-facing storefront acceptance. Historical Stage 3.7B observations remain recorded; this is the current stronger content check. No live setting or source repair was attempted in this verification step.
+
+| Stage 3.7 criterion | Result / evidence |
+| --- | --- |
+| Deterministic business settings | Pass: WooCommerce 11.2.1 active, IN, Asia/Kolkata, INR, taxes off, guest checkout/COD on, unrestricted fallback free-shipping method 1 |
+| Permalink route resolution | Pass: marker 2, /%postname%/, shop product-archive and product-11 route classes |
+| Demo product creation/preservation | Pass: exactly one published/in-stock product 11 with the agreed SKU and price |
+| Anonymous catalog/product visibility | Fail: coming-soon presentation hides the storefront; resolve before final acceptance |
+| Guest checkout, free shipping, COD | Pass: user performed once; supported APIs verify the resulting guest order and line/shipping/payment data |
+| Stored order and admin visibility | Pass: one stored order 12; admin visibility personally confirmed by user |
+| Post-checkout service health | Currently healthy; restart and host-memory qualifications below |
+| Overall Stage 3.7 | Not complete until public storefront visibility passes; do not place another order to resolve this presentation check |
+| Stage 3.8 persistence-under-Pod-replacement | Not tested; storing/reading order 12 does not satisfy this experiment |
+
+Helm urumi remains revision 2/deployed. WordPress/MariaDB are 1/1 Ready; the r2 Job remains Complete (11s) with zero Job restarts. Each application container now has one restart, stable across this inspection, with prior reason Unknown and exit 255 at 02:20:30Z. Both restarted at 02:20:37Z. A node Rebooted event at 02:20:35Z and the k3d node-container start at 02:20:27Z correlate these restarts with a node/runtime restart about four minutes before the order. Node Ready returned at 02:20:46Z. The trigger for the reboot is not established; no OOMKilled termination is visible, the node container reports OOMKilled=false, and MemoryPressure is False. This is not a claim of zero historical restarts or a substitute for controlled persistence testing. Required system Deployments are all 1/1 Ready.
+
+| Post-checkout memory snapshot | Windows total / used / available GiB | Node usage | MariaDB / WordPress |
+| --- | --- | --- | --- |
+| Start of verification | 15.726 / 13.824 / 1.903 | 1207Mi (20%) | 129Mi / 269Mi |
+| After read-only inspection | 15.726 / 13.694 / 2.033 | 1270Mi (21%) | 129Mi / 291Mi |
+
+Node allocatable is 6064280Ki (about 5.78 GiB). These are after-checkout samples; memory during the manual checkout was not measured. Host headroom is below the operating floor for new deployment/runtime experiments, despite current node health. Recover/recheck memory before Stage 3.8. Next: separately review a reproducible public-visibility correction, preserve order 12, then validate anonymous catalog/product content. Stage 3.8 must separately demonstrate persistent data and claim reuse across controlled Pod replacement; no Pod/PVC deletion, Helm change, automatic rollback, password/Secret change, REST credential creation, staging or commit occurred here.
 
 ## Docker setup outcome
 
