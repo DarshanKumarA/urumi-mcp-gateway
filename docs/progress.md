@@ -2,7 +2,9 @@
 
 ## Current milestone
 
-**2026-10-21 — Stage 3.7 COMPLETE: revision-3 Live migration and anonymous storefront acceptance passed.** The first attempt stopped at 2.675 GiB available RAM. On resumption, fresh checks passed at 4.060 GiB, with 3.982 GiB immediately before the single authorized upgrade. Release urumi is revision 3/deployed; bootstrap r3 completed in 11s, ownership/marker are 3 and both visibility options are no. Anonymous catalog/product content now passes. Product 11 and the single Processing guest COD order 12 are preserved; no new checkout occurred. WordPress/MariaDB are Ready with no new unexpected restarts, no visible OOMKilled and MemoryPressure=False. Controlled Stage 3.8 persistence/dependency-loss tests and full-stack capacity remain unproven.
+**2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
+
+**2026-10-22 — Existing environment recovered; local Stage 3 store foundation COMPLETE.** The initial read-only review found Kubernetes API EOF errors and empty store replies. Subsequent authorized diagnosis found K3s shutting down during networking initialization; one controlled k3d stop/start restored the existing cluster. Release revision 3, system/workload readiness, original storage bindings, product 11/order 12, marker 3 and anonymous storefront content are freshly verified. No Stage 3.8 experiment was repeated. Available host RAM is now 3.016 GiB: this recovery does not authorize adding workloads or establish full-stack capacity. The initial gap remains recorded in the [review](#stage-38-final-review-and-local-stage-3-assessment), followed by the [recovery evidence](#stage-38-recovery-of-the-existing-local-environment).
 
 Stage 0 governance was committed as **51f27b2 — docs: establish project governance and assignment baseline** on main. Architecture v1 and its journey were committed as **db49836 — docs: define architecture v1 and project journey**. The reviewed preflight/k3d documentation was committed as **1f2aec9 — docs: select k3d after environment preflight**. Stage 2.2A was reviewed, approved, and committed as **84395d5 — docs: record validated Docker runtime**. Stage 2.2B was reviewed, approved, and committed as **248f13c — docs: record Kubernetes CLI toolchain**. Stage 2.3 was approved and committed as **78d3915 — docs: record validated local Kubernetes cluster**. The approved lab manifests were committed as **de2e69d — labs: add Kubernetes fundamentals workload** before Stage 2.4A began from a clean working tree.
 
@@ -10,13 +12,14 @@ A1–A13 remain accepted as DEC-004 through DEC-016. DEC-017 replaces the propos
 
 Stage 2.4A's healthy workload observations were approved and committed as **fc1c38c — docs: record Kubernetes workload baseline**. Stage 2.4B was approved and committed as **89d9084 — docs: record Kubernetes self-healing experiment**. Stage 2.4C was approved and committed as **341d83a — docs: record Kubernetes declarative reconciliation experiment**. Stage 2.4D began from that clean documentation checkpoint.
 
-The committed store chart runs locally with finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Product 11 is published, in stock and anonymously purchasable; exactly one matching SKU and one stored checkout order exist. Manual guest checkout/admin visibility are user-confirmed, and the order is independently verified and preserved through the visibility migration. Anonymous shop/product body content now passes, completing Stage 3.7. Deliberate persistence-under-Pod-replacement and dependency-loss validation remain pending; no broader assignment completion is implied. See [journey](project-journey.md) and [decisions](decisions.md).
+During the completed local acceptance run, the committed store chart operated with finite bootstrap, external Secret references, persistent claims and dependency-aware readiness. Product 11 was published, in stock and anonymously purchasable; exactly one matching SKU and one stored checkout order were verified. Manual guest checkout/admin visibility are user-confirmed, and the order was independently verified. Stages 3.7 and 3.8 provide local business-flow, Pod-replacement persistence and database-loss probe evidence; no broader assignment completion or current availability is implied. See [journey](project-journey.md) and [decisions](decisions.md).
 
 ## Current documentation change
 
-- Record both the initial memory stop and the resumed, successful revision-3 migration; migration source remains unchanged.
-- Record actual anonymous content, business-data/credential-state preservation, storage continuity, health and memory evidence; mark Stage 3.7 complete only within its business-flow scope.
-- Only progress/journey change. One authorized live upgrade followed a read-only preview; no further checkout, order edit, Secret change, rollback, persistence experiment, staging or commit.
+- Record the three controlled Stage 3.8 experiments, observed recovery/identity/probe behavior, retained data and memory limits.
+- Correct architecture/requirements statements that still describe the now-observed store persistence/probe behavior as unverified; no design decision or implementation changes.
+- Only progress, journey, architecture and requirements change. No Helm upgrade/uninstall/rollback, claim/PV/namespace/Secret deletion, business-data mutation, new checkout, staging or commit.
+- Keep the completed experiment evidence, later availability gap and subsequent controlled recovery distinct; record current health and local-stage sign-off without claiming full assignment completion or future capacity.
 
 ## Stage 3 store design outcome
 
@@ -468,6 +471,124 @@ Node allocatable remained 6064280Ki (about 5.78 GiB); final MariaDB/WordPress us
 | Post-migration health | Pass: revision 3/deployed, WordPress/MariaDB Ready, r3 Complete, stable storage and no new restart/OOM/MemoryPressure |
 
 **Stage 3.7 is complete.** Stage 3.8 must separately validate controlled WordPress/MariaDB Pod-replacement persistence and database-dependency-loss behavior; this upgrade does not substitute for those experiments. No Secret modification, REST credential creation, extra checkout, order edit, uninstall, rollback, deliberate persistence test, staging or commit occurred. Existing PV reclaim policy remains Delete: retention is not permission to delete claims/namespaces and is not backup. Automatic Helm rollback remains unsafe because it does not rewind persisted database/files and older readiness expects marker 2.
+
+### Stage 3.8 controlled persistence and dependency-loss validation
+
+Run on 2026-10-21 from clean main at af7bb37. All mutations were limited to deleting the current WordPress Pod, deleting the current MariaDB Pod, and temporarily scaling the MariaDB StatefulSet 1 -> 0 -> 1. No force deletion, Helm operation that changes the release, controller replacement, PVC/PV/namespace/Secret deletion, bootstrap invocation or business-data edit occurred.
+
+Baseline: urumi revision 3/deployed; WordPress/MariaDB 1/1 Ready; r3 bootstrap Complete with its original 11s timestamps; node Ready and MemoryPressure=False. WordPress had zero restarts; MariaDB had one previously recorded restart. Both anonymous routes passed visible-body checks. Supported WooCommerce reads verified product 11/unique SKU URUMI-DEMO-001/published/in stock/499 INR and exactly one Processing guest order 12/quantity 1/499 INR/COD/free shipping. Marker/ownership 3, Live options no/no, postname permalinks, active WooCommerce 11.2.1 and existing business-setting checkpoints all passed. Actual readiness and liveness-equivalent checks succeeded for both workloads before disruption.
+
+| Identity | Before | After WordPress deletion | After MariaDB deletion | Final, after dependency-loss restoration |
+| --- | --- | --- | --- | --- |
+| WordPress Pod name | urumi-wordpress-886bfd79c-h5f79 | urumi-wordpress-886bfd79c-hvdsc | Same hvdsc | Same hvdsc |
+| WordPress Pod UID | 1634ae34-194a-4dd4-8854-88c0739d4c24 | 77779167-94e6-4cc0-9f51-b32c786fc7a4 | Same | Same |
+| MariaDB Pod name | urumi-mariadb-0 | Same | Same ordinal 0 | Same ordinal 0 |
+| MariaDB Pod UID | ff2ac162-040f-4137-8fb7-6fb54011db64 | Same | 53864740-55b9-44d7-aff5-8a4df03ab7f5 | 43a3b149-155d-470a-af31-db0165df8aab |
+
+Deployment UID 74f85e90-dc5e-430f-9905-62c6719eba8b, ReplicaSet urumi-wordpress-886bfd79c/UID 7112bdd4-4d70-4d68-977a-d1bc5f10383b and StatefulSet UID ca9dd6b3-4662-4924-a16d-ba7270303827 remained unchanged. The completed bootstrap Job UID fb9bb7e2-2fda-4b39-bdda-c4caf9bc1688, its Pod and start/completion timestamps remained unchanged throughout: ordinary application Pod replacement did not rerun bootstrap.
+
+**WordPress replacement:** Deleted only h5f79 with normal graceful deletion. Observed the old Pod terminating, then hvdsc Running but not yet started/Ready, then Ready at approximately 7.8s from the deletion request. Same controller/claim, zero replacement-container restarts. Hashes of the persisted .htaccess, wp-includes/version.php and WooCommerce main plugin file matched baseline. Product/order/user-state comparisons, marker/version and both anonymous pages passed after recovery. This establishes selected application-file persistence and Deployment reconciliation; the still-running database at this point does not itself prove database restart durability.
+
+**MariaDB replacement:** Deleted only ordinal 0. Observed old UID terminating, then the new ordinal-0 UID Running/unready, then Ready at approximately 7.9s. The same StatefulSet and data claim/PV were reused; the new container had zero restarts. WordPress stayed Ready in sampled states during this short interruption, although one bounded readiness-timeout event was recorded. All records/options and anonymous content passed after recovery with no duplicates. This independently demonstrates database persistence across a database Pod replacement.
+
+**Deliberate dependency loss:** Before scale-down, the live StatefulSet explicitly had whenDeleted=Retain and whenScaled=Retain; the existing claim was Bound, had no ownerReferences/deletionTimestamp, and the PV claimRef matched its UID. The volume template/data mount still referenced data-urumi-mariadb-0. These observed settings match [Kubernetes v1.35 retention semantics](https://v1-35.docs.kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention). The PV reclaim policy is Delete, but no claim deletion was performed or authorized.
+
+Used explicit-context kubectl scale with current-replica guards (1 -> 0, then 0 -> 1), not Helm. From the scale-down request: MariaDB Pod absent at about 4.1s; WordPress Ready became False at 33.7s; /shop/ returned HTTP 503. TCP connections to the WordPress Pod's configured port 80 succeeded repeatedly while the database Pod was absent. WordPress retained its Pod UID/container ID and zero restarts, so no manual/liveness restart supplied recovery. Both claims remained Bound with unchanged identities throughout. Restoration was issued at 35.2s; MariaDB and WordPress were Ready at 44.2s, approximately 9s after restoration. The database was not left down for another experiment. Replica drift was removed: both the live StatefulSet and released manifest again declare one replica.
+
+The replacement WordPress Pod's subsequent kubelet probe counters showed 15 successful liveness probes and no failed-liveness series, five failed readiness probes and 26 successful readiness probes. These are cumulative Pod-lifetime counters, not per-test timing. Events included readiness execution errors on old terminating Pods, one readiness timeout during fast MariaDB replacement and four readiness failures during deliberate loss; no liveness failure or OOMKilled was observed. Final direct probe checks passed. Recovery timings are polling observations, not exact outage-duration guarantees.
+
+| Persistent binding | Claim UID, unchanged through all experiments | PV name, unchanged and Bound |
+| --- | --- | --- |
+| urumi-wordpress | 864a302a-0a39-4880-b522-558a4c830845 | pvc-864a302a-0a39-4880-b522-558a4c830845 |
+| data-urumi-mariadb-0 | d3e6142a-b6b9-4e67-8880-a564f41ba331 | pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331 |
+
+After each recovery, read-only APIs and private before/after comparisons verified unchanged product/order object data and user credential state; no customer/credential values or comparison digests were displayed or documented. Product 11 remained unique, published, in stock and 499 INR; order 12 remained the only order, Processing, quantity 1, total 499 INR, COD, guest and free_shipping instance 1 at zero cost. Marker 3, WooCommerce 11.2.1, Live settings and permalink configuration persisted. Anonymous /shop/ and product responses returned 200 with real product/price text, no Coming Soon presentation and an enabled product-11 Add to cart control. No cart action or new checkout was submitted.
+
+| Memory observation | Available Windows RAM (GiB) | Node usage |
+| --- | --- | --- |
+| Baseline capture | 3.636 | 1088Mi |
+| Immediately before WordPress deletion | 3.719 | 1102Mi |
+| After WordPress verification | 3.773 | 1034Mi |
+| Immediately before MariaDB deletion | 3.767 | 1106Mi |
+| After MariaDB verification | 3.464 | 1097Mi |
+| Retention check / fresh headroom recheck | 3.631 | 1066Mi |
+| Immediately before dependency-loss injection | 3.653 | 1092Mi |
+| During deliberate database absence | 3.846 | 998Mi |
+| Final application/HTTP verification | 3.744 | 1097Mi |
+
+Windows total remained 15.726 GiB (final used 11.982 GiB); node allocatable remained 6064280Ki, about 5.78 GiB. A later workload sample showed MariaDB 95Mi and WordPress 135Mi. The brief 3.464 GiB dip was reported; fresh headroom recovered before the next disruption. No budgets were lowered. Node stayed Ready/MemoryPressure=False, and new application Pods ended with zero restarts. Samples do not establish a memory peak or full-stack capacity.
+
+**Stage 3.8 passes for this local single-node store.** Application-file and database Pod-replacement durability, scale-down claim retention, readiness dependency behavior and automatic recovery are observed. This does not prove zero downtime, high availability, node-loss survival, backup/restore, uninstall/reinstall retention, production behavior or every possible bootstrap failure path. Further store integration remains separately scoped: review/checkpoint this evidence, then authorize WooCommerce REST credential preparation/custom MCP integration when appropriate. No such credentials or MCP implementation were created here. No architecture redesign or decision change was required; architecture/requirement evidence is corrected only where the previous unverified claims are now outdated.
+
+### Stage 3.8 final review and local Stage 3 assessment
+
+On 2026-10-22 the review resumed without repeating any runtime experiment. Git contained exactly four unstaged documentation changes: progress, journey, architecture and requirements. The completed 21 October results above remain the experiment evidence; they are not substituted for a fresh health measurement.
+
+| Read-only final check | Actual 22 October result |
+| --- | --- |
+| Context / host mapping | k3d-urumi-local; store.urumi.test resolves to 127.0.0.1 |
+| Docker / cluster containers | Linux engine reachable; server and load-balancer containers running; mappings remain 8080 -> 80, 8443 -> 443 and 127.0.0.1:6550 -> 6443 |
+| Kubernetes API / Helm release read | API at 127.0.0.1:6550 returns EOF, including a bounded /readyz request; Helm cannot retrieve release status |
+| Workloads, data and storage | Current Ready/restart counts, bootstrap status, product 11, order 12, marker/version, PVC bindings and node MemoryPressure cannot be freshly verified while the API is unreachable |
+| Anonymous shop / product URLs | Both return an empty reply (curl exit 52 / status 000), not a valid HTTP status or accepted storefront body |
+| Host RAM / node memory | Windows total 15.726 GiB, used 11.986 GiB, available 3.740 GiB; current node memory unavailable |
+
+At this initial review boundary, the cause of the later availability gap had not been established. No cluster restart, configuration change, Pod deletion, scale change, Helm mutation, bootstrap or checkout was attempted. There was no fresh evidence of data loss, but also no basis to report the store healthy. Final health sign-off remained open pending restored API/store access and read-only verification; the subsequently authorized recovery is recorded below.
+
+**Local Stage 3 scope assessment before recovery:** The planned local store foundation had demonstrated Helm deployment, deterministic bootstrap and migrations, stable Ingress routing, guest COD/free-shipping checkout and admin visibility, anonymous catalog/product visibility, WordPress and MariaDB Pod-replacement persistence, retained StatefulSet claim reuse, and dependency-aware readiness with independent liveness and automatic recovery. Those implementation/acceptance objectives were complete on the 21 October evidence, but the blocked current-health check prevented final healthy-state sign-off at this boundary.
+
+Remaining work outside that local foundation includes WooCommerce REST credential issuance; the custom WooCommerce MCP server; gateway and two additional MCP upstreams; team/authentication/API keys/auditing; dashboard/chat; external MCP client acceptance; VPS/k3s deployment work and configuration/deployability validation; and the final demo/video. Mandatory VPS deployability/documentation remains distinct from optional live VPS deployment under OPEN-01. These tests do not prove disk-loss recovery, node-loss durability, production HA, multi-node storage behavior, disaster recovery or full-stack memory capacity. PVC/PV persistence across Pod replacement is not backup: the current PV reclaim policy is Delete if its PVC is deleted.
+
+The initial documentation review passed: 45 local file/anchor links, 45 Markdown tables (420 rows), credential/contact-pattern scan and git diff --check. Review found no customer PII, credential/Secret values, generated cluster dumps or unrelated changes in the four changed documents. Those repository checks did not resolve runtime availability. Nothing was staged or committed.
+
+### Stage 3.8 recovery of the existing local environment
+
+On 2026-10-22 the user authorized diagnosis and minimal recovery of the existing cluster, preserving the passed 21 October experiments. Read-only checks found Docker Desktop's Linux engine reachable on desktop-linux, WSL2 docker-desktop Running, k3d listing urumi-local with one server and its load balancer, and the expected 6550/8080/8443 mappings. Context and endpoint were k3d-urumi-local and https://127.0.0.1:6550. TCP connected, but the API returned EOF; load-balancer logs showed connection refused to the server's port 6443 (also port 80).
+
+**Diagnosis:** The running server container contained only its entrypoint/retry process, not K3s/containerd, and had no API listener. Sanitized startup logs recorded repeated K3s shutdown requests: failed to start networking because network-policy initialization failed to find an interface with the specified node IP. The entrypoint continued retrying an API-dependent uncordon operation. This establishes the immediate failure layer; the initiating trigger for the node-IP/interface condition is unproven. Docker reported server restart count 3 and OOMKilled=False before recovery; inspected logs did not establish a certificate failure or OOM cause. The existing K3s datastore file and both expected local-path storage directories were present before any restart.
+
+**Recovery:** Performed exactly one successful stop/start pair, with a bounded start wait:
+
+```powershell
+k3d cluster stop urumi-local
+k3d cluster start urumi-local --wait --timeout 180s
+```
+
+Stop returned successfully in approximately 4s; start reported success in approximately 13s. Normal k3d startup refreshed its CoreDNS host-alias records. No cluster recreation, Docker/WSL restart, Helm mutation, application reinstallation, Secret change, marker edit, Pod-deletion experiment, scale-to-zero test, bootstrap invocation or new business record was used. The server's Docker volume mounted at /var/lib/rancher/k3s remained the same. Recovery is verified by the following checks, not solely by the start command's exit status.
+
+| Recovered component | Observed evidence |
+| --- | --- |
+| API / node | /readyz returns ok; Kubernetes v1.35.5+k3s1; k3d-urumi-local context; node Ready with MemoryPressure=False, DiskPressure=False and PIDPressure=False |
+| System / namespace | CoreDNS, Traefik, metrics-server and local-path-provisioner each 1/1 Ready; urumi Active |
+| Helm / controllers | urumi revision 3/deployed; original Deployment/StatefulSet UIDs; both desired/ready 1/1; database retention still Retain/Retain |
+| Bootstrap | Same r3 Job UID and completed Pod; original 15:40:09Z -> 15:40:20Z timestamps on 21 October; Complete, zero restarts; no rerun |
+| Store contract | WooCommerce 11.2.1 active; marker 3; /%postname%/; both visibility options no; INR/IN/Asia-Kolkata, taxes off and guest checkout enabled |
+| Product | ID 11; exactly one matching URUMI-DEMO-001; published/in stock/purchasable; regular/current price 499 INR |
+| Order | ID 12; exactly one order; Processing; guest; product 11 quantity 1/subtotal 499; total 499 INR; COD; free_shipping instance 1 at zero cost |
+| Anonymous HTTP | /shop/ and /product/urumi-demo-mug/ return 200 with visible Urumi Demo Mug/rupee price and no Coming Soon presentation; product page has enabled Add to cart for ID 11 |
+
+Business verification used supported read-only WooCommerce getters inside the existing WordPress container, with WP-Cron disabled and unexpected output suppressed. No customer name/contact/address, credential values, full order objects or raw cluster dumps were emitted or saved. Anonymous checks used fresh requests without login cookies and verified visible content rather than script data; no cart action or checkout was submitted.
+
+| Pod | UID, unchanged from the 21 October final state | Final state / container restarts |
+| --- | --- | --- |
+| urumi-wordpress-886bfd79c-hvdsc | 77779167-94e6-4cc0-9f51-b32c786fc7a4 | Running/Ready; 2 |
+| urumi-mariadb-0 | 43a3b149-155d-470a-af31-db0165df8aab | Running/Ready; 2 |
+| urumi-store-bootstrap-r3-m57c8 | 095b1ad0-8d5a-4ebe-b0bd-d35a696029b6 | Succeeded; 0 |
+
+Application restart counts stayed at 2 across post-recovery samples roughly three minutes apart. Their last recorded termination reason was Unknown, so individual restart causes are not attributed beyond the available evidence. This differs from the zero counts at the end of the 21 October experiments. No OOMKilled termination was visible in current container status, no OOM event was returned in the available namespace events, and Docker's server OOMKilled flag was false. Node MemoryPressure remained False in post-recovery samples.
+
+| Retained PVC | Original PV, still Bound | Claim UID, unchanged |
+| --- | --- | --- |
+| urumi-wordpress | pvc-864a302a-0a39-4880-b522-558a4c830845 | 864a302a-0a39-4880-b522-558a4c830845 |
+| data-urumi-mariadb-0 | pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331 | d3e6142a-b6b9-4e67-8880-a564f41ba331 |
+
+Both PV UIDs also match the earlier final state; claimRef UIDs match their claims. Reclaim policy remains Delete if the PVC is deleted. Existing cluster recovery is not a disk-loss restore or proof of backup, node-loss protection, HA or multi-node durability.
+
+Windows total RAM was 15.726 GiB. Available RAM was 3.751 GiB before recovery, 3.020 GiB at the first healthy sample and 3.016 GiB finally (12.711 GiB used). Node memory was 826Mi initially after recovery and 913Mi finally, with 6064276Ki allocatable. Existing workloads recovered without budget/probe/storage changes, but host headroom is below the approximately 3.5 GiB floor for adding application workloads. Recheck and recover headroom before subsequent deployment work; full-stack capacity remains unproven.
+
+**The transient availability incident did not destroy the persisted Stage 3 store state.** Local Stage 3 foundation and its final health verification can now be signed off. Stage 4 has not started; REST credentials, custom MCP/gateway/additional upstreams, team/auth/keys/audit, dashboard/chat, external-client acceptance, VPS/k3s work and the final demo/video remain outside this completed local foundation. No new design decision or implementation change was needed; only the four existing documentation changes are retained for review, unstaged and uncommitted.
+
+Recovery documentation review passed: 50 local links/anchors, 48 Markdown tables (439 rows), credential/contact-pattern scan and git diff --check. The four-document diff preserves the prior experiment and outage evidence; no generated cluster files, customer PII, credential/Secret values or unrelated file changes were found.
 
 ## Docker setup outcome
 
