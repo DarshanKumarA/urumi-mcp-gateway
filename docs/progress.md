@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-23 — Stage 4.2: accepted Woo MCP design recorded; dedicated REST Secret helper implemented for offline review only.** Local Stage 3 remains signed off at 96757e7. No cluster access/start, REST credential issuance, Secret creation, Python MCP application, middleware or deployment occurred. Canonical OAuth connectivity is unproven; Stage 4.3 must demonstrate one authenticated read before full MCP implementation. Stage 4 runtime requirements remain incomplete. Historical measurements below are not current host-memory readings.
+
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
 **2026-10-22 — Existing environment recovered; local Stage 3 store foundation COMPLETE.** The initial read-only review found Kubernetes API EOF errors and empty store replies. Subsequent authorized diagnosis found K3s shutting down during networking initialization; one controlled k3d stop/start restored the existing cluster. Release revision 3, system/workload readiness, original storage bindings, product 11/order 12, marker 3 and anonymous storefront content are freshly verified. No Stage 3.8 experiment was repeated. Available host RAM is now 3.016 GiB: this recovery does not authorize adding workloads or establish full-stack capacity. The initial gap remains recorded in the [review](#stage-38-final-review-and-local-stage-3-assessment), followed by the [recovery evidence](#stage-38-recovery-of-the-existing-local-environment).
@@ -16,10 +18,43 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-- Record the three controlled Stage 3.8 experiments, observed recovery/identity/probe behavior, retained data and memory limits.
-- Correct architecture/requirements statements that still describe the now-observed store persistence/probe behavior as unverified; no design decision or implementation changes.
-- Only progress, journey, architecture and requirements change. No Helm upgrade/uninstall/rollback, claim/PV/namespace/Secret deletion, business-data mutation, new checkout, staging or commit.
-- Keep the completed experiment evidence, later availability gap and subsequent controlled recovery distinct; record current health and local-stage sign-off without claiming full assignment completion or future capacity.
+- Record accepted Stage 4 protocol, adapter, tool, privacy/error, canonical-origin and credential contracts in architecture/decisions/threat model/requirements.
+- Add only scripts/setup-woocommerce-rest-secret.ps1 and offline validation evidence; preserve the original store helper. Upstream service-token Secret/middleware remain deferred until gateway integration.
+- Preserve both the 21 October persistence experiments and 22 October incident/recovery. No runtime state was freshly inspected in this offline step.
+- No real credentials, Kubernetes/Helm/store changes, Python MCP implementation, staging or commit.
+
+## Stage 4.2 accepted Woo MCP design and offline REST Secret helper
+
+The user accepted Stage 4.1 with explicit deferral of gateway-to-upstream service authentication. DEC-026 through DEC-029 and the [architecture contract](architecture.md#accepted-woocommerce-mcp-design) record mcp==2.3.0/Python 3.13/current stateless MCP at /mcp, exactly five tools, normalized PII-minimized DTOs, bounded errors/timeouts/no write replay, and HTTP OAuth via separate Service connection/canonical signing origins. That route is source-informed but not runtime-proven. No application implementation or requirement completion is inferred.
+
+The [dedicated helper](../scripts/setup-woocommerce-rest-secret.ps1) fixes context k3d-urumi-local, namespace urumi, Secret urumi-woocommerce-rest, Opaque type and exact case-sensitive consumer-key/consumer-secret keys. Default Validate is offline. Future Check requires the existing context/Active namespace and projects only object identity/type/lifecycle/key names. Future Create preserves valid existing objects without prompting, or masks each user-supplied Woo-issued value separately and submits a memory-only payload with create -f -. It cannot issue keys, create namespaces or overwrite/rotate/delete Secrets.
+
+Security review: a single bounded ProcessStartInfo wrapper uses non-secret ArgumentList entries, no shell and stdin only for the payload. API timeout 15s, stdin write 10s, process exit 30s and pipe drain 1s are bounded waits, not a single 30s end-to-end deadline. All child stderr and create stdout are discarded; reads expose only the selected projections. Failures print a fixed operation/object message and return nonzero. Real API Secret bytes still reach kubectl internally; no special metadata-only RBAC is claimed. Mutable UTF-8/BSTR buffers are cleared and SecureStrings disposed, but managed plaintext/base64/JSON strings cannot be guaranteed erased. Use an untraced/non-debugged/non-transcribed trusted local terminal.
+
+Offline fixtures exercise parser/manifest generation and the same preparation workflow with fake subprocess/prompt callbacks: missing/present Check, preserved existing Create, absent Create, conflicting contract, failed read, failed create/name race, failed postcheck, missing context/unavailable namespace and invalid first/second input. Manifest fixtures reject wrong identity/API/kind/type, termination, missing/extra/mis-cased/duplicate keys; input-shape fixtures reject blank/NUL/newlines/edge whitespace/oversize text. The real subprocess wrapper's Validate guard is also exercised before process creation. Existing Check deliberately does not decode or verify credential contents/authentication.
+
+| Offline validation on 2026-10-23 | Result |
+| --- | --- |
+| PowerShell parser | Passed, no syntax errors |
+| Default and explicit Validate mode | Both passed 128 assertions; no executable/prompt/cluster access |
+| Invalid mode | Rejected with nonzero exit (1) |
+| Subprocess/credential-flow review | One ProcessStartInfo wrapper, non-secret arguments, payload only on stdin, suppressed child/error content |
+| Credential/contact scan | Seven complete changed/new files; no matching credential/contact material |
+| Documentation validation | 10 Markdown files, 108 local links/anchors, 65 tables passed |
+| Whitespace and scope | git diff --check clean; new helper whitespace checked separately; exactly seven authorized files, original store helper byte-identical to HEAD |
+| PSScriptAnalyzer | Unavailable; not run or installed |
+
+The complete tracked diff and new-file diff were reviewed. Real prompts, Go-template rendering against kubectl, child-process pipe behavior under runtime failure, Secret submission and OAuth connectivity remain untested. A pattern scan cannot prove absence of every possible secret. No runtime completion is claimed.
+
+### Proposed Stage 4.3 operational sequence
+
+1. Obtain separate runtime authorization and fresh host-memory/cluster/store preflight; start the existing cluster only if authorized/needed. Preserve release/PVCs/Secrets/product 11/order 12; do not repeat Stage 3.8.
+2. Confirm urumi Active and the existing store healthy, canonical URL unchanged. Run the helper Check; do not dump Secret data.
+3. If absent, the user logs into WooCommerce and manually issues one named Read/Write key for the accepted owner. Initial administrator association has broad authority; no service user is silently added.
+4. In the user's trusted PowerShell 7 terminal, run pwsh -NoProfile -File scripts/setup-woocommerce-rest-secret.ps1 -Mode Create. Enter consumer key and secret only in its two masked prompts. Do not put them in chat, arguments, environment variables or files.
+5. Run Check again; report name/Opaque/exact keys only. Failure/uncertain creation stops for read-only inspection, never deletion/replacement/retry without review.
+6. Prepare/review the smallest pinned, bounded authenticated-read harness before execution. Use the accepted internal connection/canonical signing origin and Authorization header, no redirects or key queries; return only non-sensitive product identity/status. A shape-valid Secret alone does not authenticate. Stage 4.2 adds no such harness or Python package.
+7. Prove one authenticated read, or stop on signing/redirect/header/connectivity failure before full MCP implementation. No product/order writes or gateway service credential creation belong to that connectivity check. Record sanitized evidence and stop for review.
 
 ## Stage 3 store design outcome
 
@@ -720,15 +755,15 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 
 - Docker/Linux and the single-server K3s v1.35.5+k3s1 cluster remained healthy through Stage 3.6. API port 6550 and Ingress mappings 8080/8443 are established; observed node allocatable memory is about 5.78 GiB. Fresh host RAM passed the first-install gate, then dipped and recovered during startup. Recheck before additional runtime work/components and measure use; full-stack capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
-- SDK/protocol compatibility, exact pinned package versions, connection lifecycle, client refresh, timeouts, and health observation need an authorized prototype.
+- Woo SDK/protocol/tool contracts are accepted in Stage 4; exact transitive/signer pins, actual compatibility, signing-origin connectivity and date boundaries need validation. Gateway client refresh/lifecycle/health remain future work.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
-- LLM/provider, tool schemas and WooCommerce REST details, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Inspector is selected for diagnostics.
-- Store packaging, local route, PVCs, Secret contract, bootstrap, probes and starting resources are accepted in DEC-018–DEC-021. Stage 3.6 verified initial bootstrap/readiness and PHP syntax. Stage 3.7 verified business configuration and product 11 through generated URLs, but /shop/ content failed. Routing correction, manual checkout/admin order visibility, post-checkout health, persistence/recovery and dependency-failure tests remain pending; production identity/TLS, non-store components and VPS compatibility remain open.
+- LLM/provider, auxiliary tool schemas, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Woo contracts are accepted but unimplemented; Inspector is selected for diagnostics.
+- Local store business-flow/persistence/dependency-loss acceptance and later recovery are complete at 96757e7. Production identity/TLS, non-store components, VPS compatibility, node/disk-loss protection, backup and full-stack capacity remain unproven.
 
 OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-Stage 3.7 checkout is paused for review of the source-only permalink migration. The live route remains unfixed until a separately authorized upgrade validates it. Do not call the business flow accepted until catalog routing, checkout, order/admin visibility and post-checkout health are verified. Leave release, claims, namespace, Secrets and product 11 intact; do not recreate the SKU. No persistence deletion test, WooCommerce REST credentials, MCP work, upgrade/uninstall, staging or commit. Earlier observation sections remain historical.
+Stage 4.2 stops for review of the dedicated offline REST Secret helper and six documentation files. No staging/commit, real key issuance, Check/Create against Kubernetes, cluster start, store mutation or MCP application implementation is authorized here. Stage 4.3 requires separate operational authorization and proof of one authenticated read. Earlier observation sections retain their historical evidence and limits.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

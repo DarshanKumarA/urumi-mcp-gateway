@@ -319,12 +319,123 @@ These stable OPEN IDs preserve the original questions and links. A13 records rev
 | OPEN-06 | Named clients include Inspector, but one prompt must use two upstreams | MCP Inspector for development/protocol diagnostics. Validate Claude Code or Cursor later for the interactive demo; architecture must not depend on either |
 | OPEN-07 | Today's orders has no specified timezone | WooCommerce/store-configured timezone is authoritative. Local demo may use Asia/Kolkata; do not permanently hardcode it. Validate date-boundary conversion against the store API |
 
+## Accepted WooCommerce MCP design
+
+Stage 4.1 was accepted for recording in Stage 4.2 on 2026-10-23. This is a design contract, not a deployed MCP server. Stage 4.2 implements only the [offline REST Secret helper](../scripts/setup-woocommerce-rest-secret.ps1). Decisions DEC-026 through DEC-029 in [decisions](decisions.md) refine A3/A7/A10 without changing the assignment. REQ-WOO-01 through REQ-WOO-09 remain implementation/runtime-incomplete.
+
+### Protocol and adapter responsibility
+
+Pin the official Python MCP SDK to mcp==2.3.0 on Python 3.13, using MCP 2026-07-28 and the SDK's Streamable HTTP implementation at /mcp. No handwritten JSON-RPC, third-party Woo MCP server, or separate FastMCP package. Exact transitive dependencies and the established OAuth signer will be resolved, tested and pinned when the Python package is authorized; no dependency files exist yet. Official evidence: [SDK release v2.3.0](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.3.0), [published package](https://pypi.org/project/mcp/2.3.0/), [current transport specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http).
+
+Modern protocol requests are stateless and do not depend on Mcp-Session-Id; HTTP connection pooling is a separate implementation concern. Use MCPServer and its streamable_http_app; stateless_http=True makes the SDK's legacy path sessionless too. Modern behavior is already sessionless regardless of that flag. Five fixed tools need no elicitation, legacy back-channel or catalog subscriptions. Prefer JSON tool responses and disable subscriptions; leave wire/version handling to the SDK. Verify 2026-07-28 and 2025-11-25 clients later; actual Claude/Cursor compatibility remains a gateway acceptance task. The SDK release has a pre-execution HeaderMismatch retry; this is distinct from replaying an ambiguous write, and call-count tests must cover the chosen transport. [SDK legacy behavior](https://py.sdk.modelcontextprotocol.io/run/legacy-clients/).
+
+```text
+External MCP client / dashboard chat
+  -> future gateway: identity, authorization, routing and audit
+  -> internal Woo MCP /mcp
+  -> input validation -> Woo REST client/authentication
+  -> WordPress/WooCommerce REST v3 -> MariaDB
+  -> allowlisted normalization -> SDK MCP result -> gateway
+```
+
+Woo MCP owns its five schemas/implementations, Woo REST client/authentication, bounded timeouts, normalized responses and sanitized errors. It does not own gateway users, team roles, individual API keys, dashboard sessions, audit persistence, chat orchestration or external-client routing. REST avoids direct SQL and a WordPress webroot/DB credential dependency in the adapter. No adapter database, queue or persistent volume is required.
+
+### Store connection and REST authentication
+
+| Purpose | Accepted local design |
+| --- | --- |
+| Network connection origin | http://urumi-wordpress.urumi.svc.cluster.local |
+| Canonical/OAuth signing origin | http://store.urumi.test:8080 |
+| REST prefix | /wp-json/wc/v3 |
+| HTTP Host header | store.urumi.test:8080 |
+| Redirects | Disabled; unexpected redirect is a configuration error |
+| Local HTTP authentication | One-legged OAuth 1.0a, HMAC-SHA256, Authorization header |
+| Future HTTPS authentication | Basic authentication over verified TLS; never disable certificate/hostname validation |
+
+WooCommerce 11.2.1 verifies the OAuth base URI using the configured home URL, so signing the Service hostname alone is not equivalent. Sign the canonical URL and send the identical method/path/query via the internal Service with the canonical Host header. These are fixed deployment settings, not tool inputs. This avoids assuming Windows hosts-file entries resolve inside Pods. Use an established, pinned OAuth library, not manual cryptographic signing. [Woo authentication](https://developer.woocommerce.com/docs/apis/rest-api/authentication/) and [pinned implementation](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/class-wc-rest-authentication.php).
+
+**The origin mapping is not runtime-proven. Stage 4.3 must prove one authenticated read before full MCP implementation.** Check Service routing, canonical signing including port/query encoding, Apache Authorization-header handling and absence of redirects. Stop on failure; do not silently switch origins, change WordPress options or put credentials in query strings. Public Ingress TLS does not turn an internal HTTP hop into HTTPS: production internal HTTP still needs OAuth. HTTP is plaintext and Woo's OAuth does not sign the JSON body; this is not TLS-equivalent confidentiality/integrity.
+
+### Credential ownership and local preparation
+
+| Secret in urumi | Exact keys | Consumer / lifecycle |
+| --- | --- | --- |
+| urumi-woocommerce-rest | consumer-key, consumer-secret | Only future Woo MCP; manually issued Read/Write Woo REST pair, mounted as read-only files |
+| urumi-woo-mcp-auth (future) | token (proposed) | Separate gateway-to-Woo MCP service credential; implementation deferred until gateway integration |
+
+The gateway never receives the Woo REST pair; users' gateway keys are never forwarded upstream. Initial local issuance may use the existing WordPress administrator, accepting its broader authority; a dedicated least-privilege service user requires a separately reviewed capability/operational design. A service-account name alone does not prove restricted permissions. No new user is created by Stage 4.2.
+
+The dedicated helper keeps the original four-Secret store helper unchanged. PowerShell 7 is required; context k3d-urumi-local, namespace urumi and Secret name are fixed. It never creates a namespace, generates Woo keys, rotates credentials or authenticates to WooCommerce.
+
+| Mode | Implemented helper behavior | Stage 4.2 evidence boundary |
+| --- | --- | --- |
+| Validate (default) | Offline parser, dummy manifest/key and mocked workflow checks; real kubectl path is guarded | Offline execution only |
+| Check | Verify named context and Active namespace, then project Secret identity/type/lifecycle/key names; absent is reported without creating | Mocked only; live projection untested |
+| Create | Preserve a valid existing object without prompting; otherwise mask consumer-key and consumer-secret separately, encode in memory, create via stdin, then Check | Mocked only; no real prompts or writes |
+
+Check requires Opaque and exactly the two case-sensitive keys; extras, missing/mis-cased keys, wrong identity/type or termination fail. It does not retrieve/decode values into helper output or prove nonempty/current/working credentials. kubectl necessarily receives the API Secret internally before projecting metadata/key names; this is not a special metadata-only Kubernetes authorization permission. Input shape checks reject blank, edge-whitespace, NUL/CR/LF or over-1024-character text without echoing it; they do not prove Woo issued the values.
+
+The future create command is kubectl create -f - with explicit context/namespace, fixed non-secret arguments and in-memory JSON stdin. Both pipes are drained; all stderr and create stdout are discarded. A timeout/name race/postcheck failure stops with a generic operation/object message, never patch/replace/delete/retry. A failed acknowledgement can still leave a created object: inspect it before retrying. Clear byte/BSTR buffers, dispose SecureStrings and release managed references; immutable managed strings and external host/Kubernetes logging cannot be guaranteed erased. Use a trusted non-traced, non-debugged, non-transcribed local terminal. Exact helper behavior and checks are recorded in [progress](progress.md#stage-42-accepted-woo-mcp-design-and-offline-rest-secret-helper).
+
+Gateway-only access remains mandatory. The user explicitly defers urumi-woo-mcp-auth and its service-token middleware until gateway integration. No public Ingress/NodePort/LoadBalancer may expose Woo MCP. ClusterIP is not caller isolation; before the service credential is enforced, an internal diagnostic prototype cannot be claimed to satisfy REQ-WOO-08. Final external clients must connect only to the gateway.
+
+### Five initial tool contracts
+
+All inputs reject unknown fields and invalid types. IDs are positive integers; prices are decimal strings, not floats. No raw REST parameters, arbitrary URL or SQL input. Successful SDK results use typed structured output; read tools are annotated read-only and write tools mutating, without treating annotations as authorization. Listing is explicitly paginated and never silently fetches the whole store. Oversized responses fail clearly rather than silently truncate records; exact response-byte bounds need implementation-time selection/testing.
+
+| Tool | Inputs | Normalized success |
+| --- | --- | --- |
+| list_products | page >=1 default 1; per_page 1-50 default 20; optional search 1-100 characters OR sku 1-64 characters; optional status publish/draft/pending/private | items: Product[], pagination, currency |
+| create_product | name trimmed 1-200 characters; price nonnegative decimal string <=999999999.99 with at most 2 fraction digits; optional sku 1-64; status publish (default) or draft; stock_status instock (default) or outofstock | product: Product, created: true |
+| list_orders | Same pagination; optional date "today" or YYYY-MM-DD; optional status pending/processing/on-hold/completed/cancelled/refunded/failed | items: OrderSummary[], pagination, resolved date window |
+| get_order | order_id positive integer | order: OrderDetail |
+| update_order_status | order_id; required status pending/processing/on-hold/completed/cancelled/failed; required expected_status from the seven standard order states above | order_id, observed_before_status, after_status, changed |
+
+Pagination is page/per_page/total/total_pages/has_more, using validated Woo response headers. Concurrent store writes mean pagination is not a snapshot. Product fields: id/name/sku/type/price/regular_price/currency/status/stock_status/permalink. create_product creates only simple products; price maps to regular_price. No images/HTML/variations/categories/arbitrary metadata. A supplied SKU is checked before POST; an existing match returns DUPLICATE_SKU, not implicit update/reuse. Woo's create-time uniqueness remains authoritative against races. No automatic creation retry; after an ambiguous response inspect by SKU before deciding. SKU is optional to preserve the assignment's name-and-price demo, with weaker ambiguous-write recovery if absent. [Products API](https://developer.woocommerce.com/docs/apis/rest-api/v3/products/).
+
+OrderSummary: id/status/created_at/currency/total/payment_method. OrderDetail adds line items (product_id, variation_id when applicable, name, sku, quantity, unit_price, subtotal, total), shipping lines (method_id, method_title, total), shipping_total and tax_total. Use offset-bearing timestamps and decimal-string money. Exclude customer objects/names/contact/address, customer notes, order keys and arbitrary metadata. Request only necessary REST fields where supported, then independently normalize through an allowlist; no raw object/body logging. Returned names/text remain untrusted model data.
+
+Date omitted means no date filter. Resolve "today" once in the configured store timezone, currently Asia/Kolkata, and return the resolved date/timezone/start-inclusive/end-exclusive window so subsequent pages can use the date across midnight. For 2026-10-23, local midnight to next midnight corresponds to [2026-10-22T18:30:00Z, 2026-10-23T18:30:00Z). Use dates_are_gmt=true and UTC filters; the proposed strict-boundary mapping uses after=start minus one second and before=end for second-resolution timestamps. Verify boundaries against the active order datastore before accepting runtime behavior. Order 12 was created on 21 October; later "today" queries may correctly omit it. [Orders API](https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/), [query implementation](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/rest-api/Controllers/Version3/class-wc-rest-crud-controller.php), [date boundaries](https://developer.wordpress.org/reference/classes/wp_date_query/).
+
+Status update: GET current order -> reject expected_status mismatch -> if already at target, changed=false without PUT -> otherwise one PUT containing only status -> normalize/check returned state. No invented fulfillment state machine; Woo/plugin-rejected changes are sanitized failures. Refunded/trash/checkout-draft are not writable targets; a label change is not a refund. Status hooks may affect stock/notifications. Read-before-write is not atomic compare-and-swap and does not eliminate races with an administrator. Product 11/order 12 are preserved until a separately authorized runtime write test.
+
+### Errors timeouts and tests
+
+| Failure | Stable tool error code |
+| --- | --- |
+| Connection/DNS | WOO_UNREACHABLE |
+| Authentication/permission | WOO_AUTH_FAILED / WOO_FORBIDDEN |
+| Request/tool timeout | WOO_TIMEOUT |
+| Missing object | NOT_FOUND |
+| Input validation | VALIDATION_ERROR |
+| SKU conflict | DUPLICATE_SKU |
+| Stale expected status | STATE_CONFLICT |
+| Rejected transition | INVALID_TRANSITION |
+| Other Woo 4xx / Woo 5xx | WOO_REQUEST_REJECTED / WOO_UPSTREAM_ERROR |
+| Malformed upstream response | WOO_INVALID_RESPONSE |
+| Redirect/configuration mismatch | WOO_CONFIGURATION_ERROR |
+| Oversized response | WOO_RESPONSE_TOO_LARGE |
+
+SDK ToolError exposes a sanitized code/message with isError=true, not a success object containing an error. Its high-level error result has no normal structured success payload. SDK handles malformed protocol requests. Never forward raw upstream errors, Authorization, bodies or customer details. Log only safe operation/correlation/duration/outcome data; gateway audit persistence remains elsewhere. [SDK errors](https://py.sdk.modelcontextprotocol.io/servers/handling-errors/).
+
+Starting configurable budgets: connect 2s; read/write 5s each; pool acquisition 1s; absolute REST request 8s; whole tool 20s including prerequisite reads; future gateway 25s. No automatic REST retry, including reads, initially. A lost write response, cancellation or 5xx may follow a committed mutation: report write_outcome=unknown and retry_safe=false rather than claim rollback. No automatic ambiguous-write retry at any layer.
+
+Tests later cover strict validation/normalization/privacy, Decimal/timezone boundaries/status checks, mock exact HTTP methods/paths/signatures/origins/redirects/TLS/errors, single-write counts and duplicate/stale-state cases. Protocol tests verify exactly five tools, schemas and error flags with modern/legacy clients. Runtime acceptance follows real credential preparation and one authenticated read, then discovery/list product 11/list/get order 12, a separately authorized new MCP product and controlled status update. No live acceptance ran in Stage 4.2.
+
+### Proposed package and Kubernetes boundaries
+
+Future apps/woo-mcp has pyproject.toml plus exact dependency lock; src/woo_mcp/server.py (SDK/lifespan/health), config.py (origins/Secret paths/settings), woocommerce.py (pooled client/signing/deadlines), models.py (schemas/DTOs), errors.py, tools/products.py and tools/orders.py, package initializers and focused tests. Service authentication is added only at gateway integration. No Python package/scaffolding is authorized by Stage 4.2.
+
+Future one-replica Deployment/one worker and ClusterIP urumi-woo-mcp in urumi, port 8000 -> named http port; internal /mcp only, no public route or PVC. Read-only scoped Secret files; no database/admin/salt mounts or service-account API token. Starting CPU request/limit 50m/500m and memory 128Mi/256Mi are hypotheses to measure under the existing host-memory gate, not proof of full-stack capacity. Extend the same application chart/local-production values later, without changing the store budgets to fit.
+
+Proposed startup proves initialization/config/credential loading; liveness tests local process health; readiness proves SDK/client initialization and ability to accept requests. Store reachability is deliberately checked by tool calls, not every readiness probe: discovery remains available and a reachable adapter can report a Woo dependency error. "MCP connected" does not prove the store is operational. Origin validation remains enabled; there is no browser CORS use case. ClusterIP reachability alone is not gateway-only enforcement.
+
 ## Open and provisional decisions
 
 - Local Docker/k3d operational validation and the fundamentals lab are complete. Vite and actual production-like k3s deployment remain future work. React, Kubernetes and Helm are assignment constraints; Python/FastAPI, SDK, PostgreSQL, MariaDB and controller boundaries are project choices. Store versions are selected above; runtime validation and application package pinning remain pending.
-- Validate SDK/protocol versions, gateway/client interoperability, connection/session lifecycle, catalog notifications/refresh, tool-name limits, timeout defaults, and health observation in a later prototype.
+- Stage 4 pins the Woo SDK/protocol and defines its contracts above. Transitive/signer pins, actual modern/legacy interoperability, canonical HTTP OAuth connectivity, date boundaries and budgets still need validation. Gateway catalog refresh, client behavior and health observation remain future work.
 - Specify authentication algorithms/formats, session/cookie/CSRF and invitation details, role representation, initial admin/WooCommerce registration, runtime Secret management, audit failure/denial/redaction/retention contracts, and schema constraints before affected implementation.
-- Select the LLM/provider, chat-loop integration and response transport, exact WooCommerce REST/tool contracts, auxiliary tool schemas, and final interactive client. Define revenue demo data semantics and user A/B roles.
+- Select the LLM/provider, chat-loop integration/response transport, auxiliary tool schemas and final interactive client. Define revenue-demo semantics and user A/B roles. Woo REST/tool contracts are accepted above but not implemented.
 - Implement and validate the accepted store contracts only in a separately authorized step. Confirm initial store settings, filesystem permissions, safe Job reruns, retained-claim reuse, probes, checkout and measured memory. Production TLS provisioning and non-store deployment details remain open. NetworkPolicy is deferred, not a first-core prerequisite.
 
-No bonus or stand-out item is selected. Stage 3.4 authorizes the local Secret helper and documentation with offline validation only; no Kubernetes changes, namespace/Secret creation, Helm, deployment, hosts edits, staging or commit. Stop for review. [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from historical milestones.
+No bonus or stand-out item is selected. Current Stage 4.2 authorizes accepted-design documentation and the offline REST Secret helper only: no real credentials, cluster start/access, Kubernetes/Helm changes, Python MCP implementation, staging or commit. Earlier implementation sections preserve milestone history; [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from that history.

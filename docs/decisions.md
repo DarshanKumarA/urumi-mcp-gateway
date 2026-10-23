@@ -229,6 +229,43 @@ DEC-018–DEC-021 were accepted on 2026-10-12, including the corrected RAM concl
 - **Validation:** Shell/PHP syntax, 95 isolated migration assertions, both Helm lints/renders, v1.35.5 schemas and relationships passed. Exactly eight objects per environment, no Secret/Namespace. Runtime migration/anonymous content remain pending; Stage 3.7 and persistence tests are not complete. Full lifecycle: [architecture](architecture.md#stage-37c-public-live-visibility-and-explicit-v2-to-v3-migration).
 - **Requirements:** REQ-STORE-01, REQ-K8S-06, REQ-DEL-03/04; DEMO-01/02. Exact option settings implement the user-approved demo contract; they do not alter assignment text or select optional hardening.
 
+## Accepted Stage 4 WooCommerce MCP decisions
+
+Accepted by the user for recording on 2026-10-23. These choices refine Architecture v1; only the offline REST Secret helper is implemented in Stage 4.2. No MCP/runtime/security requirement is marked complete. Detailed contracts are in [architecture](architecture.md#accepted-woocommerce-mcp-design).
+
+### DEC-026 Current SDK protocol and narrow adapter
+
+- **Constraint/problem:** REQ-WOO-01/02 require our own Streamable HTTP MCP server; older session-based tutorials must not dictate the current design.
+- **Decision:** Official mcp==2.3.0, Python 3.13, protocol 2026-07-28, SDK MCPServer/Streamable HTTP at /mcp; exactly five initial tools. Modern requests are stateless; stateless_http=True also removes retained legacy sessions. No handwritten JSON-RPC or separately installed Woo MCP server/plugin.
+- **Responsibility:** Woo MCP owns tool schemas/implementations, Woo REST client/authentication, bounded calls, normalized responses and safe errors. Gateway identity/roles/keys/sessions/audit/chat/routing stay outside it. No local database or queue.
+- **Alternatives/trade-offs:** Handwritten transport duplicates protocol work; old stateful defaults add unnecessary lifecycle complexity. Stateless legacy mode gives up callbacks that these tools do not need. SDK release behavior is documented, not a completed interoperability test.
+- **Validation:** Pin resolved transitive/signer dependencies later; test modern and legacy discovery/calls, output/error schemas and actual write counts. No Python dependency files/server exist yet. [Release evidence](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.3.0), [SDK compatibility](https://py.sdk.modelcontextprotocol.io/run/legacy-clients/).
+
+### DEC-027 Internal REST transport with canonical OAuth signing
+
+- **Constraint/problem:** REQ-WOO-09 needs a documented store interface; local Service HTTP must use Woo's documented authentication. Windows hosts-file resolution cannot be assumed inside Pods.
+- **Decision:** Connect to http://urumi-wordpress.urumi.svc.cluster.local; sign against http://store.urumi.test:8080; use /wp-json/wc/v3 and Host store.urumi.test:8080. OAuth 1.0a HMAC-SHA256 in Authorization via an established pinned library; redirects disabled. Future verified HTTPS permits Basic authentication. No query-string credentials or manual signing cryptography.
+- **Rationale/evidence:** Pinned Woo 11.2.1 derives its OAuth base URI from the configured home URL. Separate connection/signing origins preserve Service traffic without changing WordPress's canonical URL. [Woo authentication source](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/class-wc-rest-authentication.php).
+- **Alternatives/trade-offs:** Public-host traffic introduces cluster DNS/Ingress dependencies; signing only Service DNS can mismatch Woo verification. HTTP remains plaintext and JSON bodies are not signed by this scheme. Public Ingress TLS does not encrypt a separate HTTP Service hop.
+- **Gate:** Mapping is unproven. Stage 4.3 must validate one authenticated read, header forwarding and no redirect before full MCP implementation. Failures stop for review, not credential-in-URL workarounds. REQ-SEC-01/GW-05 boundaries remain.
+
+### DEC-028 Five bounded tools with minimal responses
+
+- **Constraint/problem:** REQ-WOO-03 through REQ-WOO-07 require product/order operations; DEMO-04 needs store-local "today"; shared credentials must not imply unrestricted object disclosure.
+- **Decision:** Accept list_products/create_product/list_orders/get_order/update_order_status and the exact [schemas/DTOs](architecture.md#five-initial-tool-contracts). Pagination defaults to 20, maximum 50. Use Decimal strings, explicit store-timezone date windows, simple-product creation, SKU conflict refusal and a required expected_status guard for updates. Six writable statuses exclude refunds/trash/drafts; no separate fulfillment state machine.
+- **Privacy/failure:** Allowlist operational fields; omit customer contact/address/note/order-key/metadata. Safe SDK tool errors, bounded requests, no automatic REST retries and no ambiguous-write replay. Unknown write outcome is not rollback. No silent oversized-result truncation.
+- **Trade-offs:** Optional SKU permits name/price-only creation but weakens ambiguous-write recovery. Read-before-write is not atomic; status changes can invoke Woo hooks. Adapter-local readiness keeps discovery available during store failures but does not prove store health.
+- **Validation:** Unit/date-boundary, mocked REST/auth/errors/single-write, protocol and later live store tests; exact response-size limits remain implementation-time choices. Accepted design is not implementation evidence.
+
+### DEC-029 Dedicated REST Secret helper and deferred upstream authentication
+
+- **Constraint/problem:** REQ-SEC-01/GW-05 require workload-scoped server credentials. Existing store helper owns four different Secrets; REST keys must be issued by WooCommerce, not invented by a script.
+- **Decision:** Add only scripts/setup-woocommerce-rest-secret.ps1; preserve setup-store-secrets.ps1. Fixed k3d-urumi-local/urumi/urumi-woocommerce-rest with exact consumer-key/consumer-secret keys and Opaque type. Default Validate is offline; future Check projects identity/type/key names; future Create preserves valid objects or uses two masked prompts and memory-only stdin to create an absent object.
+- **Failure/security:** No credential args/env/files/output, no raw child/exception output, no namespace creation, no apply/patch/replace/delete/retry. Conflicting objects stop. Check validates structure only, not credential contents or authentication. Byte/BSTR clearing does not guarantee managed-string erasure. Kubernetes audit/admission and trusted-host logging are outside the helper's guarantee.
+- **Ownership:** Only Woo MCP consumes REST credentials. Initial local issuance can use the existing administrator with acknowledged broad authority; least-privilege service-user work remains separately scoped. No real issuance or Secret creation occurs in Stage 4.2.
+- **Explicit deferral:** Preserve A10's gateway-only caller requirement, but defer urumi-woo-mcp-auth and service-token middleware until gateway integration per the user's Stage 4.2 instruction. Internal-only deployment/no Ingress remains required; ClusterIP alone cannot satisfy caller isolation. Do not declare REQ-WOO-08 verified before authentication and external non-exposure tests.
+- **Validation:** Offline parser/manifest/workflow fixtures only in this milestone; real prompts, kubectl projection/submission and authenticated connectivity remain Stage 4.3 operational evidence. This is not the optional gateway OAuth feature or a selection of optional hardening.
+
 ## Recording future decisions
 
 Use a new stable DEC ID with status/date, problem, source constraints and requirement IDs, choice, alternatives, rationale, consequences, and validation needs. Explicitly supersede old entries rather than rewriting history. Record chronological evolution in [project-journey.md](project-journey.md) and current evidence in [progress.md](progress.md). Unvalidated details remain open even when their surrounding architecture is accepted.
