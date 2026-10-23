@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-23 — Stage 4.3 PASS: Secret contract, Service-DNS transport and canonical-origin OAuth authenticated read.** Stage 4.2 was committed as 95a2387 before this implementation. One in-cluster REST lookup returned existing product 11 with HTTP 200, no redirect and no business write. The diagnostic Pod/ConfigMap were removed; release urumi remains revision 3/deployed. Only the reusable REST connectivity slice exists, not MCP tools/server or gateway enforcement. Local Stage 3 remains signed off; full-stack capacity remains unproven.
+**2026-10-23 — Stage 4.4: MCP scaffold and list_products pass offline/protocol acceptance.** Stage 4.3 was approved and committed as 01e4b77. The official SDK now exposes exactly one typed read-only tool at /mcp; current and legacy HTTP protocol tests use mocked Woo REST. No k3d/Docker/cluster operation, real Secret access or live store request occurred. The other four tools, container/Kubernetes hosting and gateway caller authentication remain incomplete. Historical Stage 4.3 live connectivity evidence remains below; no full Woo MCP requirement completion is claimed.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,9 +18,41 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-- Record Stage 4.3 actual acceptance and its minimal client/tests under apps/woo-mcp; no MCP implementation or write logic.
-- Keep accepted architecture/decisions unchanged: runtime evidence supports the proposed origin mapping. Preserve historical Stage 4.2 unproven status below as history, superseded by this acceptance.
-- Update progress/journey only; no chart, Secret helper, store configuration, product/order changes, staging or commit. Gateway-to-upstream service authentication remains deferred.
+- Record Stage 4.4 SDK/lifecycle/strict schema integration and deterministic offline acceptance.
+- Preserve Stage 4.3 signing/transport and diagnostic; extend it with one paginated product read and normalized DTOs. No writes or other tools.
+- Governance changes are limited to progress/journey. No architecture choice, chart/helper/store change, staging or commit. Gateway caller authentication remains deferred.
+
+## Stage 4.4 first MCP tool and offline protocol acceptance
+
+Started from clean main at 01e4b77. The [package](../apps/woo-mcp/README.md) adds models.py, server.py and product/protocol tests; updates metadata, the dependency lock, configured currency, shared REST code and package documentation. No new service framework, Dockerfile, deployment resource or runtime diagnostic is introduced.
+
+Reuse: the established origins, credential-file reader, OAuthLib HMAC-SHA256 header signing, Host, redirect rejection, deadlines, response-byte bound and no-retry HTTP behavior remain. The original single-product diagnostic and 13 tests still pass. Its GET body was extracted into a shared method for both diagnostic and list_products; the OAuth implementation was not replaced. Inspection also found the explicit transport needed its own connection-limit configuration, so the intended 4 connections/2 keepalive limits now reach that transport when the lifespan holds it persistently.
+
+Direct pins added: mcp==2.3.0 and pydantic==2.14.1; httpx==0.28.1/oauthlib==4.0.0 stay unchanged. Test extra pins httpx2==2.16.0, already required by the official SDK, for its ASGI HTTP client. The SDK's HTTPX2 transport and Woo's proven HTTPX transport coexist. All eight Stage 4.3 versions remain; the new hash lock contains 33 packages (pywin32 Windows-only), including SDK-required Starlette/Uvicorn/crypto/telemetry libraries, not application auth/audit implementations. No third-party FastMCP or FastAPI. Initial pip resolution with hash-bearing constraints failed closed; resolution then used version-only constraints in a temporary file and the resulting full lock was independently hash-checked.
+
+MCPServer from mcp.server owns the server and Streamable HTTP app. streamable_http_app uses /mcp, JSON responses and stateless_http=True; subscriptions disabled. Modern 2026-07-28 is inherently stateless; the setting makes the legacy path sessionless too. SDK lifespan opens one WooClient at startup and closes it on shutdown, without network/credential work on import. Tests inject only a mock HTTP transport/dummy credential factory. Default SDK Host/Origin protections remain enabled; future Kubernetes host allowlists still need configuration.
+
+Strict flat list_products input: page integer >=1/default 1, per_page integer 1-50/default 20, optional trimmed nonblank search 1-100 or sku 1-64 (mutually exclusive), optional publish/draft/pending/private status. Extra fields and numeric coercion (including bool) fail. No arbitrary REST URL/parameter passthrough. Pydantic Product/Collection return annotations expose and validate structured output. Products include exactly id/name/sku/type/price/regular_price/currency/status/stock_status/permalink; collection includes items/page/per_page/total/total_pages/has_more/currency. Currency comes from the configured INR store contract, not another REST lookup; empty price strings for unpriced drafts remain valid.
+
+One products GET requests allowlisted fields and filters only. Each pagination header must occur exactly once and contain a bounded nonnegative integer; totals/page count/item count must agree. No silent all-page fetch, inferred count or retry. Inconsistent concurrent-pagination results fail rather than claim a snapshot. Normalization drops other fields and rejects malformed products/URLs/duplicates. The shared transport preserves bounded/sanitized HTTP errors; ToolError is used for operational failures, not successful error-shaped output.
+
+Implementation finding: the SDK's default function argument model ignores unknown fields and pre-parses JSON-looking strings. The pinned Tool/FuncMetadata integration binds ListProductsInput, publishes its strict schema and removes rejected names/values from validation exceptions. SDK validation expects Pydantic ValidationError at that boundary and converts it into an is_error tool result; raising ToolError there initially produced the generic crash message. The test caught this and the adapter now raises sanitized ValidationError there, with ToolError in the actual tool handler. No JSON-RPC parsing was added. This metadata hook is SDK-version-coupled and must be regression-tested on upgrades.
+
+| Stage 4.4 validation | Result / boundary |
+| --- | --- |
+| Full suite | 31 unittest tests passed: 13 preserved connectivity, 13 input/client and 5 protocol tests; parameterized cases cover additional failures |
+| Modern protocol | Official Client auto discovery and explicit 2026-07-28 over streamable_http_client + HTTPX2 ASGITransport at /mcp passed |
+| Legacy protocol | Official Client mode=legacy negotiated 2025-11-25 and passed; no custom legacy logic |
+| Discovery/output | Exactly list_products; strict schema/defaults/bounds/read-only annotation; typed output schema and normalized structured result |
+| Lifecycle/session | Two calls reuse one client; lifespan closes it; no Mcp-Session-Id request/response in modern or configured legacy mode |
+| Validation/security | Unknown/invalid arguments are safe MCP tool errors, no REST request; auth failure is is_error with no structured success; fixtures/raw bodies/credentials absent from results |
+| REST failure coverage | Connection, timeout/deadline, 401/403/404/other 4xx/5xx, malformed JSON/DTO/pagination, oversized body and redirect refusal; no retry |
+| Dependencies | pip check passed; 33 Windows wheels freshly hash-verified with dependency resolution; 32 Linux glibc x86_64 wheels hash-verified/available, not executed |
+| Repository checks | Python compilation, credential/contact scan, documentation links/anchors/tables and git diff --check passed; no established formatter/linter configuration, none added |
+
+The first HTTP protocol run correctly rejected a portless loopback Host with 421. The test URL was corrected to explicit port 8000; protections were not disabled. Protocol requests traversed the SDK's actual ASGI HTTP path in-process, not a listening TCP server/container. All Woo business responses were mocked. No claim is made about live pagination, Linux runtime, deployed MCP, gateway-only access or complete Woo requirements. No cluster was started or inspected and no Stage 4.3 read was repeated.
+
+Proposed Stage 4.5 boundary: add only get_order with the approved operational/PII-minimized DTO and ID validation, using the shared REST client and deterministic unit/protocol tests. Keep writes, list_orders timezone work, container/Kubernetes hosting and gateway authentication in separately reviewed steps. Stop for review; nothing staged or committed.
 
 ## Stage 4.3 authenticated REST connectivity acceptance
 

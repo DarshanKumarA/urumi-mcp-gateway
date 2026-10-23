@@ -1,4 +1,4 @@
-"""One-read REST client foundation. No MCP, writes, redirects or retries."""
+"""Shared REST reads. No writes, redirects or retries."""
 
 import asyncio
 import json
@@ -7,9 +7,11 @@ from decimal import Decimal, InvalidOperation
 from urllib.parse import urlencode
 
 import httpx
+from pydantic import ValidationError
 from oauthlib.oauth1 import Client, SIGNATURE_HMAC_SHA256, SIGNATURE_TYPE_AUTH_HEADER
 
 from .config import Config, Credentials
+from .models import ListProductsInput, Product, ProductCollection
 
 PATH = "/wp-json/wc/v3/products"
 FIELDS = "id,name,sku,price,status,stock_status"
@@ -17,7 +19,7 @@ MAX_BYTES = 65536
 
 
 class WooError(Exception):
-    """Fixed safe code only: never retain upstream messages or request objects."""
+    """Fixed safe code only; never expose upstream messages or request objects."""
 
     def __init__(self, code, status=None):
         super().__init__(code)
@@ -56,7 +58,8 @@ class WooClient:
                               signature_method=SIGNATURE_HMAC_SHA256,
                               signature_type=SIGNATURE_TYPE_AUTH_HEADER)
         self._http = httpx.AsyncClient(
-            transport=transport or httpx.AsyncHTTPTransport(retries=0),
+            transport=transport or httpx.AsyncHTTPTransport(
+                retries=0, limits=httpx.Limits(max_connections=4, max_keepalive_connections=2)),
             follow_redirects=False, trust_env=False,
             timeout=httpx.Timeout(connect=2, read=5, write=5, pool=1),
             limits=httpx.Limits(max_connections=4, max_keepalive_connections=2))
@@ -69,6 +72,40 @@ class WooClient:
 
     async def lookup_product(self, sku):
         canonical, connection = product_urls(self.config, sku)
+        data, _ = await self._get(canonical, connection)
+        return normalize_product(data, sku)
+
+    async def list_products(self, query: ListProductsInput) -> ProductCollection:
+        fields = [name for name in Product.model_fields if name != "currency"]
+        params = query.model_dump(exclude_none=True)
+        params["_fields"] = ",".join(fields)
+        suffix = PATH + "?" + urlencode(params)
+        data, headers = await self._get(self.config.canonical_origin + suffix,
+                                        self.config.connection_origin + suffix)
+        try:
+            counts = []
+            for header in ("X-WP-Total", "X-WP-TotalPages"):
+                values = headers.get_list(header)
+                if len(values) != 1 or not re.fullmatch(r"[0-9]{1,10}", values[0]):
+                    raise ValueError()
+                counts.append(int(values[0]))
+            total, pages = counts
+            if pages != (total + query.per_page - 1) // query.per_page:
+                raise ValueError()
+            expected_count = min(query.per_page, max(0, total - (query.page - 1) * query.per_page))
+            if not isinstance(data, list) or len(data) != expected_count:
+                raise ValueError()
+            items = [Product.model_validate({**{key: item[key] for key in fields},
+                                             "currency": self.config.currency}) for item in data]
+            if len({item.id for item in items}) != len(items):
+                raise ValueError()
+            return ProductCollection(items=items, page=query.page, per_page=query.per_page,
+                                     total=total, total_pages=pages, has_more=query.page < pages,
+                                     currency=self.config.currency)
+        except (ValueError, TypeError, KeyError, ValidationError):
+            raise WooError("WOO_INVALID_RESPONSE") from None
+
+    async def _get(self, canonical, connection):
         try:
             async with asyncio.timeout(self.config.deadline_seconds):
                 # OAuthLib owns all cryptography. Sign the Woo home origin, NOT Service DNS.
@@ -90,10 +127,10 @@ class WooClient:
                             raise WooError("WOO_RESPONSE_TOO_LARGE", status)
                         content.extend(part)
                     try:
-                        product = normalize_product(json.loads(content), sku)
+                        data = json.loads(content)
                     except (ValueError, TypeError):
                         raise WooError("WOO_INVALID_RESPONSE", status) from None
-                    return product
+                    return data, response.headers
         except (httpx.TimeoutException, TimeoutError):
             raise WooError("WOO_TIMEOUT") from None
         except httpx.RequestError:

@@ -11,6 +11,7 @@ class Config:
     canonical_origin: str = "http://store.urumi.test:8080"
     secret_directory: Path = Path("/run/secrets/woocommerce-rest")
     deadline_seconds: float = 8.0
+    currency: str = "INR"
 
     def __post_init__(self):
         for origin in (self.connection_origin, self.canonical_origin):
@@ -20,6 +21,9 @@ class Config:
                 raise ValueError("Expected a plain HTTP origin without path or credentials.")
         if not 0 < self.deadline_seconds <= 8:
             raise ValueError("REST deadline must be positive and at most eight seconds.")
+        if (len(self.currency) != 3 or not self.currency.isascii()
+                or not self.currency.isalpha() or not self.currency.isupper()):
+            raise ValueError("Expected a three-letter currency code.")
 
     @property
     def host(self):

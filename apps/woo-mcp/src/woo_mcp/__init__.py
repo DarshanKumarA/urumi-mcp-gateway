@@ -1,1 +1,1 @@
-"""Internal WooCommerce adapter; REST connectivity only at this milestone."""
+"""Internal WooCommerce adapter; one read-only MCP tool at this milestone."""
