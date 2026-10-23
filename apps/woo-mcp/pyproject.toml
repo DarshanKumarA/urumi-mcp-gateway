@@ -1,9 +1,9 @@
 [project]
 name = "urumi-woo-mcp"
 version = "0.0.1"
-description = "Internal WooCommerce MCP adapter with one read-only product tool"
+description = "Internal WooCommerce MCP adapter with three read-only tools"
 requires-python = ">=3.13,<3.14"
-dependencies = ["httpx==0.28.1", "oauthlib==4.0.0", "mcp==2.3.0", "pydantic==2.14.1"]
+dependencies = ["httpx==0.28.1", "oauthlib==4.0.0", "mcp==2.3.0", "pydantic==2.14.1", "tzdata==2026.5"]
 
 [project.optional-dependencies]
 test = ["httpx2==2.16.0"]

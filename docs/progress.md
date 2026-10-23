@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-23 — Stage 4.4: MCP scaffold and list_products pass offline/protocol acceptance.** Stage 4.3 was approved and committed as 01e4b77. The official SDK now exposes exactly one typed read-only tool at /mcp; current and legacy HTTP protocol tests use mocked Woo REST. No k3d/Docker/cluster operation, real Secret access or live store request occurred. The other four tools, container/Kubernetes hosting and gateway caller authentication remain incomplete. Historical Stage 4.3 live connectivity evidence remains below; no full Woo MCP requirement completion is claimed.
+**2026-10-23 - Stage 4.5: three read-only MCP tools pass offline acceptance.** Stage 4.4 was approved/committed as 68b2840. get_order and list_orders now join list_products using the existing pooled REST transport and SDK. Store dates use Asia/Kolkata; order DTOs omit customer/contact/address fields. No live Woo request, credential access, Kubernetes/Docker/Helm operation or business mutation occurred. Write tools, live order acceptance, Kubernetes hosting and gateway caller authentication remain incomplete.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,9 +18,27 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-- Record Stage 4.4 SDK/lifecycle/strict schema integration and deterministic offline acceptance.
-- Preserve Stage 4.3 signing/transport and diagnostic; extend it with one paginated product read and normalized DTOs. No writes or other tools.
-- Governance changes are limited to progress/journey. No architecture choice, chart/helper/store change, staging or commit. Gateway caller authentication remains deferred.
+Record Stage 4.5 source/tests and offline evidence in package README, progress and journey. Architecture/decisions remain unchanged: source inspection supports the accepted strict-second date mapping. The user's current authorization expands the earlier get_order-only proposal to both order reads. No staging/commit or runtime changes.
+
+## Stage 4.5 read-only order tools
+
+Started clean on main at 68b2840. Added orders.py for UTC window resolution/nested normalization and test_orders.py; extended models/config/client/server and official-client tests. Generalized the pinned SDK strict argument adapter across three tools and extracted shared pagination validation without replacing OAuth, lifecycle or transport. Updated package descriptions and added only tzdata==2026.5 to the exact hash lock (34 packages); the first Windows zoneinfo check failed because IANA data was absent. The first-party timezone package resolves that actual dependency. No other existing pin changed.
+
+Contracts and source links are in [the package README](../apps/woo-mcp/README.md#order-tools-and-store-dates). get_order requires a strict positive ID, GETs one order and returns only operational detail. list_orders accepts strict bounded pagination, seven standard statuses and today/explicit date, returning summaries and pagination/window metadata. _fields reduces upstream disclosure; nested allowlists independently omit billing/shipping address/customer/contact/note/key/metadata. Woo JSON price numbers use Decimal; GMT creation times become offset-bearing UTC timestamps. No direct SQL or write path.
+
+Date semantics preserve the accepted design: resolve today once in configured Asia/Kolkata; UTC start-inclusive/end-exclusive; dates_are_gmt=true; after=start minus one second; before=end. The pinned 11.2.1 REST/HPOS source and WordPress date-query semantics support this strict-second mapping. Fixtures include just before/start/last second/next midnight, Kolkata midnight, leap day/year rollover and explicit date reuse. Returned out-of-window rows fail instead of silently altering counts. This does not prove live active-datastore boundary behavior.
+
+| Validation | Result / boundary |
+| --- | --- |
+| Full offline suite | 59 tests passed: prior 31 retained (catalog assertion now three), 25 order tests, 3 added protocol tests; parameterized cases cover additional statuses/failures |
+| Official MCP clients | Auto/explicit 2026-07-28 and legacy 2025-11-25 discover exactly three read-only tools and return typed order results; strict argument errors remain sanitized |
+| Privacy/errors | Synthetic customer-shaped payloads absent from normalized structured/text output and errors; 404 maps to NOT_FOUND; transport/auth/forbidden/timeout/rejection/5xx/redirect/size/malformed checks pass |
+| Dependencies/static | Compilation, pip check, direct/installed/hash-lock consistency, credential/contact scan, local documentation links/anchors/tables and git diff --check passed |
+| Runtime boundary | No real Woo order requests, listening TCP server acceptance, Linux execution or Kubernetes hosting tested |
+
+Review tightened rejection of malformed line/shipping containers and unrepresentable UTC date windows. No test failure required a design change. No configured formatter/linter exists, none added. Pagination remains non-snapshot; whole-body cap may reject large orders/pages. Allowed names are untrusted text, not a universal PII-redaction guarantee. Custom order statuses/fractional quantities remain outside this initial contract. SDK metadata integration remains coupled to MCP 2.3.0; product currency remains configured INR, order currency comes from Woo. Both write tools remain absent; full Woo MCP requirements are not complete.
+
+Proposed Stage 4.6: separately review and implement create_product only, with strict inputs, SKU conflict handling, one write/no automatic retry, sanitized ambiguous-write outcomes and offline/protocol tests. No live write authorized by this proposal. Stop for review; nothing staged or committed.
 
 ## Stage 4.4 first MCP tool and offline protocol acceptance
 

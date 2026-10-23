@@ -11,7 +11,9 @@ from pydantic import ValidationError
 from oauthlib.oauth1 import Client, SIGNATURE_HMAC_SHA256, SIGNATURE_TYPE_AUTH_HEADER
 
 from .config import Config, Credentials
-from .models import ListProductsInput, Product, ProductCollection
+from .models import (GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
+                     OrderDetail, Product, ProductCollection)
+from .orders import DETAIL_FIELDS, SUMMARY_FIELDS, date_parameters, normalize_order, resolve_date_window
 
 PATH = "/wp-json/wc/v3/products"
 FIELDS = "id,name,sku,price,status,stock_status"
@@ -51,6 +53,22 @@ def normalize_product(data, sku):
     return {key: p[key] for key in FIELDS.split(",")}
 
 
+def pagination(data, headers, query):
+    counts = []
+    for header in ("X-WP-Total", "X-WP-TotalPages"):
+        values = headers.get_list(header)
+        if len(values) != 1 or not re.fullmatch(r"[0-9]{1,10}", values[0]):
+            raise ValueError()
+        counts.append(int(values[0]))
+    total, pages = counts
+    if pages != (total + query.per_page - 1) // query.per_page:
+        raise ValueError()
+    expected_count = min(query.per_page, max(0, total - (query.page - 1) * query.per_page))
+    if not isinstance(data, list) or len(data) != expected_count:
+        raise ValueError()
+    return total, pages
+
+
 class WooClient:
     def __init__(self, config: Config, credentials: Credentials, *, transport=None):
         self.config = config
@@ -83,18 +101,7 @@ class WooClient:
         data, headers = await self._get(self.config.canonical_origin + suffix,
                                         self.config.connection_origin + suffix)
         try:
-            counts = []
-            for header in ("X-WP-Total", "X-WP-TotalPages"):
-                values = headers.get_list(header)
-                if len(values) != 1 or not re.fullmatch(r"[0-9]{1,10}", values[0]):
-                    raise ValueError()
-                counts.append(int(values[0]))
-            total, pages = counts
-            if pages != (total + query.per_page - 1) // query.per_page:
-                raise ValueError()
-            expected_count = min(query.per_page, max(0, total - (query.page - 1) * query.per_page))
-            if not isinstance(data, list) or len(data) != expected_count:
-                raise ValueError()
+            total, pages = pagination(data, headers, query)
             items = [Product.model_validate({**{key: item[key] for key in fields},
                                              "currency": self.config.currency}) for item in data]
             if len({item.id for item in items}) != len(items):
@@ -103,6 +110,44 @@ class WooClient:
                                      total=total, total_pages=pages, has_more=query.page < pages,
                                      currency=self.config.currency)
         except (ValueError, TypeError, KeyError, ValidationError):
+            raise WooError("WOO_INVALID_RESPONSE") from None
+
+    async def get_order(self, query: GetOrderInput) -> OrderDetail:
+        suffix = f"/wp-json/wc/v3/orders/{query.order_id}?" + urlencode({"_fields": DETAIL_FIELDS})
+        data, _ = await self._get(self.config.canonical_origin + suffix,
+                                  self.config.connection_origin + suffix)
+        try:
+            result = normalize_order(data, detail=True)
+            if result.id != query.order_id:
+                raise ValueError()
+            return result
+        except (ValueError, TypeError, KeyError, OverflowError):
+            raise WooError("WOO_INVALID_RESPONSE") from None
+
+    async def list_orders(self, query: ListOrdersInput) -> OrderCollection:
+        try:
+            window = resolve_date_window(query.date, self.config.store_timezone)
+        except (ValueError, OverflowError):
+            raise WooError("VALIDATION_ERROR") from None
+        params = query.model_dump(exclude_none=True, exclude={"date"})
+        params["_fields"] = SUMMARY_FIELDS
+        if window is not None:
+            params.update(date_parameters(window))
+        suffix = "/wp-json/wc/v3/orders?" + urlencode(params)
+        data, headers = await self._get(self.config.canonical_origin + suffix,
+                                        self.config.connection_origin + suffix)
+        try:
+            total, pages = pagination(data, headers, query)
+            items = [normalize_order(item) for item in data]
+            if len({item.id for item in items}) != len(items):
+                raise ValueError()
+            if window and any(not window.start_inclusive <= item.created_at < window.end_exclusive
+                              for item in items):
+                raise ValueError()
+            return OrderCollection(items=items, page=query.page, per_page=query.per_page,
+                                   total=total, total_pages=pages, has_more=query.page < pages,
+                                   date_window=window)
+        except (ValueError, TypeError, KeyError, OverflowError):
             raise WooError("WOO_INVALID_RESPONSE") from None
 
     async def _get(self, canonical, connection):
@@ -127,7 +172,7 @@ class WooClient:
                             raise WooError("WOO_RESPONSE_TOO_LARGE", status)
                         content.extend(part)
                     try:
-                        data = json.loads(content)
+                        data = json.loads(content, parse_float=Decimal)
                     except (ValueError, TypeError):
                         raise WooError("WOO_INVALID_RESPONSE", status) from None
                     return data, response.headers

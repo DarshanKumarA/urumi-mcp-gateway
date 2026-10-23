@@ -1,1 +1,1 @@
-"""Internal WooCommerce adapter; one read-only MCP tool at this milestone."""
+"""Internal WooCommerce adapter; three read-only MCP tools at this milestone."""

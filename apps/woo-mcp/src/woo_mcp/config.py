@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 @dataclass(frozen=True)
@@ -12,8 +13,13 @@ class Config:
     secret_directory: Path = Path("/run/secrets/woocommerce-rest")
     deadline_seconds: float = 8.0
     currency: str = "INR"
+    store_timezone: str = "Asia/Kolkata"
 
     def __post_init__(self):
+        try:
+            ZoneInfo(self.store_timezone)
+        except (ZoneInfoNotFoundError, ValueError, TypeError):
+            raise ValueError("Invalid store timezone configuration.") from None
         for origin in (self.connection_origin, self.canonical_origin):
             u = urlsplit(origin)
             if (u.scheme != "http" or not u.hostname or u.username or u.password

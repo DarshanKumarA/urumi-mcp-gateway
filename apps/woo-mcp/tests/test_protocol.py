@@ -13,6 +13,7 @@ from woo_mcp.config import Config
 from woo_mcp.server import create_server
 from woo_mcp.woocommerce import WooClient
 from test_products import CREDS, PRODUCT, HEADERS
+from test_orders import ORDER, PRIVATE, assert_private_absent
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
@@ -53,7 +54,9 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def check_protocol(self, mode):
         async with self.connection(mode) as client:
             tools = (await client.list_tools()).tools
-            self.assertEqual([tool.name for tool in tools], ["list_products"])
+            self.assertEqual([tool.name for tool in tools], ["list_products", "get_order", "list_orders"])
+            self.assertTrue(all(t.annotations.read_only_hint for t in tools))
+            self.assertTrue(all(t.input_schema["additionalProperties"] is False for t in tools))
             schema = tools[0].input_schema
             self.assertFalse(schema["additionalProperties"])
             self.assertEqual(schema["properties"]["page"]["default"], 1)
@@ -106,3 +109,60 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("WOO_AUTH_FAILED", result.content[0].text)
             self.assertNotIn("PRIVATE-RESPONSE", result.model_dump_json())
             self.assertNotIn(CREDS.consumer_key, result.model_dump_json())
+
+    async def test_order_protocols(self):
+        for mode in ("auto", "2026-07-28", "legacy"):
+            def handler(request):
+                return httpx.Response(200, json=ORDER if request.url.path.endswith("/12") else [ORDER],
+                                      headers=HEADERS)
+            async with self.connection(mode, handler) as client:
+                tools = {t.name: t for t in (await client.list_tools()).tools}
+                detail_schema = tools["get_order"].input_schema
+                self.assertEqual(detail_schema["required"], ["order_id"])
+                self.assertEqual(set(detail_schema["properties"]), {"order_id"})
+                self.assertEqual(detail_schema["properties"]["order_id"]["exclusiveMinimum"], 0)
+                listing = tools["list_orders"].input_schema
+                self.assertEqual(set(listing["properties"]), {"page", "per_page", "status", "date"})
+                self.assertEqual(listing["properties"]["page"]["default"], 1)
+                self.assertEqual(listing["properties"]["per_page"]["maximum"], 50)
+                self.assertEqual(set(tools["get_order"].output_schema["properties"]),
+                                 {"id", "status", "created_at", "currency", "total", "payment_method",
+                                  "line_items", "shipping_lines", "shipping_total", "tax_total"})
+                for name, args in (("get_order", {"order_id": 12}),
+                                   ("list_orders", {"date": "2026-10-21", "status": "processing"})):
+                    result = await client.call_tool(name, args)
+                    self.assertFalse(result.is_error)
+                    assert_private_absent(self, result.model_dump_json())
+                    if name == "get_order":
+                        self.assertEqual(result.structured_content["id"], 12)
+                        self.assertEqual(result.structured_content["line_items"][0]["product_id"], 11)
+                    else:
+                        self.assertEqual(result.structured_content["items"][0]["id"], 12)
+                        self.assertEqual(result.structured_content["date_window"]["date"], "2026-10-21")
+                        self.assertFalse(result.structured_content["has_more"])
+
+    async def test_order_invalid_arguments(self):
+        async with self.connection() as client:
+            cases = {"get_order": ({}, {"order_id": 0}, {"order_id": -1}, {"order_id": True},
+                                   {"order_id": "12"}, {"order_id": 12, "SYNTHETIC-PRIVATE": "secret"}),
+                     "list_orders": ({"page": True}, {"per_page": 51}, {"status": "SYNTHETIC-PRIVATE"},
+                                     {"date": "2026-02-30"}, {"date": "SYNTHETIC-PRIVATE"},
+                                     {"unknown": "SYNTHETIC-PRIVATE"})}
+            for name, arguments in cases.items():
+                for args in arguments:
+                    result = await client.call_tool(name, args)
+                    self.assertTrue(result.is_error)
+                    self.assertIsNone(result.structured_content)
+                    self.assertIn("VALIDATION_ERROR", result.content[0].text)
+                    assert_private_absent(self, result.model_dump_json())
+            self.assertEqual(self.rest_calls, [])
+
+    async def test_order_errors_are_sanitized(self):
+        for status, code in ((404, "NOT_FOUND"), (401, "WOO_AUTH_FAILED"), (200, "WOO_INVALID_RESPONSE")):
+            async with self.connection(handler=lambda r: httpx.Response(status, json=PRIVATE)) as client:
+                for name, args in (("get_order", {"order_id": 12}), ("list_orders", {})):
+                    result = await client.call_tool(name, args)
+                    self.assertTrue(result.is_error)
+                    self.assertIsNone(result.structured_content)
+                    self.assertIn(code, result.content[0].text)
+                    assert_private_absent(self, result.model_dump_json())

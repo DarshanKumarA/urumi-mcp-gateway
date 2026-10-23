@@ -1,8 +1,9 @@
-# WooCommerce MCP: first read-only tool
+# WooCommerce MCP: three read-only tools
 
-Stage 4.4 adds the official SDK ASGI server and exactly one tool, list_products.
+Stage 4.5 extends the official SDK ASGI server with get_order and list_orders,
+alongside list_products.
 Stage 4.3's credential loading, OAuth transport and acceptance command remain.
-There are no other tools, write methods, Dockerfile or Helm workload here.
+There are no write tools/methods, Dockerfile or Helm workload here.
 Runtime store execution requires separate authorization; offline tests use dummy
 credentials and mocked REST exclusively. Do not repeat the live diagnostic merely
 to test MCP. Gateway caller authentication and Kubernetes hosting remain future work.
@@ -17,7 +18,7 @@ URL before handing headers to HTTPX makes the two origins explicit. No manual
 cryptography or additional OAuth integration framework is needed. HTTPX's stable
 0.28.1 release is used rather than a 1.0 development release. The hash-locked
 wheels in requirements.lock include all resolved runtime dependencies.
-Stage 4.4 adds [MCP 2.3.0](https://pypi.org/project/mcp/2.3.0/) and
+Stage 4.4 added [MCP 2.3.0](https://pypi.org/project/mcp/2.3.0/) and
 Pydantic 2.14.1 for strict typed input/output. Test dependency httpx2==2.16.0
 is also an SDK dependency; it carries the official client's Streamable HTTP
 requests through ASGITransport, while the proven Woo transport keeps HTTPX 0.28.1.
@@ -25,7 +26,7 @@ No FastAPI or third-party FastMCP package. The SDK brings Starlette, Uvicorn and
 other transitive dependencies; their presence does not implement gateway auth.
 Tests use standard-library unittest and HTTPX MockTransport.
 
-The lock retains all eight Stage 4.3 versions and pins 33 packages, with pywin32
+The lock retains all eight Stage 4.3 versions and pins 34 packages, with pywin32
 restricted to Windows. Hashes cover Python 3.13 Windows amd64 and Linux glibc
 x86_64 wheels, including compiled SDK dependencies. To reproduce the environment,
 install the entire lock with --require-hashes as below. Lock updates must resolve
@@ -71,7 +72,7 @@ No credential loading or network operation is needed to import the factory.
 | Extra fields | Rejected; no URL or arbitrary REST parameter |
 
 The pinned SDK's generated argument model normally ignores extra fields and
-pre-parses JSON-looking strings. ProductArguments binds the strict input model via
+pre-parses JSON-looking strings. StrictArguments binds each strict input model via
 Tool.fn_metadata and publishes its schema via Tool.parameters. It bypasses that
 coercion and sanitizes validation errors before the SDK turns them into tool errors.
 This small SDK metadata integration is version-coupled and covered by protocol tests;
@@ -104,7 +105,75 @@ ASGI transport at http://127.0.0.1:8000/mcp, not handcrafted JSON-RPC. They veri
 auto discovery, explicit 2026-07-28 and legacy 2025-11-25, schema, calls, errors,
 no Mcp-Session-Id and pooled client lifecycle. No listening TCP socket, real REST
 request, Secret access or Kubernetes operation is involved. Network/container
-hosting and the other four tools remain unimplemented/unvalidated.
+hosting and the two write tools remain unimplemented/unvalidated.
+
+## Order tools and store dates
+
+Stage 4.5 exposes exactly list_products, get_order and list_orders, all read-only.
+The same lifespan client, OAuth signer, strict SDK argument adapter, 8-second REST
+deadline, 64KiB response bound, redirect rejection and zero-retry policy apply.
+The pagination validator is shared with list_products; no all-pages fetch.
+
+| Tool | Inputs | REST mapping | Structured result |
+| --- | --- | --- | --- |
+| get_order | Required strict positive integer order_id; no extras | GET /wp-json/wc/v3/orders/{order_id} | OrderDetail |
+| list_orders | page >=1/default 1; per_page 1-50/default 20; optional status and date; strict types/no extras | GET /wp-json/wc/v3/orders | items, page, per_page, total, total_pages, has_more, date_window |
+
+Order status accepts pending, processing, on-hold, completed, cancelled, refunded,
+failed. Date accepts only today or a valid YYYY-MM-DD. Omitted date sends no date
+filter and returns date_window=null. No arbitrary URL/parameter passthrough.
+OrderSummary contains id/status/created_at/currency/total/payment_method.
+OrderDetail adds line_items/shipping_lines/shipping_total/tax_total.
+Line items allow only product_id/variation_id/name/sku/quantity/unit_price/subtotal/total;
+shipping lines only method_id/method_title/total. Zero variation_id becomes null;
+Woo's null SKU for a deleted product is retained, and product_id=0 is allowed.
+
+Money is a decimal string. Woo line price is the net line total divided by quantity,
+not the original undiscounted catalog price. JSON decimal numbers are parsed with
+Decimal before normalization, with bounded price formatting; subtotal/total remain
+Woo strings. created_at uses date_created_gmt as an aware UTC timestamp. Order
+currency comes from that order; product currency remains configured INR.
+
+The Config store_timezone defaults to Asia/Kolkata. Python zoneinfo required an
+additional hash-pinned tzdata==2026.5 dependency on Windows, where no IANA database
+was available. Existing pins remain unchanged. No Windows/caller timezone or naive
+UTC date is used. today reads the UTC clock exactly once before the REST request,
+then converts to store-local date. Explicit dates do not read the clock.
+
+The returned date_window contains date, timezone, start_inclusive and end_exclusive
+as offset-bearing UTC timestamps. For 2026-10-23 the intended window is
+[2026-10-22T18:30:00Z, 2026-10-23T18:30:00Z). Requests set dates_are_gmt=true,
+after=2026-10-22T18:29:59Z and before=2026-10-23T18:30:00Z. This implements the
+accepted strict second-resolution boundary mapping, including start midnight and
+excluding next midnight. Use the returned explicit date on later pages, not today
+again after midnight. Returned rows outside the intended window fail validation;
+records are not silently filtered away, which would misrepresent pagination.
+
+Source review: [pinned Woo REST date query](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/rest-api/Controllers/Version3/class-wc-rest-crud-controller.php)
+selects GMT columns without an inclusive override;
+[HPOS query implementation](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/src/Internal/DataStores/Orders/OrdersTableQuery.php)
+maps the columns and uses [WP_Date_Query](https://developer.wordpress.org/reference/classes/wp_date_query/).
+Fixtures model those strict comparisons. Actual active-store boundary behavior is
+still a later runtime acceptance obligation, not proved by a mocked response.
+
+REST _fields minimizes requested fields; independent nested allowlists discard
+billing, addresses, names/contact fields, customer ID, notes, order key and metadata.
+Tests include explicitly synthetic customer-shaped payloads and verify absence from
+both MCP structured/text results and errors. This is field minimization, not a
+redactor for personal text maliciously embedded in an allowed product/method name.
+Allowed strings remain untrusted content. No real customer or credential data is used.
+
+The existing fixed tool-error codes apply, including NOT_FOUND for 404. Invalid
+calendar dates/unrepresentable UTC bounds fail with VALIDATION_ERROR; invalid
+upstream rows/date windows/pagination fail with WOO_INVALID_RESPONSE. No raw bodies,
+headers or exception representations are forwarded. Unknown custom order statuses
+and fractional quantities are outside this initial contract and fail validation.
+
+Offline evidence: 59 tests pass, including all 31 prior tests (discovery updated to
+three tools), current/legacy official-client order calls, timezone/midnight/boundary
+fixtures, decimal precision, nested privacy and failures. Protocol tests remain
+in-process ASGI with mocked REST, not listening TCP or live order acceptance.
+Kubernetes hosting and gateway caller authentication remain incomplete.
 
 ## Connection contract
 

@@ -1,9 +1,10 @@
 """Strict tool inputs and allowlisted structured outputs; no REST passthrough."""
 
+from datetime import date as CalendarDate
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
 
 Status = Literal["publish", "draft", "pending", "private"]
 Page = Annotated[int, Field(strict=True, ge=1)]
@@ -60,3 +61,77 @@ class ProductCollection(StrictModel):
     total_pages: Annotated[int, Field(ge=0)]
     has_more: bool
     currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+
+
+OrderID = Annotated[int, Field(strict=True, gt=0)]
+OrderStatus = Literal["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed"]
+OrderDate = Annotated[str, Field(pattern=r"^(today|[0-9]{4}-[0-9]{2}-[0-9]{2})$")]
+OrderMoney = Annotated[str, Field(max_length=40, pattern=r"^[0-9]+(?:\.[0-9]+)?$")]
+
+
+class GetOrderInput(StrictModel):
+    order_id: OrderID
+
+
+class ListOrdersInput(StrictModel):
+    page: Page = 1
+    per_page: PageSize = 20
+    status: OrderStatus | None = None
+    date: OrderDate | None = None
+
+    @field_validator("date")
+    @classmethod
+    def valid_date(cls, value):
+        if value is not None and value != "today":
+            CalendarDate.fromisoformat(value)
+        return value
+
+
+class OrderSummary(StrictModel):
+    id: OrderID
+    status: OrderStatus
+    created_at: AwareDatetime
+    currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+    total: OrderMoney
+    payment_method: Annotated[str, Field(max_length=100)]
+
+
+class OrderLine(StrictModel):
+    product_id: Annotated[int, Field(ge=0)]
+    variation_id: Annotated[int, Field(gt=0)] | None
+    name: Annotated[str, Field(max_length=200)]
+    sku: Annotated[str, Field(max_length=256)] | None
+    quantity: Annotated[int, Field(gt=0)]
+    unit_price: OrderMoney
+    subtotal: OrderMoney
+    total: OrderMoney
+
+
+class ShippingLine(StrictModel):
+    method_id: Annotated[str, Field(max_length=100)]
+    method_title: Annotated[str, Field(max_length=200)]
+    total: OrderMoney
+
+
+class OrderDetail(OrderSummary):
+    line_items: list[OrderLine]
+    shipping_lines: list[ShippingLine]
+    shipping_total: OrderMoney
+    tax_total: OrderMoney
+
+
+class OrderDateWindow(StrictModel):
+    date: str
+    timezone: str
+    start_inclusive: AwareDatetime
+    end_exclusive: AwareDatetime
+
+
+class OrderCollection(StrictModel):
+    items: list[OrderSummary]
+    page: Page
+    per_page: PageSize
+    total: Annotated[int, Field(ge=0)]
+    total_pages: Annotated[int, Field(ge=0)]
+    has_more: bool
+    date_window: OrderDateWindow | None
