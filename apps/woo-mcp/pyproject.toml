@@ -1,0 +1,8 @@
+[project]
+name = "urumi-woo-mcp"
+version = "0.0.1"
+description = "WooCommerce REST connectivity slice; MCP server not implemented"
+requires-python = ">=3.13,<3.14"
+dependencies = ["httpx==0.28.1", "oauthlib==4.0.0"]
+
+# Run from source with PYTHONPATH=src; packaging/MCP entrypoints are future work.
