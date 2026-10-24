@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-24 - Stage 4.8: Woo MCP process, Docker and Helm-definition acceptance.** Stage 4.7 was approved/committed as 690c191. All five business contracts are unchanged. Real TCP and Docker discovery pass; the same chart renders the internal Woo MCP Deployment/Service in both environments. Kubernetes installation, full live tool acceptance, resource sizing and gateway caller enforcement remain incomplete. No live Woo call/mutation or real Secret access occurred. Existing k3d containers were found running and controlled-stopped to honor this stage's stopped-cluster boundary; they were not restarted.
+**2026-10-24 - Stage 4.9A PASS: deployed Woo MCP and live read-only acceptance.** Following the user-verified WordPress API repair, fresh checks confirmed country IN, marker 3, all checkpointed options and unchanged product 11/order 12/storage. Immediate pre-upgrade host RAM was 3.859 GiB. One reviewed upgrade deployed release urumi revision 4; bootstrap r4 completed in 10 seconds without replacing the store Pods. Woo MCP is Ready with verified container/Secret-mount controls. Official-client Service-DNS discovery found five tools; list_products, get_order and list_orders(today) passed with normalized non-sensitive output. Final available RAM was 3.942 GiB. Temporary clients were removed. Earlier memory/drift interruptions remain below; the drift cause is unknown. Live write acceptance and gateway caller authentication/NetworkPolicy remain incomplete. Nothing staged or committed.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,7 +18,251 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 4.8 hosting implementation and acceptance in package README, architecture, threat model, progress and journey. No staging/commit or Kubernetes installation. Earlier milestone sections retain historical evidence.
+Record the complete Stage 4.9A history, verified country restoration, single revision-4 upgrade, deployed security checks, live read-only MCP acceptance and cleanup in progress and journey. Preserve prior interruptions and distinguish user-supplied raw-DB repair evidence from this run's independent WordPress reads. No source/chart changes, staging or commit. Earlier milestone sections retain historical evidence.
+
+## Stage 4.9A cluster start and memory-gated stop
+
+Started from clean main at b715fbe. Initial Windows RAM was 15.726 GiB total,
+11.995 GiB used and 3.731 GiB available; the immediate pre-start measurement was
+3.748 GiB available. Docker was reachable/Linux, context k3d-urumi-local, existing
+cluster stopped. This was above the user's approximately 3.5 GiB floor, though
+below the preferred approximately 4 GiB. `k3d cluster start urumi-local` started
+only the existing cluster; no Docker/WSL restart or cluster recreation.
+
+After startup, host available RAM was 2.739 GiB, materially below the floor.
+Stopped before importing/deploying Woo MCP. A final read-only snapshot at
+09:26 UTC on 24 October measured 15.726 GiB total, 13.009 GiB used and 2.717 GiB
+available. No resource budget, probe, persistence or application configuration
+was changed to fit. No user applications were closed automatically.
+
+| Check | Actual observation |
+| --- | --- |
+| Cluster/system | k3d-urumi-local; node Ready, MemoryPressure=False; CoreDNS, Traefik, metrics-server and local-path-provisioner each 1/1 Ready |
+| Helm/bootstrap | urumi revision 3/deployed; urumi-store-bootstrap-r3 Complete, succeeded=1, active=0 |
+| WordPress | urumi-wordpress-886bfd79c-8w584, UID 31cb5902-52a2-4fb4-a8fe-c710d9892b89; Ready, zero restarts, no recorded prior termination |
+| MariaDB | urumi-mariadb-0, UID 77f54305-a813-4207-aec8-897425f72595; Ready, zero restarts, no recorded prior termination |
+| WordPress storage | urumi-wordpress remains Bound to pvc-864a302a-0a39-4880-b522-558a4c830845; original claim UID unchanged |
+| Database storage | data-urumi-mariadb-0 remains Bound to pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331; original claim UID unchanged |
+| Anonymous HTTP | /shop/ and /product/urumi-demo-mug/ both 200; visible Urumi Demo Mug text after excluding scripts/styles; no Coming Soon presentation |
+| REST Secret Check | urumi-woocommerce-rest present, Opaque, exact consumer-key/consumer-secret key contract PASS; values not printed/decoded; object preserved |
+| Node/Pod memory | Allocatable 6064264Ki (~5.78 GiB); sampled node usage 883Mi after startup, then 968Mi; final MariaDB 124Mi, WordPress 84Mi |
+| Reviewed image | Local urumi-woo-mcp:stage4.8 exists, Linux/amd64; image ID sha256:a51a9aa791b6788a1c252f7185e48890434ed888947fab3dca7bbd5b3dfc09c4; no rebuild/import |
+
+WordPress and metrics-server were initially not Ready and recovered within the
+bounded startup waits; no corrective application action was taken. Current Pod
+status shows no OOMKilled termination. Node MemoryPressure=False does not override
+the Windows host-memory gate or prove capacity for another component.
+
+**Stage 4.9A is incomplete.** Full direct deterministic option/product/order checks
+were not performed after the gate failed; HTTP/readiness are not a replacement for
+the required preservation checks. No simulated revision-4 delta, live upgrade,
+Woo MCP Pod/Service/security inspection, discovery or business read occurred.
+Neither mutating tool was called. No temporary diagnostic resources were created,
+so none required deletion. Existing cluster/store remain running at revision 3.
+Resume from fresh memory and complete store preflight once sufficient host headroom
+is available; preserve the mandatory server-side upgrade preview and serialization
+boundary. Gateway authentication/NetworkPolicy remain future work. Nothing staged
+or committed; stop for review.
+
+## Stage 4.9A resumed preflight and country-drift stop
+
+The user requested continuation. Fresh host available RAM measured 3.800 GiB;
+Docker/Linux and existing urumi-local were already running in context
+k3d-urumi-local. No second cluster start or infrastructure restart. The initially
+requested platform checks passed: marker 3, active WooCommerce 11.2.1, postname
+permalinks, both Live options no, INR and Asia/Kolkata. Read-only Woo APIs found
+unique product 11 / URUMI-DEMO-001 / Urumi Demo Mug / 499 / publish / instock,
+and exactly one stored order: 12, processing, quantity 1 of product 11, total
+499.00 INR, COD and free shipping. No customer contact/address fields were selected.
+Original claim/PV identities, four system Deployments, store readiness and both
+anonymous HTML routes passed. REST helper Check again passed Opaque/exact key names.
+
+Imported the existing reviewed image with:
+
+```text
+k3d image import urumi-woo-mcp:stage4.8 --cluster urumi-local
+```
+
+Node containerd lists docker.io/library/urumi-woo-mcp:stage4.8 with image/config ID
+sha256:d0f34be3481a9707a3e33b5f2ec3f740ef18795583dfa1837619237f8533eb32,
+matching the reviewed build's config digest. The local Docker OCI index remains
+sha256:a51a9aa791b6788a1c252f7185e48890434ed888947fab3dca7bbd5b3dfc09c4.
+No image rebuild. The node exposes crictl directly; an initial k3s crictl inspection
+was unsupported and corrected without changing the runtime. Import's temporary
+archive/tools helper was removed by k3d.
+
+Server-side previews used this command, capturing output in memory and comparing
+only the rendered resources to the live release-3 manifest:
+
+```text
+helm upgrade urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --dry-run=server --hide-secret --output json --timeout 3m
+```
+
+| Simulated revision-4 delta | Actual preview result |
+| --- | --- |
+| New Woo MCP resources | Deployment/urumi-woo-mcp and ClusterIP Service/urumi-woo-mcp |
+| Revision-specific resources | ConfigMap urumi-store-assets-r3 becomes r4; Job urumi-store-bootstrap-r3 becomes r4, with its assets volume reference updated |
+| Bootstrap implementation | ConfigMap scripts and all other Job settings identical to revision 3 |
+| WordPress Deployment | Entire definition/Pod template unchanged; no Recreate rollout expected for this upgrade |
+| MariaDB StatefulSet | Entire definition, claim template and retention unchanged |
+| Existing Services/PVC/Ingress | Identical; no PVC/PV deletion/recreation proposed |
+| Secret/Namespace/PV objects | None rendered; ten total chart objects |
+| Actual release after preview | Still revision 3/deployed; previews did not apply resources |
+
+An initial comparison incorrectly expected WordPress to reference the revisioned
+ConfigMap. Inspection showed only the Job mounts it; corrected comparison confirmed
+WordPress is unchanged. This corrects the preview expectation, not application code.
+
+Before upgrade, a deeper read-only comparison checked persisted ownership and every
+target in urumi_bootstrap_settings. **v3 ownership and marker match, but
+woocommerce_default_country is IN:KA while its persisted target is IN.** Every
+other checkpointed setting matches. Although both values denote India, this is an
+exact deterministic-contract mismatch. The initiating actor/trigger/time is unknown.
+No admin/configuration action was taken to fix or adopt it.
+
+The unchanged bootstrap refuses to overwrite completed-store settings that differ
+from their checkpoint. Therefore its r4 Job would reject this state, and Stage 4.9A
+stopped before the actual upgrade. WordPress readiness does not test the country
+checkpoint, so Ready/HTTP 200 did not establish full bootstrap-rerun safety.
+No bootstrap execution, marker edit, Secret change or product/order mutation.
+
+Final available host RAM was 3.835 GiB (15.726 total / 11.891 used). Node Ready,
+MemoryPressure=False; node usage 1076Mi, WordPress 153Mi, MariaDB 119Mi. Both store
+Pods retain the identities above and zero restarts; bootstrap r3 is still Complete,
+and both original claims/PVs remain Bound. These are sampled readings, not peak
+measurements. Existing cluster/store and imported image remain; no temporary
+diagnostic workload was created. MCP discovery/list_products/get_order/list_orders
+were not attempted, and neither mutating tool was invoked. Stage 4.9A remains
+incomplete. Resolve the country-contract discrepancy through a separately reviewed
+decision before retrying the fresh preflight/preview; do not silently reset or adopt
+it. No staged changes or commit.
+
+### Country repair report and fresh verification stop
+
+The user approved retaining exactly IN as the deterministic source of truth:
+IN:KA is syntactically valid WooCommerce country/state configuration, but is not
+the accepted Stage 3 baseline. Bootstrap must not accept both values or weaken
+ownership/marker checks. The user reported intentionally restoring IN through
+the WordPress option API. **This resume could not verify that repair:** fresh
+WordPress option reads from the existing Deployment still returned IN:KA, with
+persisted target IN. Every other entry in urumi_bootstrap_settings matched its
+target, and marker remained 3. No conclusion can be drawn about whether the
+reported repair persisted or whether something subsequently changed the value;
+the cause remains unknown. No option, ownership, marker or bootstrap code was
+changed by this run.
+
+| Fresh read-only check | Actual result |
+| --- | --- |
+| Windows RAM total / used / available | Initially 15.726 / 12.319 / 3.408 GiB, below the floor; subsequent user-requested recheck 15.726 / 12.105 / 3.622 GiB, passing the approximately 3.5 GiB floor cautiously |
+| Runtime and context | Docker reachable/Linux; existing urumi-local running; k3d-urumi-local |
+| Node/system | Node Ready, MemoryPressure=False; four required system Deployments each 1/1 Ready |
+| Helm/bootstrap | urumi revision 3/deployed; r3 Complete, succeeded=1, active=0; no bootstrap Pod present |
+| Store Pods | Same WordPress/MariaDB names and UIDs recorded above; both Ready, zero restarts and no OOMKilled termination in current/last container status |
+| Storage | Both original claim UIDs, PV names and PV UIDs unchanged and Bound; reclaim policy remains Delete if a PVC is deleted |
+| Node/Pod memory | Node 1096Mi, allocatable 6064264Ki; WordPress 153Mi, MariaDB 120Mi; sampled values, not peaks |
+
+The subsequent user-requested recheck still returned IN:KA against IN, with marker
+3 and no other checkpointed option mismatch. Memory now passes the cautious floor,
+but the configuration gate remains blocked. Full deterministic
+preflight, fresh product/order/HTTP/Secret checks, imported-image reinspection and
+the repeated server-side preview were not completed on this resume. Earlier
+observations remain historical evidence, not substituted fresh checks. No cluster
+restart, image rebuild/import, Helm upgrade, diagnostic resource, MCP call or
+business-data mutation occurred; no cleanup was needed. Resume requires fresh
+proof of IN, the remaining deterministic checks and sufficient memory before
+the mandatory preview. Stage 4.9A remains incomplete; nothing staged or committed.
+
+## Stage 4.9A verified repair deployment and read-only acceptance
+
+The user supplied the repair evidence: raw persisted country was IN:KA;
+update_option to IN returned true; immediate raw DB and WordPress reads returned
+IN; an independent reread several seconds later returned IN through both paths.
+This establishes persisted drift and controlled restoration, not its initiating
+cause. This run independently verified get_option returned IN before and after
+deployment, with no other checkpointed option mismatch. The source of truth stays
+IN; no bootstrap code, ownership or marker semantics were relaxed. No country
+write or additional raw DB investigation was performed by this run.
+
+The minimal pre-apply gate passed: existing node and store Ready, MemoryPressure
+False, zero current store restarts/OOM termination evidence, marker 3, WooCommerce
+11.2.1, postname/Live configuration, unique product 11, unchanged Processing order
+12, and original claim/PV identities. The REST helper Check passed Opaque and the
+exact consumer-key/consumer-secret contract without revealing values. Available
+RAM was initially 3.686 GiB, then 3.859 GiB immediately before the upgrade.
+
+The repeated server-side preview matched the earlier reviewed delta exactly:
+ten objects, two new Woo MCP resources, r3-to-r4 ConfigMap/Job naming/reference
+changes only, identical scripts and other Job settings. WordPress, MariaDB,
+existing Services/PVC/Ingress were unchanged. No Secret/Namespace/PV rendered or
+storage recreation was proposed. The r4 Job expects IN and bootstrap version 3,
+matching the restored checkpoint. Node image/config digest remained
+sha256:d0f34be3481a9707a3e33b5f2ec3f740ef18795583dfa1837619237f8533eb32;
+the reviewed stage4.8 image was reused without rebuild or reimport.
+
+Executed exactly one actual upgrade, with no atomic removal or automatic rollback:
+
+```text
+helm upgrade urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --wait=watcher --wait-for-jobs --timeout 15m
+```
+
+| Deployment/runtime check | Observed result |
+| --- | --- |
+| Helm | urumi revision 4, deployed; Upgrade complete |
+| Bootstrap | urumi-store-bootstrap-r4 Complete in 10 seconds; safe log checks confirmed existing WordPress/users/passwords preserved and successful verification |
+| Bootstrap behavior | Completed v3 configuration verified; existing hard rewrite flush performed by unchanged orchestration; country IN/marker 3 remained intact; business snapshots unchanged |
+| Woo MCP Pod | urumi-woo-mcp-fc54684f8-s4bw5, UID cf1fe46b-e6e3-4402-833c-a640b57e6c63; Ready, zero restarts; reviewed image/config digest matches |
+| Service/endpoints | urumi-woo-mcp ClusterIP 10.43.21.125, port 8000 to named http port; one ready EndpointSlice address 10.42.0.112 |
+| Store continuity | Original WordPress and MariaDB Pod UIDs unchanged; both Ready with zero restarts; r4 bootstrap Pod also zero restarts |
+| Storage | Both original claim UIDs, PV names and PV UIDs unchanged and Bound; no PVC/PV deletion/recreation |
+| Security | UID/GID 10001; non-root; read-only root filesystem; CapEff zero; NoNewPrivs=1; seccomp=2 with RuntimeDefault; privilege escalation disabled; all capabilities dropped |
+| Credential boundary | No service-account token automount or token file; only external urumi-woocommerce-rest mounted read-only; both expected files mode 0440/readable on read-only mount; metadata checked, contents never read/displayed by inspection |
+| Probes/resources | Listener-local TCP probes remain; requests 50m/128Mi, limits 500m/256Mi unchanged |
+| Exposure | ClusterIP only, no NodePort/LoadBalancer/external IP and no Ingress backend targeting Woo MCP; gateway-only caller enforcement still pending |
+
+A disposable in-cluster official SDK client used the reviewed image with no
+credential volumes, environment values or service-account token. Service DNS
+resolved to 10.43.21.125; /mcp accepted the FQDN Host and discovered exactly five
+tools with input/output schemas. Protocol 2026-07-28 succeeded without a session-ID
+header. The client had no Woo REST credentials or Authorization header; only the
+server consumed its mounted REST pair. Neither mutating tool was called.
+
+| Approved read | Actual normalized evidence |
+| --- | --- |
+| list_products(sku=URUMI-DEMO-001) | Exactly product 11, Urumi Demo Mug, simple, 499 INR, publish, instock; total 1, no further page |
+| get_order(order_id=12) | Processing, created 2026-10-21T02:24:15Z, 499.00 INR, COD; product 11/SKU, quantity 1, unit price 499; free_shipping, shipping/tax totals 0; no customer/contact/address fields |
+| list_orders(date=today,page=1,per_page=5) | Resolved 2026-10-24 in Asia/Kolkata; UTC interval [2026-10-23T18:30:00Z, 2026-10-24T18:30:00Z); count/total 0, as expected for the earlier order |
+
+The first diagnostic client passed discovery/products but rejected the order's
+JSON timestamp using strict Python-mode DTO validation. Offline reproduction
+isolated this to the disposable harness; JSON-mode validation passed. Corrected
+only that client, then repeated get_order and ran list_orders. Total MCP business
+calls were one list_products, two get_order and one list_orders, all read-only;
+this was an explicit diagnostic repeat, not automatic REST/write retry. The
+corrected client exited 0. Order text and structured results matched the strict
+operational DTO allowlist. No raw upstream body, credential or customer PII was
+displayed; captured Woo MCP log credential-pattern scan passed. The application,
+image, authentication and Helm configuration were not changed for this correction.
+
+Post-read store and storage snapshots exactly matched pre-upgrade evidence:
+country IN, no owned-option mismatch, marker 3, WooCommerce 11.2.1, unique unchanged
+product 11 and exactly one unchanged order 12. Anonymous shop/product pages each
+returned 200 with visible demo-product content and no Coming Soon presentation.
+All three workloads were Ready, release 4/deployed, MemoryPressure=False, no
+current/last OOMKilled termination or namespace OOM event observed. Both temporary
+client instances were deleted; no diagnostic ConfigMap or repository artifact was
+created. Deployed MCP, store, Secrets, storage and release remain running/intact.
+
+| Memory sample | Available host RAM | Node / WordPress / MariaDB / Woo MCP |
+| --- | --- | --- |
+| Immediately before upgrade | 3.859 GiB | Not sampled at that instant |
+| Immediate rollout | 3.746 GiB | 1219Mi / 156Mi / 120Mi / 57Mi |
+| Final, after client cleanup | 3.942 GiB (15.726 total / 11.785 used) | 1207Mi / 171Mi / 120Mi / 74Mi |
+
+These are samples, not continuous peaks or full-stack capacity proof. Stage 4.9A
+passes deployed read-only integration only. Live create/status-update acceptance
+remains separately authorized future work. Internal Kubernetes exposure does not
+enforce gateway-only callers; gateway authentication and targeted NetworkPolicy
+remain incomplete. No broader assignment signoff, staging or commit.
 
 ## Stage 4.8 process Docker and internal Helm hosting
 
@@ -964,6 +1208,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-Stage 4.8 stops for review of TCP/Docker hosting and the internal Helm definitions. No staging/commit, cluster start, chart installation or live Woo business call. Proposed Stage 4.9 runtime acceptance requires separate authorization. Earlier observation sections retain their historical evidence and limits.
+Stage 4.9A passes and stops for review: release 4 deployed, bootstrap r4 Complete, internal Woo MCP Ready, five-tool discovery and three read-only tool contracts accepted against the store. Country IN and all checkpointed options/data/storage remain intact after the verified repair; its initiating cause remains unknown. The diagnostic JSON-validation correction and repeated read are documented above. Temporary clients removed, deployed workloads remain running. Live write acceptance, gateway caller enforcement and broader assignment work remain pending. Nothing staged or committed; earlier interruption evidence is preserved.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
