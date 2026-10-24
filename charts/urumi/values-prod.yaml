@@ -38,3 +38,19 @@ mariadb:
 bootstrap:
   # Replace this non-secret identity before an authorized deployment.
   adminEmail: replace-admin@example.invalid
+
+wooMcp:
+  enabled: true
+  image:
+    # Push the reviewed image and replace this reserved registry before deployment.
+    repository: registry.example.invalid/urumi/woo-mcp
+    tag: stage4.8
+    pullPolicy: IfNotPresent
+  config:
+    connection_origin: ""
+    # Internal HTTP is_ssl=false: Woo OAuth verifier uses HTTP + public hostname.
+    # Public storefront HTTPS does not encrypt this hop. VPS routing remains unproven.
+    canonical_origin: http://store.example.invalid
+    currency: INR
+    store_timezone: Asia/Kolkata
+  # Same templates, resources/security; no real credentials in either values file.

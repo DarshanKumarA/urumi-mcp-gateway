@@ -81,3 +81,41 @@ bootstrap:
     limits:
       cpu: 500m
       memory: 512Mi
+
+# Stage 4.8 hosting only. Local/prod opt in explicitly; no caller-auth Secret yet.
+wooMcp:
+  enabled: false
+  image:
+    repository: urumi-woo-mcp
+    tag: stage4.8
+    pullPolicy: IfNotPresent
+  restSecretName: urumi-woocommerce-rest
+  config:
+    # Empty derives the WordPress Service DNS from release/namespace.
+    connection_origin: ""
+    canonical_origin: http://store.example.invalid
+    secret_directory: /run/secrets/woocommerce-rest
+    deadline_seconds: 8
+    currency: INR
+    store_timezone: Asia/Kolkata
+    # Empty derives exact Service DNS and loopback forms, bare and :8000.
+    allowed_hosts: []
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]

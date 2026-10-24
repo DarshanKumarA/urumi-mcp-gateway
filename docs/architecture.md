@@ -430,12 +430,60 @@ Future one-replica Deployment/one worker and ClusterIP urumi-woo-mcp in urumi, p
 
 Proposed startup proves initialization/config/credential loading; liveness tests local process health; readiness proves SDK/client initialization and ability to accept requests. Store reachability is deliberately checked by tool calls, not every readiness probe: discovery remains available and a reachable adapter can report a Woo dependency error. "MCP connected" does not prove the store is operational. Origin validation remains enabled; there is no browser CORS use case. ClusterIP reachability alone is not gateway-only enforcement.
 
+## Stage 4.8 concrete Woo MCP hosting
+
+The accepted adapter boundary now has source, real TCP and Docker acceptance;
+Kubernetes resources are rendered only. All five business implementations remain
+unchanged from 690c191. Uvicorn 0.54.0 directly hosts the existing SDK-generated
+ASGI factory at /mcp with one worker and its original lifespan/session manager.
+That lifespan owns the reusable Woo client. Non-secret WOO_* environment settings
+map existing Config fields; credentials remain files. Exact environment/Host forms,
+image digest and reproduction steps are in the [package hosting contract](../apps/woo-mcp/README.md#process-container-and-helm-hosting).
+
+The same chart defines one urumi-woo-mcp Deployment and a ClusterIP Service on
+8000 -> http. No Woo MCP Ingress, public Service, PVC, Namespace or Secret creation.
+Internal endpoint: http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp.
+REST Secret urumi-woocommerce-rest projects consumer-key and consumer-secret into
+/run/secrets/woocommerce-rest, read-only 0440; UID/GID/fsGroup 10001. No Kubernetes
+API token is mounted. Non-root/read-only root, no privilege escalation, drop ALL
+capabilities and RuntimeDefault seccomp apply only to this custom workload.
+The image is pinned to official Python 3.13.17 slim-bookworm Linux/amd64; node
+selectors match that architecture. It installs the hash-locked runtime closure.
+
+SDK DNS-rebinding protection explicitly accepts short, namespace-qualified, svc
+and full Service DNS, plus loopback, each bare and :8000; no browser Origins/CORS.
+This is Host validation, not caller authorization. Gateway integration still must
+add urumi-woo-mcp-auth and targeted NetworkPolicy before gateway-only signoff.
+
+Startup/liveness/readiness use only TCP 8000. Ready means a reachable local MCP
+listener, not Woo health or a successful tool call. TCP cannot prove complete
+protocol responsiveness. Store loss should remain a precise tool error rather than
+hide the adapter. Requests 50m/128Mi and limits 500m/256Mi remain measurement
+hypotheses; default rolling updates can temporarily require an extra Pod.
+
+Both overlays enable identical templates; base values disable the adapter. Local
+uses the stage4.8 image/Never for later k3d import and the proven HTTP Service-DNS /
+canonical http://store.urumi.test:8080 model. Production uses an unpushed example
+registry and derives Service DNS from release/namespace. Its internal signing origin
+is http://store.example.invalid: pinned Woo authentication selects scheme from the
+incoming request's TLS state, even with a public HTTPS home URL. This does not add
+Basic over HTTP or prove VPS redirect/signature behavior. TLS on Ingress alone does
+not encrypt the internal hop. Resources and security defaults are shared values.
+
+Both renders contain ten resources, with the original eight store objects unchanged
+at the same revision. Future Helm upgrades still create revision-specific store
+assets/bootstrap Jobs and can replace WordPress; preview and serialize those release
+operations, preserving data and avoiding automatic rollback. Docker/TCP discovery
+used synthetic credentials and made no business requests. Cluster installation,
+Secret projection permissions, live tool acceptance and full-stack capacity remain
+unproven. This narrow custom-container posture is not assignment-wide hardening.
+
 ## Open and provisional decisions
 
-- Local Docker/k3d operational validation and the fundamentals lab are complete. Vite and actual production-like k3s deployment remain future work. React, Kubernetes and Helm are assignment constraints; Python/FastAPI, SDK, PostgreSQL, MariaDB and controller boundaries are project choices. Store versions are selected above; runtime validation and application package pinning remain pending.
-- Stage 4 pins the Woo SDK/protocol and defines its contracts above. Transitive/signer pins, actual modern/legacy interoperability, canonical HTTP OAuth connectivity, date boundaries and budgets still need validation. Gateway catalog refresh, client behavior and health observation remain future work.
+- Local Docker/k3d validation, the fundamentals lab and local Stage 3 store acceptance are complete. Vite and actual production-like k3s deployment remain future work. React, Kubernetes and Helm are assignment constraints; Python/FastAPI, SDK, PostgreSQL, MariaDB and controller boundaries are project choices. Woo MCP runtime packages are pinned; non-store Kubernetes deployment remains pending.
+- Stage 4 pins the Woo SDK/protocol/runtime dependencies. Canonical HTTP OAuth connectivity passed Stage 4.3; modern/legacy mocked tool calls, TCP and Docker discovery now pass. Active-store date boundaries, full live tool acceptance, Kubernetes hosting and resource budgets still need validation. Gateway catalog refresh, client behavior and health observation remain future work.
 - Specify authentication algorithms/formats, session/cookie/CSRF and invitation details, role representation, initial admin/WooCommerce registration, runtime Secret management, audit failure/denial/redaction/retention contracts, and schema constraints before affected implementation.
-- Select the LLM/provider, chat-loop integration/response transport, auxiliary tool schemas and final interactive client. Define revenue-demo semantics and user A/B roles. Woo REST/tool contracts are accepted above but not implemented.
-- Implement and validate the accepted store contracts only in a separately authorized step. Confirm initial store settings, filesystem permissions, safe Job reruns, retained-claim reuse, probes, checkout and measured memory. Production TLS provisioning and non-store deployment details remain open. NetworkPolicy is deferred, not a first-core prerequisite.
+- Select the LLM/provider, chat-loop integration/response transport, auxiliary tool schemas and final interactive client. Define revenue-demo semantics and user A/B roles. The five Woo tool contracts are implemented; deployment/live acceptance and gateway integration remain incomplete.
+- Preserve the accepted local store baseline and recheck it before further runtime work. Production TLS provisioning, non-store deployment and full-stack capacity remain open. Targeted NetworkPolicy remains deferred to gateway integration, where mandatory gateway-only enforcement must be completed.
 
-No bonus or stand-out item is selected. Current Stage 4.2 authorizes accepted-design documentation and the offline REST Secret helper only: no real credentials, cluster start/access, Kubernetes/Helm changes, Python MCP implementation, staging or commit. Earlier implementation sections preserve milestone history; [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from that history.
+Stage 4.8 authorizes hosting, Docker acceptance and Helm definitions only, not Kubernetes installation or live Woo requests. Narrow custom-container controls are selected without claiming the optional hardening bonus complete. No staging/commit. Earlier sections preserve milestone history; [progress.md](progress.md) and [project-journey.md](project-journey.md) distinguish current evidence from that history.

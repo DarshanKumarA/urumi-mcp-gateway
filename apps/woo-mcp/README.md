@@ -1,12 +1,11 @@
 # WooCommerce MCP: five product and order tools
 
-Stage 4.7 adds update_order_status alongside list_products, get_order, list_orders
-and create_product. All five required business contracts exist with offline tests.
-Stage 4.3's credential loading, OAuth transport and acceptance command remain.
-Dockerfile and Helm workloads remain absent; this is not full runtime acceptance.
-Runtime store execution requires separate authorization; offline tests use dummy
-credentials and mocked REST exclusively. Do not repeat the live diagnostic merely
-to test MCP. Gateway caller authentication and Kubernetes hosting remain future work.
+All five required business contracts exist with offline tests. Stage 4.8 adds real
+TCP hosting, a Docker image and rendered internal Helm workload definitions without
+changing those contracts. Stage 4.3's credential loading/OAuth transport remain.
+Kubernetes installation, full live tool acceptance and gateway caller enforcement
+remain incomplete. Hosting acceptance uses synthetic files and discovery only;
+business tests use mocked REST. Do not repeat the live diagnostic merely to test MCP.
 
 ## Dependencies and offline checks
 
@@ -22,8 +21,10 @@ Stage 4.4 added [MCP 2.3.0](https://pypi.org/project/mcp/2.3.0/) and
 Pydantic 2.14.1 for strict typed input/output. Test dependency httpx2==2.16.0
 is also an SDK dependency; it carries the official client's Streamable HTTP
 requests through ASGITransport, while the proven Woo transport keeps HTTPX 0.28.1.
-No FastAPI or third-party FastMCP package. The SDK brings Starlette, Uvicorn and
-other transitive dependencies; their presence does not implement gateway auth.
+Stage 4.8 promotes [Uvicorn 0.54.0](https://pypi.org/project/uvicorn/0.54.0/) from
+the existing lock to an explicit runtime dependency; no locked version/hash changes.
+No FastAPI or third-party FastMCP package. SDK dependencies include Starlette and
+httpx2; their presence does not implement gateway auth.
 Tests use standard-library unittest and HTTPX MockTransport.
 
 The lock retains all eight Stage 4.3 versions and pins 34 packages, with pywin32
@@ -48,14 +49,137 @@ credentials and never contact Kubernetes or the store. The signature fixture use
 OAuthLib with fixed dummy nonce/time to check canonical-origin integration; it is
 not an independent cryptographic validation of OAuthLib.
 
+## Process container and Helm hosting
+
+Uvicorn calls the existing `woo_mcp.server:create_app` factory directly, with one
+worker, `--lifespan on`, no access logging and no proxy-header trust. It serves
+the SDK-generated Streamable HTTP application at `/mcp`; no wrapper or FastAPI
+application replaces the SDK session-manager/lifespan startup. Missing credential
+files fail startup. The same lifespan owns one pooled Woo client and closes it
+on graceful shutdown. Discovery does not contact WooCommerce.
+
+`Config.from_environment()` maps these non-secret settings onto existing fields:
+
+| Environment name | Local Helm value / behavior |
+| --- | --- |
+| WOO_CONNECTION_ORIGIN | http://urumi-wordpress.urumi.svc.cluster.local |
+| WOO_CANONICAL_ORIGIN | http://store.urumi.test:8080; its authority supplies the outgoing Woo Host header |
+| WOO_SECRET_DIRECTORY | /run/secrets/woocommerce-rest |
+| WOO_DEADLINE_SECONDS | 8; positive and at most 8 |
+| WOO_CURRENCY | INR |
+| WOO_STORE_TIMEZONE | Asia/Kolkata |
+| WOO_MCP_ALLOWED_HOSTS | Comma-separated exact incoming Host values, no wildcard/URL/whitespace |
+
+REST prefix remains `/wp-json/wc/v3`; redirects and automatic retries remain
+disabled in the existing client. Incoming MCP Host validation and outgoing Woo
+Host/signing configuration are separate boundaries. Invalid environment values
+fail with a fixed error that does not interpolate their contents.
+
+For release/namespace `urumi`, Helm generates these accepted incoming hosts, each
+both bare and with `:8000`: `urumi-woo-mcp`, `urumi-woo-mcp.urumi`,
+`urumi-woo-mcp.urumi.svc`, `urumi-woo-mcp.urumi.svc.cluster.local`,
+`127.0.0.1`, `localhost`. There are 12 exact forms. Loopback supports future
+operator forwarding; a different forwarded port must be explicitly configured.
+The standalone default accepts only the four loopback forms. SDK DNS-rebinding
+protection remains on, `allowed_origins=[]`, and no CORS middleware is added.
+Clients without Origin are accepted; browser Origin requests are rejected.
+Host checks are not caller authentication or network isolation.
+
+The [Dockerfile](Dockerfile) pins official
+`python:3.13.17-slim-bookworm@sha256:4cea12ab7d78a3312c85f8cab19b6971d4fe9704da25443986c0bc20a6678850`
+(Linux/amd64 manifest). It installs the hash-locked runtime closure with binary
+wheels, without pip cache/bytecode, then copies only application modules. The
+deny-by-default [.dockerignore](.dockerignore) excludes tests, connectivity CLI,
+caches, `.git` and unrelated files. httpx2 remains in the image because MCP itself
+requires it; no test extra is installed. `PYTHONDONTWRITEBYTECODE=1` avoids writes.
+The runtime user/group is fixed `10001:10001`, with no home or login shell.
+The container command binds `0.0.0.0:8000` and allows 15 seconds for shutdown.
+
+Explicit Docker acceptance, from the repository root with Docker available and
+k3d stopped (synthetic files only, no business tool call):
+
+```powershell
+docker build --platform linux/amd64 -t urumi-woo-mcp:stage4.8 apps/woo-mcp
+$env:PYTHONPATH = (Join-Path $PWD 'apps/woo-mcp/src')
+apps/woo-mcp/.venv/Scripts/python apps/woo-mcp/tests/smoke_docker.py urumi-woo-mcp:stage4.8
+```
+
+The smoke uses temporary files outside Git, a loopback-only published port,
+read-only root/mount, all capabilities dropped, no-new-privileges, default seccomp
+and a 256Mi memory limit. It calls only official-client discovery, inspects UID/GID,
+rejects a filesystem write, checks shutdown/logs and removes its container/files.
+It never uses the real REST Secret. Ordinary unittest discovery also starts a real
+localhost Uvicorn child process, verifies five schemas, rejects an invalid Host
+(421) and browser Origin (403), observes zero requests at a synthetic Woo trap,
+and verifies graceful shutdown. These tests supplement the existing current/legacy
+in-process protocol calls; they do not prove live business-tool behavior.
+
+The same [Helm chart](../../charts/urumi/Chart.yaml) adds a one-replica
+`urumi-woo-mcp` Deployment and ClusterIP Service, port 8000 to named `http`.
+Future endpoint: `http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp`.
+There is no Woo MCP Ingress, public Service, PVC or generated Secret.
+The externally managed `urumi-woocommerce-rest` projects exactly `consumer-key`
+and `consumer-secret` under `/run/secrets/woocommerce-rest/`, read-only mode 0440.
+Pod fsGroup/runAsGroup 10001 supplies group access; actual Kubernetes projection
+permissions remain a Stage 4.9 acceptance check. No store database/admin/salt Secret
+is mounted. Service-account token automount is false. Pod seccomp is RuntimeDefault;
+container root is read-only, privilege escalation false, capabilities drop ALL.
+Linux/amd64 node selectors match the pinned image architecture.
+
+| Probe | Target | Period / timeout / failure threshold | Meaning |
+| --- | --- | --- | --- |
+| Startup | TCP named http (8000) | 2s / 1s / 30 | Approximately 60s listener-start budget |
+| Liveness | TCP named http | 20s / 2s / 3 | Local listener availability only |
+| Readiness | TCP named http | 5s / 1s / 3 | MCP listener can accept TCP connections |
+
+`Ready` does not prove Woo reachability, an authenticated REST call or complete MCP
+responsiveness. A TCP probe is deliberately weaker than a protocol/tool check.
+Woo failures stay tool errors while MCP remains discoverable. Requests 50m/128Mi
+and limits 500m/256Mi are starting hypotheses; Docker discovery under that limit is
+not tool-load sizing or full-stack capacity evidence. Default Deployment rolling
+updates can temporarily need a second Pod; assess capacity before later upgrades.
+
+Base values disable Woo MCP; local and production overlays enable the same two
+templates. Local uses `urumi-woo-mcp:stage4.8`, pull policy Never, requiring a later
+explicit k3d image import. Production uses the unpushed placeholder
+`registry.example.invalid/urumi/woo-mcp:stage4.8`, IfNotPresent. Production connection
+DNS derives from release/namespace; signing origin is `http://store.example.invalid`
+for the internal HTTP hop, even though the public store URL uses HTTPS. Pinned
+[Woo authentication](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/class-wc-rest-authentication.php)
+selects the signing scheme from the request's TLS state. This preserves HTTP OAuth,
+not Basic over HTTP; deployment-specific proxy/redirect/signing behavior still needs
+VPS proof. Public TLS alone does not encrypt the internal hop. No production image,
+credential or deployment is claimed validated.
+
+Stage 4.8 evidence: 116 tests pass (110 previous plus six hosting tests); real TCP
+and Linux Docker discovery each return exactly five tools with zero business calls.
+Fresh image dependency installation/pip check succeeds. Image size is 229,000,063
+bytes (approximately 218.4 MiB); runtime UID/GID, read-only filesystem, zero effective
+capabilities, no-new-privileges, seccomp and exit-0 shutdown pass. Initial image
+inspection caught copied bytecode caches; the ignore rules were corrected and the
+rebuilt image passed. Both overlays lint/render ten resources (previous eight plus
+two), pass Kubernetes v1.35.5 schemas and static boundaries; existing eight store
+objects are unchanged at the same render revision. Disabling Woo MCP renders eight.
+
+No chart was installed. The existing k3d containers were unexpectedly running at
+preflight and were controlled-stopped with `k3d cluster stop urumi-local`; they were
+not restarted or recreated. Temporary smoke resources were removed; the local
+image remains. No real Secret access or live Woo call/mutation occurred.
+Gateway-only enforcement still requires `urumi-woo-mcp-auth`, caller checks and
+targeted NetworkPolicy during gateway integration. ClusterIP is not that enforcement.
+Before a future Helm upgrade, preview all release changes: revision-specific store
+assets/bootstrap Job and WordPress replacement can accompany this new workload.
+Observe the established no-concurrent-bootstrap-writers rule; do not treat the
+upgrade as creating only two objects or automatically roll back persisted state.
+
 ## MCP and list_products
 
 `woo_mcp.server:create_app` is an ASGI factory. It calls MCPServer.streamable_http_app
 with /mcp, json_response=True and stateless_http=True; subscriptions are disabled.
 The SDK implements all protocol parsing, discovery, output conversion and legacy
-compatibility. No JSON-RPC implementation lives here. Default SDK Host/Origin
-protection remains enabled for loopback hosting; deployment host allowlists need
-explicit configuration at the later Kubernetes stage. No server is started by import.
+compatibility. No JSON-RPC implementation lives here. SDK Host/Origin protection
+remains enabled with explicit allowed hosts and no allowed browser Origins.
+No server is started by import; the hosting configuration is described above.
 
 The SDK lifespan creates one WooClient, reads mounted credentials only at startup,
 shares that client across tool calls and closes it on shutdown. Tests inject a client
@@ -103,9 +227,9 @@ The factory suppresses signer/HTTP debug levels; hosting must not enable wire lo
 Protocol tests use the official Client and streamable_http_client over an HTTPX2
 ASGI transport at http://127.0.0.1:8000/mcp, not handcrafted JSON-RPC. They verify
 auto discovery, explicit 2026-07-28 and legacy 2025-11-25, schema, calls, errors,
-no Mcp-Session-Id and pooled client lifecycle. No listening TCP socket, real REST
-request, Secret access or Kubernetes operation is involved. Network/container
-hosting remains unimplemented/unvalidated; offline status-update coverage is below.
+no Mcp-Session-Id and pooled client lifecycle. Those protocol tests remain in-process
+with mocked REST. Stage 4.8 separately adds listening-TCP and Docker discovery
+acceptance; neither makes a Woo request or uses a real Secret.
 
 ## Order tools and store dates
 

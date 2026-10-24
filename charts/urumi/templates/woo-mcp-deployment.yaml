@@ -1,0 +1,89 @@
+{{- if .Values.wooMcp.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "urumi.wooMcpName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: woo-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "urumi.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: woo-mcp
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.labels" . | nindent 8 }}
+        app.kubernetes.io/component: woo-mcp
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      securityContext:
+        {{- toYaml .Values.wooMcp.podSecurityContext | nindent 8 }}
+      containers:
+        - name: woo-mcp
+          image: {{ printf "%s:%s" .Values.wooMcp.image.repository .Values.wooMcp.image.tag | quote }}
+          imagePullPolicy: {{ .Values.wooMcp.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.wooMcp.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: WOO_CONNECTION_ORIGIN
+              value: {{ default (printf "http://%s.%s.svc.cluster.local" (include "urumi.wordpressName" .) .Release.Namespace) .Values.wooMcp.config.connection_origin | quote }}
+            - name: WOO_CANONICAL_ORIGIN
+              value: {{ .Values.wooMcp.config.canonical_origin | quote }}
+            - name: WOO_SECRET_DIRECTORY
+              value: {{ .Values.wooMcp.config.secret_directory | quote }}
+            - name: WOO_DEADLINE_SECONDS
+              value: {{ .Values.wooMcp.config.deadline_seconds | quote }}
+            - name: WOO_CURRENCY
+              value: {{ .Values.wooMcp.config.currency | quote }}
+            - name: WOO_STORE_TIMEZONE
+              value: {{ .Values.wooMcp.config.store_timezone | quote }}
+            - name: WOO_MCP_ALLOWED_HOSTS
+              value: {{ include "urumi.wooMcpAllowedHosts" . | quote }}
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          volumeMounts:
+            - name: woo-rest
+              mountPath: {{ .Values.wooMcp.config.secret_directory | quote }}
+              readOnly: true
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          # Local listener only: store availability must not hide MCP discovery.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.wooMcp.resources | nindent 12 }}
+      volumes:
+        - name: woo-rest
+          secret:
+            secretName: {{ .Values.wooMcp.restSecretName | quote }}
+            defaultMode: 0440
+            items:
+              - key: consumer-key
+                path: consumer-key
+              - key: consumer-secret
+                path: consumer-secret
+{{- end }}

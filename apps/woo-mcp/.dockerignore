@@ -1,0 +1,12 @@
+# Build with apps/woo-mcp as context. Deny everything except runtime inputs.
+**
+!Dockerfile
+!.dockerignore
+!requirements.lock
+!src/
+src/**
+!src/woo_mcp/
+src/woo_mcp/**
+!src/woo_mcp/*.py
+# The authorized one-read diagnostic is not a hosted application entrypoint.
+src/woo_mcp/connectivity.py

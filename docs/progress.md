@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-24 - Stage 4.7: all five Woo tool contracts implemented and tested offline.** Stage 4.6 was approved/committed as 53f54a2. update_order_status adds an expected-status guard, same-state no-op and at most one PUT with explicit unknown-outcome handling. The guard is not atomic; Woo remains authoritative and can trigger normal status side effects. No live Woo request/mutation, real credential access or Kubernetes/Docker/Helm operation occurred. Container/Kubernetes hosting, live tool acceptance and gateway authentication remain incomplete.
+**2026-10-24 - Stage 4.8: Woo MCP process, Docker and Helm-definition acceptance.** Stage 4.7 was approved/committed as 690c191. All five business contracts are unchanged. Real TCP and Docker discovery pass; the same chart renders the internal Woo MCP Deployment/Service in both environments. Kubernetes installation, full live tool acceptance, resource sizing and gateway caller enforcement remain incomplete. No live Woo call/mutation or real Secret access occurred. Existing k3d containers were found running and controlled-stopped to honor this stage's stopped-cluster boundary; they were not restarted.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,7 +18,54 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 4.7 source/tests and offline evidence in package README, progress and journey. No accepted architecture decision changed. No staging/commit or runtime operations.
+Record Stage 4.8 hosting implementation and acceptance in package README, architecture, threat model, progress and journey. No staging/commit or Kubernetes installation. Earlier milestone sections retain historical evidence.
+
+## Stage 4.8 process Docker and internal Helm hosting
+
+The existing SDK ASGI factory/lifespan now reads non-secret environment settings
+and explicit SDK Host allowlists. Uvicorn 0.54.0 is a direct runtime pin, promoted
+from the existing hash lock without changing any package version/hash. No FastAPI,
+transport wrapper or business-client replacement. All five tools remain unchanged.
+See the [hosting contract](../apps/woo-mcp/README.md#process-container-and-helm-hosting)
+for exact configuration, accepted Host forms, probes and reproduction commands.
+
+| Acceptance | Observed result |
+| --- | --- |
+| Python tests | 116 pass: previous 110 plus six hosting tests; current/legacy mocked tool coverage retained |
+| Listening TCP | Actual Uvicorn child process; official MCP discovery exposes five schemas; invalid Host 421, browser Origin 403; synthetic Woo trap observes zero requests; graceful shutdown |
+| Runtime dependency installation | Fresh Linux image installs 33 hash-locked runtime packages; pip check passes; Windows direct-pin resolution matches all 34 locked packages/hashes (Windows-only pywin32) |
+| Image | Official Python 3.13.17 slim-bookworm Linux/amd64 manifest pinned; local urumi-woo-mcp:stage4.8, 229,000,063 bytes (~218.4 MiB) |
+| Docker acceptance | Official TCP discovery returns five tools; UID/GID 10001, read-only filesystem, capabilities zero, no-new-privileges and seccomp verified; clean exit 0, no OOM; synthetic credential/log checks pass |
+| Helm/static | Local and production lint/render pass; ten resources each, including new Deployment/ClusterIP Service; strict Kubernetes v1.35.5 schema and duplicate-key checks pass |
+| Existing store | Eight rendered store objects match HEAD at the same revision; no budget, probe, storage or business configuration change; disabled Woo MCP renders eight |
+| Isolation/config | No Woo MCP Ingress/public Service/PVC; no Secret/Namespace object; exact external REST Secret file reference, no service-account token; selectors/ports/mounts/probes/resources/security checked |
+| Repository | Compilation, dependency consistency, credential/contact, documentation and whitespace checks pass; unstaged/uncommitted |
+
+The first Docker smoke caught copied bytecode caches; `.dockerignore` was tightened
+and the rebuilt image passed. A Windows validator initially decoded pip's UTF-8
+report with the default encoding; explicitly reading UTF-8 fixed that checker,
+and dependency resolution/hash comparisons passed. Neither issue changed business code.
+
+The image binds 0.0.0.0:8000; temporary acceptance publishes only on loopback and
+mounts synthetic files outside Git. Temporary process/container/files are removed;
+the image remains for later reviewed import. Initial Docker inspection showed k3d
+running, so `k3d cluster stop urumi-local` was used once. No cluster recreation,
+Kubernetes API mutation, Helm install/upgrade, real Secret retrieval or Woo request.
+
+TCP probes check the local MCP listener only, not Woo availability or business
+health. Requests 50m CPU/128Mi and limits 500m/256Mi remain hypotheses for Stage 4.9;
+default rolling updates can need temporary extra capacity. Mounted Secret mode
+0440/fsGroup 10001 and Kubernetes probes still need runtime acceptance. Production
+registry/domain values are placeholders; internal HTTP OAuth signing uses an HTTP
+origin even when public Ingress uses HTTPS, with VPS behavior still unproven.
+
+Gateway-only enforcement is not complete: ClusterIP/Host checks do not authenticate
+callers. Service credential urumi-woo-mcp-auth and targeted NetworkPolicy remain
+deferred to gateway integration. No optional security bonus is declared complete.
+Stage 4.9 is a proposed separately reviewed runtime slice: fresh memory/store gates,
+image import, exact Helm preview (including revision-specific bootstrap and WordPress
+replacement), serialized release operation and internal discovery/probe/security/resource
+measurement. Live business writes require separate authorization. Stop for review.
 
 ## Stage 4.7 guarded order status updates
 
@@ -908,15 +955,15 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 
 - Docker/Linux and the single-server K3s v1.35.5+k3s1 cluster remained healthy through Stage 3.6. API port 6550 and Ingress mappings 8080/8443 are established; observed node allocatable memory is about 5.78 GiB. Fresh host RAM passed the first-install gate, then dipped and recovered during startup. Recheck before additional runtime work/components and measure use; full-stack capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
-- Woo SDK/protocol/tool contracts are accepted in Stage 4; exact transitive/signer pins, actual compatibility, signing-origin connectivity and date boundaries need validation. Gateway client refresh/lifecycle/health remain future work.
+- Woo SDK/protocol/runtime pins and five tool contracts are implemented. Stage 4.3 proved signing-origin connectivity; mocked modern/legacy calls and real TCP/Docker discovery pass. Active-store date boundaries, full live tool acceptance and Kubernetes hosting still need validation. Gateway client refresh/lifecycle/health remain future work.
 - Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
-- LLM/provider, auxiliary tool schemas, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Woo contracts are accepted but unimplemented; Inspector is selected for diagnostics.
+- LLM/provider, auxiliary tool schemas, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Woo contracts are implemented but full runtime acceptance remains incomplete; Inspector is selected for diagnostics.
 - Local store business-flow/persistence/dependency-loss acceptance and later recovery are complete at 96757e7. Production identity/TLS, non-store components, VPS compatibility, node/disk-loss protection, backup and full-stack capacity remain unproven.
 
-OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. No optional feature is selected. NetworkPolicy is deferred, not a first-core prerequisite; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
+OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignment-interpretations) have reviewed approaches under A13, with remaining validation noted. Stage 4.8 selects narrow custom-container controls without completing the optional hardening bonus. NetworkPolicy is deferred to gateway integration; the mandatory gateway-only requirement remains. Upgrade/rollback documentation and explanation are mandatory walkthrough material; executing live rollback is optional unless later evidence changes the interpretation.
 
 ## Review boundary
 
-Stage 4.2 stops for review of the dedicated offline REST Secret helper and six documentation files. No staging/commit, real key issuance, Check/Create against Kubernetes, cluster start, store mutation or MCP application implementation is authorized here. Stage 4.3 requires separate operational authorization and proof of one authenticated read. Earlier observation sections retain their historical evidence and limits.
+Stage 4.8 stops for review of TCP/Docker hosting and the internal Helm definitions. No staging/commit, cluster start, chart installation or live Woo business call. Proposed Stage 4.9 runtime acceptance requires separate authorization. Earlier observation sections retain their historical evidence and limits.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

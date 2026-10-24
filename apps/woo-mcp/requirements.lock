@@ -1,5 +1,7 @@
 # Python 3.13 Windows amd64 / Linux glibc x86_64 wheels. Install with --require-hashes.
 # Existing Stage 4.3 versions retained; SDK dependency closure resolved on 2026-10-23.
+# Stage 4.8 promotes existing uvicorn 0.54.0 to direct runtime dependency; closure/hashes unchanged.
+# All entries are runtime dependencies; httpx2 is required by MCP, pywin32 is Windows-only.
 annotated-types==0.8.0 \
     --hash=sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
 anyio==4.15.1 \

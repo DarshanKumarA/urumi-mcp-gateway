@@ -9,6 +9,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.mcpserver.tools import Tool
 from mcp.server.mcpserver.utilities.func_metadata import FuncMetadata
 from mcp.types import ToolAnnotations
+from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import ValidationError
 
 from .config import Config, Credentials
@@ -116,5 +117,9 @@ def create_server(config=None, *, client_factory=None):
 
 def create_app():
     """ASGI factory; reads credentials only when application lifespan starts."""
-    return create_server().streamable_http_app(
-        streamable_http_path="/mcp", json_response=True, stateless_http=True)
+    config = Config.from_environment()
+    return create_server(config).streamable_http_app(
+        streamable_http_path="/mcp", json_response=True, stateless_http=True,
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
+                                                     allowed_hosts=list(config.allowed_hosts),
+                                                     allowed_origins=[]))

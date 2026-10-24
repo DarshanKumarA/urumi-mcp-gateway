@@ -81,9 +81,49 @@ Accepted design and offline helper only; see [architecture](architecture.md#acce
 
 No additional optional hardening is selected by these decisions. The mandatory secret-handling/gateway-only outcomes remain distinct from the optional controls below.
 
+## Stage 4.8 custom Woo MCP hosting evidence
+
+This stage authorizes a narrow container posture, not completion of the optional
+hardening bonus. The [hosting contract](../apps/woo-mcp/README.md#process-container-and-helm-hosting)
+records exact settings. Real TCP and Linux Docker discovery used synthetic files
+only; no real REST Secret, live Woo request or business mutation was involved.
+
+- **Process/transport:** Uvicorn directly runs the SDK ASGI factory and its lifespan;
+  SDK DNS-rebinding protection stays enabled with explicit incoming hosts and no
+  allowed browser Origins/CORS. Invalid Host and Origin were rejected in real TCP
+  tests. Host allowlisting does not authenticate a caller; a malicious in-cluster
+  client can supply an accepted Host. Access/proxy-header logging/trust are disabled
+  by the image command; signer/HTTP debug logging remains suppressed by the factory.
+- **Credential movement:** Helm references only external urumi-woocommerce-rest,
+  exact consumer-key/consumer-secret files, read-only 0440 under
+  /run/secrets/woocommerce-rest. No literal values, ConfigMap copy or generated Secret.
+  UID/GID/fsGroup 10001 is intended to read projected files; actual Kubernetes
+  permissions await Stage 4.9. Credentials remain in process memory for signing;
+  Python strings do not guarantee zeroization. No Kubernetes API token is mounted.
+- **Validated custom image:** Official Python slim tag/amd64 digest and hashed runtime
+  dependencies; deny-by-default build context. Docker acceptance proves UID/GID 10001,
+  read-only root, zero effective capabilities, no-new-privileges, seccomp filtering,
+  clean shutdown and no synthetic credential/header leakage in captured logs.
+  Tests/caches/diagnostic CLI are absent from the image. An initial cache-copy failure
+  was corrected and retested. No claim of image vulnerability freedom or complete
+  supply-chain verification follows from these checks.
+- **Availability:** TCP probes check only the adapter listener. They deliberately do
+  not withdraw the endpoint on Woo dependency loss, and do not prove full protocol
+  responsiveness. Resource budgets are unmeasured under real tool load; one replica
+  and a single local node are not HA. Default rolling updates can need extra capacity.
+- **Isolation still pending:** Rendered ClusterIP only, no Woo MCP Ingress/public
+  Service or PVC, and the security contexts above. These resources are not installed.
+  urumi-woo-mcp-auth/caller enforcement and targeted NetworkPolicy remain future
+  gateway-integration obligations. Other cluster clients are not yet excluded.
+  Public TLS does not protect internal HTTP OAuth traffic or JSON bodies.
+
 ## Optional hardening and stand-out work
 
-No item in this section has been selected or implemented. IDs refer to the separate [optional register](requirements.md#optional-work-register). Selection requires an explicit reviewed scope; analysis alone does not authorize it.
+Stage 4.8 explicitly selects non-root and related container controls for the custom
+Woo MCP workload only, with Docker evidence above and Kubernetes runtime pending.
+No optional item is complete across the platform. Other items remain unselected.
+IDs refer to the separate [optional register](requirements.md#optional-work-register).
+Selection requires an explicit reviewed scope; analysis alone does not authorize it.
 
 | Source / optional ID | Optional work | Boundary with required core |
 | --- | --- | --- |

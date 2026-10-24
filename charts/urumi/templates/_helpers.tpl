@@ -11,6 +11,26 @@
 {{- printf "%s-mariadb" (include "urumi.fullname" .) -}}
 {{- end -}}
 
+{{- define "urumi.wooMcpName" -}}
+{{- printf "%s-woo-mcp" (include "urumi.fullname" .) -}}
+{{- end -}}
+
+{{/* Exact Host forms for server-side clients; no wildcard hosts or browser Origins. */}}
+{{- define "urumi.wooMcpAllowedHosts" -}}
+{{- if .Values.wooMcp.config.allowed_hosts -}}
+{{- join "," .Values.wooMcp.config.allowed_hosts -}}
+{{- else -}}
+{{- $name := include "urumi.wooMcpName" . -}}
+{{- $names := list $name (printf "%s.%s" $name .Release.Namespace) (printf "%s.%s.svc" $name .Release.Namespace) (printf "%s.%s.svc.cluster.local" $name .Release.Namespace) "127.0.0.1" "localhost" -}}
+{{- $hosts := list -}}
+{{- range $names -}}
+{{- $hosts = append $hosts . -}}
+{{- $hosts = append $hosts (printf "%s:8000" .) -}}
+{{- end -}}
+{{- join "," $hosts -}}
+{{- end -}}
+{{- end -}}
+
 {{/* Selectors deliberately exclude chart version and other mutable labels. */}}
 {{- define "urumi.selectorLabels" -}}
 app.kubernetes.io/name: {{ .Chart.Name | quote }}
