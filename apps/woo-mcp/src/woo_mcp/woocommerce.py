@@ -1,4 +1,4 @@
-"""Shared REST reads and one product create. No redirects or retries."""
+"""Shared REST reads, product creation and guarded status updates. No retries."""
 
 import asyncio
 import json
@@ -12,7 +12,8 @@ from oauthlib.oauth1 import Client, SIGNATURE_HMAC_SHA256, SIGNATURE_TYPE_AUTH_H
 
 from .config import Config, Credentials
 from .models import (CreatedProduct, CreateProductInput, GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
-                     OrderDetail, Product, ProductCollection)
+                     OrderDetail, OrderStatusSnapshot, Product, ProductCollection,
+                     UpdateOrderStatusInput, UpdatedOrderStatus)
 from .orders import DETAIL_FIELDS, SUMMARY_FIELDS, date_parameters, normalize_order, resolve_date_window
 
 PATH = "/wp-json/wc/v3/products"
@@ -30,6 +31,36 @@ class WooError(Exception):
         self.retry_safe = False if write_unknown else None
         message = code + ("; write_outcome=unknown; retry_safe=false" if write_unknown else "")
         super().__init__(message)
+
+
+class WooStateConflict(WooError):
+    """Only validated status enums enter this safe conflict message."""
+
+    def __init__(self, query: UpdateOrderStatusInput, observed: OrderStatusSnapshot):
+        super().__init__("STATE_CONFLICT")
+        self.args = (f"STATE_CONFLICT; expected_status={query.expected_status}; "
+                     f"observed_status={observed.status}",)
+
+
+def order_status_result(data, order_id):
+    result = OrderStatusSnapshot.model_validate({"id": data["id"], "status": data["status"]})
+    if result.id != order_id:
+        raise ValueError()
+    return result
+
+
+def status_parameter_rejected(data):
+    """Recognize WP's status-enum rejection, not localized messages/plugin guesses."""
+    if not isinstance(data, dict) or data.get("code") != "rest_invalid_param":
+        return False
+    details = data.get("data")
+    if not isinstance(details, dict) or details.get("status") != 400:
+        return False
+    params, errors = details.get("params"), details.get("details")
+    if not isinstance(params, dict) or set(params) != {"status"} or not isinstance(errors, dict):
+        return False
+    error = errors.get("status")
+    return isinstance(error, dict) and error.get("code") == "rest_not_in_enum"
 
 
 def product_urls(config, sku):
@@ -180,11 +211,39 @@ class WooClient:
             # A bad response does not undo a possible committed product.
             raise WooError("WOO_INVALID_RESPONSE", write_unknown=True) from None
 
+    async def update_order_status(self, query: UpdateOrderStatusInput) -> UpdatedOrderStatus:
+        path = f"/wp-json/wc/v3/orders/{query.order_id}"
+        # Fetch only identity/status. Never reuse a full customer-bearing order DTO.
+        suffix = path + "?" + urlencode({"_fields": "id,status"})
+        data, _ = await self._get(self.config.canonical_origin + suffix,
+                                  self.config.connection_origin + suffix)
+        try:
+            before = order_status_result(data, query.order_id)
+        except (ValueError, TypeError, KeyError):
+            raise WooError("WOO_INVALID_RESPONSE") from None
+        if before.status != query.expected_status:
+            raise WooStateConflict(query, before)
+        if before.status == query.status:
+            return UpdatedOrderStatus(order_id=query.order_id, observed_before_status=before.status,
+                                      after_status=before.status, changed=False)
+        # Advisory guard only: another actor can write between this GET and PUT.
+        data, _ = await self._request("PUT", self.config.canonical_origin + path,
+                                      self.config.connection_origin + path,
+                                      payload={"status": query.status})
+        try:
+            after = order_status_result(data, query.order_id)
+            if after.status != query.status:
+                raise ValueError()
+            return UpdatedOrderStatus(order_id=query.order_id, observed_before_status=before.status,
+                                      after_status=after.status, changed=True)
+        except (ValueError, TypeError, KeyError):
+            raise WooError("WOO_INVALID_RESPONSE", write_unknown=True) from None
+
     async def _get(self, canonical, connection):
         return await self._request("GET", canonical, connection)
 
     async def _request(self, method, canonical, connection, *, payload=None):
-        writing = method == "POST"
+        writing = method in {"POST", "PUT"}
         attempted = False
         try:
             async with asyncio.timeout(self.config.deadline_seconds):
@@ -199,9 +258,10 @@ class WooClient:
                     status = response.status_code
                     if 300 <= status < 400:
                         raise WooError("WOO_CONFIGURATION_ERROR", status, write_unknown=writing)
-                    # Only inspect a bounded code field for known SKU conflicts.
-                    sku_error = writing and status in (400, 409)
-                    if status != (201 if writing else 200) and not sku_error:
+                    # Only inspect bounded structured evidence for known rejections.
+                    sku_error = method == "POST" and status in (400, 409)
+                    status_error = method == "PUT" and status == 400
+                    if status != (201 if method == "POST" else 200) and not (sku_error or status_error):
                         code = {401: "WOO_AUTH_FAILED", 403: "WOO_FORBIDDEN",
                                 404: "NOT_FOUND"}.get(status,
                                 "WOO_UPSTREAM_ERROR" if status >= 500 else
@@ -221,6 +281,9 @@ class WooClient:
                         if isinstance(data, dict) and data.get("code") == "product_invalid_sku":
                             raise WooError("DUPLICATE_SKU", status)
                         raise WooError("WOO_REQUEST_REJECTED", status)
+                    if status_error:
+                        code = "INVALID_TRANSITION" if status_parameter_rejected(data) else "WOO_REQUEST_REJECTED"
+                        raise WooError(code, status)
                     return data, response.headers
         except (httpx.TimeoutException, TimeoutError):
             raise WooError("WOO_TIMEOUT", write_unknown=attempted) from None

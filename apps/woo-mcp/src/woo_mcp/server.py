@@ -1,4 +1,4 @@
-"""Official SDK ASGI scaffold: three reads and product creation, no caller auth yet."""
+"""Official SDK ASGI scaffold: five Woo tools, no caller authentication yet."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -15,7 +15,8 @@ from .config import Config, Credentials
 from .models import (CreatedProduct, CreatePrice, CreateProductInput, CreateStatus,
                      CreateStockStatus, ProductName, GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
                      OrderDate, OrderDetail, OrderID, OrderStatus, Page, PageSize,
-                     ProductCollection, Search, SKU, Status, StrictModel)
+                     ProductCollection, Search, SKU, Status, StrictModel,
+                     UpdateOrderStatusInput, UpdatedOrderStatus, WritableOrderStatus)
 from .woocommerce import WooClient, WooError
 
 
@@ -81,6 +82,12 @@ def create_server(config=None, *, client_factory=None):
         return await tool_call(ctx, CreateProductInput, "create_product", name=name, price=price,
                                sku=sku, status=status, stock_status=stock_status)
 
+    async def update_order_status(ctx: Context[WooClient], order_id: OrderID,
+                                  status: WritableOrderStatus, expected_status: OrderStatus) -> UpdatedOrderStatus:
+        """Guard observed status, then at most one PUT. Not atomic; hooks may run. Never retry unknown writes."""
+        return await tool_call(ctx, UpdateOrderStatusInput, "update_order_status", order_id=order_id,
+                               status=status, expected_status=expected_status)
+
     async def tool_call(ctx, model, method, **values):
         try:
             query = model.model_validate(values)
@@ -94,8 +101,9 @@ def create_server(config=None, *, client_factory=None):
 
     tools = []
     for function, model in ((list_products, ListProductsInput), (get_order, GetOrderInput),
-                            (list_orders, ListOrdersInput), (create_product, CreateProductInput)):
-        read_only = function is not create_product
+                            (list_orders, ListOrdersInput), (create_product, CreateProductInput),
+                            (update_order_status, UpdateOrderStatusInput)):
+        read_only = function in (list_products, get_order, list_orders)
         tool = Tool.from_function(function, structured_output=True,
                                   annotations=ToolAnnotations(read_only_hint=read_only,
                                                               destructive_hint=not read_only,

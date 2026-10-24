@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-23 - Stage 4.6: create_product passes offline write-safety/protocol checks.** Stage 4.5 was approved/committed as c975ede. The catalog now has three read tools and one simple-product create tool. SKU precheck is advisory; at most one POST attempt and no automatic retries/reconciliation. Ambiguous write outcomes are explicit. No live Woo request, real credential access, Kubernetes/Docker/Helm operation or real store mutation occurred. update_order_status, deployment and gateway authentication remain incomplete.
+**2026-10-24 - Stage 4.7: all five Woo tool contracts implemented and tested offline.** Stage 4.6 was approved/committed as 53f54a2. update_order_status adds an expected-status guard, same-state no-op and at most one PUT with explicit unknown-outcome handling. The guard is not atomic; Woo remains authoritative and can trigger normal status side effects. No live Woo request/mutation, real credential access or Kubernetes/Docker/Helm operation occurred. Container/Kubernetes hosting, live tool acceptance and gateway authentication remain incomplete.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,7 +18,52 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 4.6 source/tests and offline evidence in package README, progress and journey. No accepted architecture decision changed. No staging/commit or runtime operations.
+Record Stage 4.7 source/tests and offline evidence in package README, progress and journey. No accepted architecture decision changed. No staging/commit or runtime operations.
+
+## Stage 4.7 guarded order status updates
+
+Implemented exactly update_order_status as the fifth tool, reusing strict SDK inputs,
+lifespan/client, OAuth signing, normalized outputs and sanitized error taxonomy.
+The three reads remain read-only; both writes are mutating/non-idempotent. Annotations
+are descriptive and do not implement gateway authorization.
+
+The [status-update contract](../apps/woo-mcp/README.md#guarded-order-status-updates)
+requires strict positive order_id, six allowed target statuses and expected_status
+from the seven readable standard statuses. One GET requests/normalizes only id/status.
+STATE_CONFLICT includes safe expected/observed enums and prevents PUT; the guard runs
+before the same-status no-op. Otherwise one PUT sends only status. Valid HTTP 200,
+matching ID and target status produce the four-field changed=true result. Bad/mismatched
+write responses remain unknown, never successful unchanged-state claims.
+
+Initial GET failures retain normal read semantics; once PUT is attempted,
+timeout/network/5xx/redirect/unusable response carries write_outcome=unknown and
+retry_safe=false. No automatic retry, reconciliation or rollback. INVALID_TRANSITION
+is limited to a structured WordPress status-enum rejection, confirmed against the
+pinned source; generic/plugin 4xx remains WOO_REQUEST_REJECTED. No invented workflow
+or message matching. The GET/compare/PUT sequence races other writers, and Woo hooks
+may affect notifications/fulfillment/stock. Refund operations and refunded targets
+are excluded; refunded is allowed only as an observed expected state.
+
+| Validation | Result / boundary |
+| --- | --- |
+| Full suite | 110 tests passed: prior 83 plus 24 update tests and 3 protocol tests |
+| Write safety | Explicit GET/PUT counts; conflict/no-op/read failure zero PUTs; writes at most one; committed-write/lost-response and intervening-writer fixtures |
+| REST/privacy | Exact status-only PUT, canonical PUT signing/Host, strict identity/status normalization; no customer fields, credentials, headers or raw error bodies in results |
+| Protocol | Official auto/current/legacy clients discover five tools; schema, structured success/no-op and sanitized conflict/rejection/ambiguity pass |
+| Repository | Compilation, installed dependency/unchanged lock consistency, credential/contact scan, documentation links/anchors/tables and git diff --check passed |
+| Runtime | Offline mocks/in-process ASGI only; no live order update, listening TCP acceptance, container or Kubernetes work |
+
+All five mandatory tool contracts now exist, but the full Woo MCP requirements are
+not complete. No real store state was read or changed in Stage 4.7; product 11/order 12
+were not touched. Previous store evidence is historical, not a fresh health check.
+No formatter/linter is established; none added. No dependency/architecture change.
+SDK adapter coupling, configured INR, HTTP transport limits and runtime date-boundary
+acceptance remain as documented.
+
+Proposed Stage 4.8 boundary: review container/Helm hosting design and perform a local
+listening-TCP MCP smoke test against mocked Woo REST before separately authorized
+container/Kubernetes deployment and live writes. This proposal does not authorize
+starting the cluster or mutating the store. Nothing staged or committed; stop for review.
 
 ## Stage 4.6 first mutating tool
 

@@ -1,8 +1,9 @@
-# WooCommerce MCP: three reads and product creation
+# WooCommerce MCP: five product and order tools
 
-Stage 4.6 adds create_product alongside list_products, get_order and list_orders.
+Stage 4.7 adds update_order_status alongside list_products, get_order, list_orders
+and create_product. All five required business contracts exist with offline tests.
 Stage 4.3's credential loading, OAuth transport and acceptance command remain.
-update_order_status, Dockerfile and Helm workloads remain absent.
+Dockerfile and Helm workloads remain absent; this is not full runtime acceptance.
 Runtime store execution requires separate authorization; offline tests use dummy
 credentials and mocked REST exclusively. Do not repeat the live diagnostic merely
 to test MCP. Gateway caller authentication and Kubernetes hosting remain future work.
@@ -104,7 +105,7 @@ ASGI transport at http://127.0.0.1:8000/mcp, not handcrafted JSON-RPC. They veri
 auto discovery, explicit 2026-07-28 and legacy 2025-11-25, schema, calls, errors,
 no Mcp-Session-Id and pooled client lifecycle. No listening TCP socket, real REST
 request, Secret access or Kubernetes operation is involved. Network/container
-hosting and update_order_status remain unimplemented/unvalidated.
+hosting remains unimplemented/unvalidated; offline status-update coverage is below.
 
 ## Order tools and store dates
 
@@ -245,6 +246,88 @@ exercise a simulated committed write with lost response, and verify no follow-up
 read/retry. Current and legacy clients discover exactly four tools, validate schemas,
 return normalized success and receive sanitized duplicate/validation/unknown errors.
 No live write has occurred; runtime proof waits for deployment and separate approval.
+
+## Guarded order status updates
+
+update_order_status is the fifth business tool. The three read tools remain
+read-only; both write tools have read_only_hint=false, idempotent_hint=false and
+destructive_hint=true. Hints describe behavior, not authorization enforcement.
+
+| Required input | Contract |
+| --- | --- |
+| order_id | Strict positive integer; no bool/string/float coercion |
+| status | pending, processing, on-hold, completed, cancelled or failed |
+| expected_status | Previously observed status; the six targets above plus refunded |
+| Extra fields | Rejected; no arbitrary properties, metadata, URLs or refund operation |
+
+One GET /wp-json/wc/v3/orders/{order_id}?_fields=id%2Cstatus precedes any write.
+Only identity and status are normalized, regardless of extra upstream fields.
+Malformed/mismatched identity or unknown status fails before PUT. Missing order
+is NOT_FOUND. If the observed status differs from expected_status, STATE_CONFLICT
+includes only the validated expected/observed status enums; zero PUTs occur.
+This guard runs before checking for a no-op: stale expectations do not become success
+just because the current status already equals the requested target.
+
+If expected/current/target agree, return order_id, observed_before_status,
+after_status and changed=false, with no PUT. Otherwise send exactly one
+PUT /wp-json/wc/v3/orders/{order_id} with only {"status":"<requested-status>"}.
+HTTP 200 must contain the same strict order ID and requested status. The normalized
+result has the same four fields and changed=true. This reports the response at
+that moment, not a guarantee another process cannot subsequently change the order.
+No full order, customer fields, raw response, headers or request representation is returned.
+
+The transport reuses OAuthLib with the actual PUT method, pooled HTTPX, canonical
+signing origin, Service-DNS connection/Host, disabled redirects/retries, 8-second
+per-request deadline and 64KiB decoded response bound. At most one GET and one PUT;
+no automatic reconciliation read, second PUT, rollback or custom transition matrix.
+Two sequential REST requests can consume up to two REST deadlines.
+
+| Failure phase | Result |
+| --- | --- |
+| Initial GET or normalization | Existing read errors; no mutation attempted, no unknown-write label |
+| Expected-status mismatch | STATE_CONFLICT with safe expected/observed statuses; zero PUTs |
+| Explicit status-enum rejection | INVALID_TRANSITION for the narrow structured evidence below |
+| Other clear 4xx rejection | Existing auth/forbidden/not-found/request-rejected code; no raw message |
+| Attempted PUT timeout/network/408/5xx/redirect | Existing safe code plus write_outcome=unknown; retry_safe=false |
+| PUT unusable/malformed/oversized success, wrong ID/status or unexpected 2xx | Safe error plus unknown/unsafe-to-retry semantics |
+
+Recognized INVALID_TRANSITION evidence is HTTP 400, code=rest_invalid_param,
+data.status=400, data.params naming only status, and
+data.details.status.code=rest_not_in_enum. It means the upstream rejected the target
+status parameter, not that we have inferred a fulfillment workflow. Woo's standard
+enum normally admits all six tool targets; altered upstream validation may reject
+one. Generic/plugin errors remain WOO_REQUEST_REJECTED unless separately reviewed
+structured evidence supports a narrower mapping. No message matching or invented
+universal Woo transition code. Malformed/oversized rejection bodies are conservative
+unknown writes. A clear rejection does not imply every possible plugin hook had no
+side effect. Sources: [Woo v3 order update](https://developer.woocommerce.com/docs/apis/rest-api/v3/orders/),
+[Woo 11.2.1 status schema](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/rest-api/Controllers/Version2/class-wc-rest-orders-v2-controller.php),
+[WordPress 7.1.3 validation envelope](https://raw.githubusercontent.com/WordPress/WordPress/7.1.3/wp-includes/rest-api/class-wp-rest-request.php)
+and [enum error code](https://raw.githubusercontent.com/WordPress/WordPress/7.1.3/wp-includes/rest-api.php).
+
+The expected-status guard is NOT atomic compare-and-swap. Another administrator or
+process can change the order between GET and PUT. No locks, direct SQL or custom
+Woo plugin is introduced. WooCommerce remains authoritative and normal status
+changes can trigger hooks, notifications, fulfillment or stock-related behavior.
+The tool sets only the status field; it does not control those downstream effects.
+refunded is readable for the guard but never a target: changing a label is not a
+refund. Trash, checkout drafts and custom target statuses are also excluded.
+
+Unknown outcome never means the order stayed unchanged. Do not retry blindly;
+later separately requested inspection is an operator decision, not an automatic
+step here. Cancellation propagates without replay and may leave no tool response.
+The non-idempotent annotation remains conservative even though same-state calls
+can no-op. No live order mutation occurred, including order 12.
+
+Stage 4.7 evidence: 110 tests pass (previous 83 plus 24 focused update tests and
+3 official-client protocol tests). Mocks explicitly count GET/PUT attempts, simulate
+an intervening administrator write and a committed PUT with lost response, and
+prove customer-shaped fields and dummy credentials do not escape in results/errors.
+Auto/current 2026-07-28/legacy 2025-11-25 client coverage is green. Protocol evidence
+remains in-process ASGI with mocked REST; no listening TCP, live order transition,
+Linux execution, container/Kubernetes hosting or gateway authentication is proved.
+No dependency changes. The SDK 2.3.0 adapter coupling, configured INR and earlier
+runtime date-boundary limitations remain.
 
 ## Connection contract
 

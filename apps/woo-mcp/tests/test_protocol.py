@@ -15,6 +15,7 @@ from woo_mcp.woocommerce import WooClient
 from test_products import CREDS, PRODUCT, HEADERS
 from test_orders import ORDER, PRIVATE, assert_private_absent
 from test_create_product import CREATED, EMPTY, INPUT
+from test_update_order_status import UPDATE, STATUS_REJECTION
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
@@ -55,11 +56,13 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def check_protocol(self, mode):
         async with self.connection(mode) as client:
             tools = (await client.list_tools()).tools
-            self.assertEqual([tool.name for tool in tools], ["list_products", "get_order", "list_orders", "create_product"])
+            self.assertEqual([tool.name for tool in tools],
+                             ["list_products", "get_order", "list_orders", "create_product", "update_order_status"])
             self.assertTrue(all(t.annotations.read_only_hint for t in tools[:3]))
-            self.assertFalse(tools[3].annotations.read_only_hint)
-            self.assertFalse(tools[3].annotations.idempotent_hint)
-            self.assertTrue(tools[3].annotations.destructive_hint)
+            for tool in tools[3:]:
+                self.assertFalse(tool.annotations.read_only_hint)
+                self.assertFalse(tool.annotations.idempotent_hint)
+                self.assertTrue(tool.annotations.destructive_hint)
             self.assertTrue(all(t.input_schema["additionalProperties"] is False for t in tools))
             schema = tools[0].input_schema
             self.assertFalse(schema["additionalProperties"])
@@ -191,6 +194,77 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(result.structured_content, {"created": True, "product": {**CREATED, "currency": "INR"}})
                 assert_private_absent(self, result.model_dump_json())
                 self.assertEqual([r.method for r in self.rest_calls], ["POST"])
+
+    async def test_update_protocols(self):
+        for mode in ("auto", "2026-07-28", "legacy"):
+            for noop in (False, True):
+                def handler(request):
+                    return httpx.Response(200, json={**ORDER,
+                        "status": "processing" if request.method == "GET" else "completed"})
+                async with self.connection(mode, handler) as client:
+                    tool = {t.name: t for t in (await client.list_tools()).tools}["update_order_status"]
+                    schema = tool.input_schema
+                    self.assertEqual(set(schema["required"]), {"order_id", "status", "expected_status"})
+                    self.assertEqual(set(schema["properties"]), {"order_id", "status", "expected_status"})
+                    self.assertFalse(schema["additionalProperties"])
+                    self.assertEqual(schema["properties"]["order_id"]["type"], "integer")
+                    self.assertEqual(schema["properties"]["order_id"]["exclusiveMinimum"], 0)
+                    targets = {"pending", "processing", "on-hold", "completed", "cancelled", "failed"}
+                    self.assertEqual(set(schema["properties"]["status"]["enum"]), targets)
+                    self.assertEqual(set(schema["properties"]["expected_status"]["enum"]), targets | {"refunded"})
+                    self.assertEqual(set(tool.output_schema["properties"]),
+                                     {"order_id", "observed_before_status", "after_status", "changed"})
+                    args = {**UPDATE, "status": "processing"} if noop else UPDATE
+                    result = await client.call_tool("update_order_status", args)
+                    self.assertFalse(result.is_error)
+                    self.assertEqual(result.structured_content, dict(order_id=12,
+                        observed_before_status="processing", after_status=args["status"], changed=not noop))
+                    assert_private_absent(self, result.model_dump_json())
+                    self.assertEqual([r.method for r in self.rest_calls], ["GET"] if noop else ["GET", "PUT"])
+
+    async def test_update_validation(self):
+        async with self.connection() as client:
+            for args in ({}, {**UPDATE, "order_id": True}, {**UPDATE, "order_id": "12"},
+                         {**UPDATE, "order_id": 0}, {**UPDATE, "status": "refunded"},
+                         {**UPDATE, "expected_status": "SYNTHETIC-PRIVATE"},
+                         {**UPDATE, "extra": "SYNTHETIC-PRIVATE"}):
+                result = await client.call_tool("update_order_status", args)
+                self.assertTrue(result.is_error)
+                self.assertIsNone(result.structured_content)
+                self.assertIn("VALIDATION_ERROR", result.content[0].text)
+                assert_private_absent(self, result.model_dump_json())
+            self.assertEqual(self.rest_calls, [])
+
+    async def test_update_conflict_and_write_errors(self):
+        for mode in ("auto", "2026-07-28", "legacy"):
+            for kind, code in (("conflict", "STATE_CONFLICT"), ("transition", "INVALID_TRANSITION"),
+                               ("timeout", "WOO_TIMEOUT"), ("server", "WOO_UPSTREAM_ERROR"),
+                               ("mismatch", "WOO_INVALID_RESPONSE")):
+                def handler(request):
+                    if request.method == "GET":
+                        return httpx.Response(200, json={**ORDER,
+                            "status": "completed" if kind == "conflict" else "processing"})
+                    if kind == "timeout":
+                        raise httpx.ReadTimeout("SYNTHETIC-PRIVATE")
+                    if kind == "transition":
+                        return httpx.Response(400, json=STATUS_REJECTION)
+                    return httpx.Response(503 if kind == "server" else 200, json=ORDER)
+                async with self.connection(mode, handler) as client:
+                    result = await client.call_tool("update_order_status", UPDATE)
+                    self.assertTrue(result.is_error)
+                    self.assertIsNone(result.structured_content)
+                    text = result.content[0].text
+                    self.assertIn(code, text)
+                    assert_private_absent(self, result.model_dump_json())
+                    self.assertNotIn("Authorization", text)
+                    if kind in {"timeout", "server", "mismatch"}:
+                        self.assertIn("write_outcome=unknown; retry_safe=false", text)
+                    else:
+                        self.assertNotIn("write_outcome", text)
+                    if kind == "conflict":
+                        self.assertIn("expected_status=processing; observed_status=completed", text)
+                    self.assertEqual([r.method for r in self.rest_calls],
+                                     ["GET"] if kind == "conflict" else ["GET", "PUT"])
 
     async def test_create_validation(self):
         async with self.connection() as client:

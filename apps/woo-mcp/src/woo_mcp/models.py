@@ -93,12 +93,31 @@ class CreatedProduct(StrictModel):
 
 OrderID = Annotated[int, Field(strict=True, gt=0)]
 OrderStatus = Literal["pending", "processing", "on-hold", "completed", "cancelled", "refunded", "failed"]
+WritableOrderStatus = Literal["pending", "processing", "on-hold", "completed", "cancelled", "failed"]
 OrderDate = Annotated[str, Field(pattern=r"^(today|[0-9]{4}-[0-9]{2}-[0-9]{2})$")]
 OrderMoney = Annotated[str, Field(max_length=40, pattern=r"^[0-9]+(?:\.[0-9]+)?$")]
 
 
 class GetOrderInput(StrictModel):
     order_id: OrderID
+
+
+class UpdateOrderStatusInput(StrictModel):
+    order_id: OrderID
+    status: WritableOrderStatus
+    expected_status: OrderStatus
+
+
+class OrderStatusSnapshot(StrictModel):
+    id: OrderID
+    status: OrderStatus
+
+
+class UpdatedOrderStatus(StrictModel):
+    order_id: OrderID
+    observed_before_status: OrderStatus
+    after_status: WritableOrderStatus
+    changed: bool
 
 
 class ListOrdersInput(StrictModel):
