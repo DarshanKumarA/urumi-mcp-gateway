@@ -1,6 +1,7 @@
 """Strict tool inputs and allowlisted structured outputs; no REST passthrough."""
 
 from datetime import date as CalendarDate
+from decimal import Decimal
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
@@ -61,6 +62,33 @@ class ProductCollection(StrictModel):
     total_pages: Annotated[int, Field(ge=0)]
     has_more: bool
     currency: Annotated[str, Field(pattern=r"^[A-Z]{3}$")]
+
+
+ProductName = Annotated[str, StringConstraints(strict=True, strip_whitespace=True, min_length=1, max_length=200)]
+CreatePrice = Annotated[str, Field(strict=True, pattern=r"^[0-9]+(?:\.[0-9]{1,2})?$",
+                                   description="Nonnegative decimal string, at most two fractional digits; maximum 999999999.99.")]
+CreateStatus = Literal["publish", "draft"]
+CreateStockStatus = Literal["instock", "outofstock"]
+
+
+class CreateProductInput(StrictModel):
+    name: ProductName
+    price: CreatePrice
+    sku: SKU | None = None
+    status: CreateStatus = "publish"
+    stock_status: CreateStockStatus = "instock"
+
+    @field_validator("price")
+    @classmethod
+    def price_limit(cls, value):
+        if Decimal(value) > Decimal("999999999.99"):
+            raise ValueError("Price exceeds the allowed maximum.")
+        return value
+
+
+class CreatedProduct(StrictModel):
+    product: Product
+    created: Literal[True] = True
 
 
 OrderID = Annotated[int, Field(strict=True, gt=0)]

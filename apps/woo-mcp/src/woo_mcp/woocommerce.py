@@ -1,4 +1,4 @@
-"""Shared REST reads. No writes, redirects or retries."""
+"""Shared REST reads and one product create. No redirects or retries."""
 
 import asyncio
 import json
@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from oauthlib.oauth1 import Client, SIGNATURE_HMAC_SHA256, SIGNATURE_TYPE_AUTH_HEADER
 
 from .config import Config, Credentials
-from .models import (GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
+from .models import (CreatedProduct, CreateProductInput, GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
                      OrderDetail, Product, ProductCollection)
 from .orders import DETAIL_FIELDS, SUMMARY_FIELDS, date_parameters, normalize_order, resolve_date_window
 
@@ -23,10 +23,13 @@ MAX_BYTES = 65536
 class WooError(Exception):
     """Fixed safe code only; never expose upstream messages or request objects."""
 
-    def __init__(self, code, status=None):
-        super().__init__(code)
+    def __init__(self, code, status=None, *, write_unknown=False):
         self.code = code
         self.status = status
+        self.write_outcome = "unknown" if write_unknown else None
+        self.retry_safe = False if write_unknown else None
+        message = code + ("; write_outcome=unknown; retry_safe=false" if write_unknown else "")
+        super().__init__(message)
 
 
 def product_urls(config, sku):
@@ -51,6 +54,11 @@ def normalize_product(data, sku):
             or not re.fullmatch(r"[0-9]{1,9}(?:\.[0-9]{1,2})?", p["price"])):
         raise WooError("WOO_INVALID_RESPONSE")
     return {key: p[key] for key in FIELDS.split(",")}
+
+
+def product_result(data, currency):
+    return Product.model_validate({**{name: data[name] for name in Product.model_fields
+                                      if name != "currency"}, "currency": currency})
 
 
 def pagination(data, headers, query):
@@ -102,8 +110,7 @@ class WooClient:
                                         self.config.connection_origin + suffix)
         try:
             total, pages = pagination(data, headers, query)
-            items = [Product.model_validate({**{key: item[key] for key in fields},
-                                             "currency": self.config.currency}) for item in data]
+            items = [product_result(item, self.config.currency) for item in data]
             if len({item.id for item in items}) != len(items):
                 raise ValueError()
             return ProductCollection(items=items, page=query.page, per_page=query.per_page,
@@ -150,36 +157,81 @@ class WooClient:
         except (ValueError, TypeError, KeyError, OverflowError):
             raise WooError("WOO_INVALID_RESPONSE") from None
 
+    async def create_product(self, query: CreateProductInput) -> CreatedProduct:
+        if query.sku is not None:
+            existing = await self.list_products(ListProductsInput(sku=query.sku, per_page=1))
+            if existing.items:
+                raise WooError("DUPLICATE_SKU")
+        payload = {"name": query.name, "type": "simple", "regular_price": query.price,
+                   "status": query.status, "stock_status": query.stock_status}
+        if query.sku is not None:
+            payload["sku"] = query.sku
+        data, _ = await self._request("POST", self.config.canonical_origin + PATH,
+                                      self.config.connection_origin + PATH, payload=payload)
+        try:
+            product = product_result(data, self.config.currency)
+            if (product.type != "simple" or product.status != query.status
+                    or product.stock_status != query.stock_status
+                    or Decimal(product.regular_price) != Decimal(query.price)
+                    or (query.sku is not None and product.sku != query.sku)):
+                raise ValueError()
+            return CreatedProduct(product=product)
+        except (ValueError, TypeError, KeyError, InvalidOperation):
+            # A bad response does not undo a possible committed product.
+            raise WooError("WOO_INVALID_RESPONSE", write_unknown=True) from None
+
     async def _get(self, canonical, connection):
+        return await self._request("GET", canonical, connection)
+
+    async def _request(self, method, canonical, connection, *, payload=None):
+        writing = method == "POST"
+        attempted = False
         try:
             async with asyncio.timeout(self.config.deadline_seconds):
-                # OAuthLib owns all cryptography. Sign the Woo home origin, NOT Service DNS.
-                _, headers, _ = self._signer.sign(canonical, http_method="GET")
+                # OAuthLib signs method + canonical origin. JSON is not included
+                # as form parameters; HTTP OAuth does not protect this JSON body.
+                headers_in = {"Content-Type": "application/json"} if writing else {}
+                body = json.dumps(payload, ensure_ascii=False).encode("utf-8") if writing else None
+                _, headers, _ = self._signer.sign(canonical, http_method=method, headers=headers_in)
                 headers.update({"Host": self.config.host, "Accept": "application/json"})
-                async with self._http.stream("GET", connection, headers=headers) as response:
+                attempted = writing  # Conservative: sending may fail after bytes leave.
+                async with self._http.stream(method, connection, headers=headers, content=body) as response:
                     status = response.status_code
                     if 300 <= status < 400:
-                        raise WooError("WOO_CONFIGURATION_ERROR", status)
-                    if status != 200:
+                        raise WooError("WOO_CONFIGURATION_ERROR", status, write_unknown=writing)
+                    # Only inspect a bounded code field for known SKU conflicts.
+                    sku_error = writing and status in (400, 409)
+                    if status != (201 if writing else 200) and not sku_error:
                         code = {401: "WOO_AUTH_FAILED", 403: "WOO_FORBIDDEN",
                                 404: "NOT_FOUND"}.get(status,
-                                "WOO_UPSTREAM_ERROR" if status >= 500 else "WOO_REQUEST_REJECTED")
-                        # Do not parse or echo upstream error bodies, headers or Location.
-                        raise WooError(code, status)
+                                "WOO_UPSTREAM_ERROR" if status >= 500 else
+                                "WOO_INVALID_RESPONSE" if writing and status < 300 else "WOO_REQUEST_REJECTED")
+                        raise WooError(code, status, write_unknown=writing and
+                                       (status >= 500 or status == 408 or status < 300))
                     content = bytearray()
                     async for part in response.aiter_bytes():
                         if len(content) + len(part) > MAX_BYTES:
-                            raise WooError("WOO_RESPONSE_TOO_LARGE", status)
+                            raise WooError("WOO_RESPONSE_TOO_LARGE", status, write_unknown=writing)
                         content.extend(part)
                     try:
                         data = json.loads(content, parse_float=Decimal)
-                    except (ValueError, TypeError):
-                        raise WooError("WOO_INVALID_RESPONSE", status) from None
+                    except (ValueError, TypeError, InvalidOperation):
+                        raise WooError("WOO_INVALID_RESPONSE", status, write_unknown=writing) from None
+                    if sku_error:
+                        if isinstance(data, dict) and data.get("code") == "product_invalid_sku":
+                            raise WooError("DUPLICATE_SKU", status)
+                        raise WooError("WOO_REQUEST_REJECTED", status)
                     return data, response.headers
         except (httpx.TimeoutException, TimeoutError):
-            raise WooError("WOO_TIMEOUT") from None
+            raise WooError("WOO_TIMEOUT", write_unknown=attempted) from None
         except httpx.RequestError:
-            raise WooError("WOO_UNREACHABLE") from None
+            raise WooError("WOO_UNREACHABLE", write_unknown=attempted) from None
+        except WooError:
+            raise
+        except Exception:
+            # No exception/request repr escapes, including unforeseen failures
+            # after submission. Cancellation still propagates without replay.
+            raise WooError("WOO_INTERNAL_ERROR", write_unknown=attempted) from None
 
 
 def is_demo_product(product):

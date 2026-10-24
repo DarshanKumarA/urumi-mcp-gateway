@@ -1,4 +1,4 @@
-"""Official SDK ASGI scaffold: three read-only business tools, no caller auth yet."""
+"""Official SDK ASGI scaffold: three reads and product creation, no caller auth yet."""
 
 import logging
 from contextlib import asynccontextmanager
@@ -12,7 +12,8 @@ from mcp.types import ToolAnnotations
 from pydantic import ValidationError
 
 from .config import Config, Credentials
-from .models import (GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
+from .models import (CreatedProduct, CreatePrice, CreateProductInput, CreateStatus,
+                     CreateStockStatus, ProductName, GetOrderInput, ListOrdersInput, ListProductsInput, OrderCollection,
                      OrderDate, OrderDetail, OrderID, OrderStatus, Page, PageSize,
                      ProductCollection, Search, SKU, Status, StrictModel)
 from .woocommerce import WooClient, WooError
@@ -58,39 +59,47 @@ def create_server(config=None, *, client_factory=None):
         except ValidationError:
             raise ToolError("VALIDATION_ERROR") from None
         except WooError as error:
-            raise ToolError(error.code) from None
+            raise ToolError(str(error)) from None
         except Exception:
             # Keep SDK unexpected-error logging from exposing upstream/request details.
             raise ToolError("WOO_INTERNAL_ERROR") from None
 
     async def get_order(ctx: Context[WooClient], order_id: OrderID) -> OrderDetail:
         """Get operational order details without customer contact or address fields."""
-        return await order_call(ctx, GetOrderInput, "get_order", order_id=order_id)
+        return await tool_call(ctx, GetOrderInput, "get_order", order_id=order_id)
 
     async def list_orders(ctx: Context[WooClient], page: Page = 1, per_page: PageSize = 20,
                           status: OrderStatus | None = None, date: OrderDate | None = None) -> OrderCollection:
         """List one page of orders; today uses the store timezone. Reuse the returned date for later pages."""
-        return await order_call(ctx, ListOrdersInput, "list_orders", page=page,
+        return await tool_call(ctx, ListOrdersInput, "list_orders", page=page,
                                 per_page=per_page, status=status, date=date)
 
-    async def order_call(ctx, model, method, **values):
+    async def create_product(ctx: Context[WooClient], name: ProductName, price: CreatePrice,
+                             sku: SKU | None = None, status: CreateStatus = "publish",
+                             stock_status: CreateStockStatus = "instock") -> CreatedProduct:
+        """Create one simple product. Never automatically retry an unknown write outcome."""
+        return await tool_call(ctx, CreateProductInput, "create_product", name=name, price=price,
+                               sku=sku, status=status, stock_status=stock_status)
+
+    async def tool_call(ctx, model, method, **values):
         try:
             query = model.model_validate(values)
             return await getattr(ctx.request_context.lifespan_context, method)(query)
         except ValidationError:
             raise ToolError("VALIDATION_ERROR") from None
         except WooError as error:
-            raise ToolError(error.code) from None
+            raise ToolError(str(error)) from None
         except Exception:
             raise ToolError("WOO_INTERNAL_ERROR") from None
 
     tools = []
     for function, model in ((list_products, ListProductsInput), (get_order, GetOrderInput),
-                            (list_orders, ListOrdersInput)):
+                            (list_orders, ListOrdersInput), (create_product, CreateProductInput)):
+        read_only = function is not create_product
         tool = Tool.from_function(function, structured_output=True,
-                                  annotations=ToolAnnotations(read_only_hint=True,
-                                                              destructive_hint=False,
-                                                              idempotent_hint=True))
+                                  annotations=ToolAnnotations(read_only_hint=read_only,
+                                                              destructive_hint=not read_only,
+                                                              idempotent_hint=read_only))
         tool.fn_metadata = StrictArguments(**tool.fn_metadata.model_dump(), input_model=model)
         tool.parameters = model.model_json_schema()
         tools.append(tool)

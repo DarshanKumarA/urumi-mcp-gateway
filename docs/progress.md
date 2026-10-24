@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-23 - Stage 4.5: three read-only MCP tools pass offline acceptance.** Stage 4.4 was approved/committed as 68b2840. get_order and list_orders now join list_products using the existing pooled REST transport and SDK. Store dates use Asia/Kolkata; order DTOs omit customer/contact/address fields. No live Woo request, credential access, Kubernetes/Docker/Helm operation or business mutation occurred. Write tools, live order acceptance, Kubernetes hosting and gateway caller authentication remain incomplete.
+**2026-10-23 - Stage 4.6: create_product passes offline write-safety/protocol checks.** Stage 4.5 was approved/committed as c975ede. The catalog now has three read tools and one simple-product create tool. SKU precheck is advisory; at most one POST attempt and no automatic retries/reconciliation. Ambiguous write outcomes are explicit. No live Woo request, real credential access, Kubernetes/Docker/Helm operation or real store mutation occurred. update_order_status, deployment and gateway authentication remain incomplete.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,7 +18,28 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 4.5 source/tests and offline evidence in package README, progress and journey. Architecture/decisions remain unchanged: source inspection supports the accepted strict-second date mapping. The user's current authorization expands the earlier get_order-only proposal to both order reads. No staging/commit or runtime changes.
+Record Stage 4.6 source/tests and offline evidence in package README, progress and journey. No accepted architecture decision changed. No staging/commit or runtime operations.
+
+## Stage 4.6 first mutating tool
+
+Started clean on main at c975ede. Extended models/server/client and protocol tests; added test_create_product.py. The private GET helper now delegates to a shared GET/POST request path with the same OAuth signer, HTTP client, deadlines, response cap and zero retries. Read behavior/regressions are retained. Product allowlist normalization is shared between listing and creation. No dependency changes or new service layer.
+
+The [create contract](../apps/woo-mcp/README.md#product-creation-and-uncertain-writes) accepts name/price, optional SKU and limited status/stock enums only. It always POSTs type=simple and maps price to regular_price, omitting absent SKU. One bounded SKU lookup can reject DUPLICATE_SKU before any POST. Precheck is race-prone; pinned Woo create-time product_invalid_sku is recognized without exposing raw messages. Generic race-related 5xx remains unknown. No update-existing or successful-reuse behavior.
+
+WooError retains its safe taxonomy and adds fixed write_outcome=unknown/retry_safe=false semantics for attempted writes with timeout/network/5xx, redirects, unexpected success status, malformed/oversized response or failed Product verification. SDK errors retain is_error=true, not an error-shaped success. No automatic reconciliation read. A caller may explicitly invoke the tool again; there is no durable idempotency guarantee. Cancellation propagates without replay and can leave the caller without a response. Do not infer non-creation. HTTP OAuth still does not encrypt or integrity-protect the JSON body.
+
+| Validation | Result / boundary |
+| --- | --- |
+| Full suite | 83 tests passed: previous 59 (catalog now four), 21 create tests, 3 added protocol tests |
+| Input/payload | Strict bounds/types/extras; exact POST path and approved JSON keys; canonical POST signing/Host; null SKU omitted |
+| Duplicates/retries | Precheck match/failure yields zero POSTs; empty precheck and create-time conflict yield at most one; no retry/reconciliation, including lost response after a mock committed write |
+| Protocol/privacy | Official current/legacy clients discover four tools, preserve three read hints and mark create mutating/non-idempotent; normalized success and sanitized errors; no auth/body/customer leakage |
+| Repository | Compilation, pip/dependency/hash-lock consistency, credential/contact scan, documentation links/anchors/tables and git diff --check passed |
+| Runtime | No live create/read, listening TCP acceptance, Linux execution or Kubernetes hosting |
+
+The first 82-test run passed; review added a stronger committed-write/lost-response fixture, bringing the suite to 83. No formatter/linter is established, none added. Resource/Secret/store state unchanged. The known SDK 2.3.0 adapter coupling, configured product INR and runtime date/transport limitations remain. update_order_status is absent; full Woo MCP requirements are not complete.
+
+Proposed Stage 4.7: update_order_status only, with strict expected_status guard, read-before-write/no-op semantics, one PUT and unknown-outcome/no-retry behavior, tested offline before a separately authorized live change. No such implementation is authorized by this proposal. Stop for review; nothing staged or committed.
 
 ## Stage 4.5 read-only order tools
 

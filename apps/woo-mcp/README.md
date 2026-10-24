@@ -1,9 +1,8 @@
-# WooCommerce MCP: three read-only tools
+# WooCommerce MCP: three reads and product creation
 
-Stage 4.5 extends the official SDK ASGI server with get_order and list_orders,
-alongside list_products.
+Stage 4.6 adds create_product alongside list_products, get_order and list_orders.
 Stage 4.3's credential loading, OAuth transport and acceptance command remain.
-There are no write tools/methods, Dockerfile or Helm workload here.
+update_order_status, Dockerfile and Helm workloads remain absent.
 Runtime store execution requires separate authorization; offline tests use dummy
 credentials and mocked REST exclusively. Do not repeat the live diagnostic merely
 to test MCP. Gateway caller authentication and Kubernetes hosting remain future work.
@@ -105,11 +104,12 @@ ASGI transport at http://127.0.0.1:8000/mcp, not handcrafted JSON-RPC. They veri
 auto discovery, explicit 2026-07-28 and legacy 2025-11-25, schema, calls, errors,
 no Mcp-Session-Id and pooled client lifecycle. No listening TCP socket, real REST
 request, Secret access or Kubernetes operation is involved. Network/container
-hosting and the two write tools remain unimplemented/unvalidated.
+hosting and update_order_status remain unimplemented/unvalidated.
 
 ## Order tools and store dates
 
-Stage 4.5 exposes exactly list_products, get_order and list_orders, all read-only.
+The three read tools available after Stage 4.5 remain read-only: list_products,
+get_order and list_orders.
 The same lifespan client, OAuth signer, strict SDK argument adapter, 8-second REST
 deadline, 64KiB response bound, redirect rejection and zero-retry policy apply.
 The pagination validator is shared with list_products; no all-pages fetch.
@@ -174,6 +174,77 @@ three tools), current/legacy official-client order calls, timezone/midnight/boun
 fixtures, decimal precision, nested privacy and failures. Protocol tests remain
 in-process ASGI with mocked REST, not listening TCP or live order acceptance.
 Kubernetes hosting and gateway caller authentication remain incomplete.
+
+## Product creation and uncertain writes
+
+The fourth tool is create_product. The other three tools retain read-only hints;
+create_product has read_only_hint=false, idempotent_hint=false and a conservative
+destructive_hint=true. These hints describe behavior, not authorization enforcement.
+The existing SDK strict argument adapter, lifecycle and pooled WooClient are reused.
+No dependency change, second HTTP client or business framework was added.
+
+| Input | Contract |
+| --- | --- |
+| name | Required strict string, trimmed, 1-200 characters |
+| price | Required nonnegative decimal string, at most two fractional digits, maximum 999999999.99; no float/coercion/exponent notation |
+| sku | Optional trimmed string, 1-64 characters; omitted/null sends no SKU |
+| status | publish (default) or draft |
+| stock_status | instock (default) or outofstock |
+| Extra fields | Rejected, including description, metadata, images, variations, URLs and REST parameters |
+
+The POST path is /wp-json/wc/v3/products. JSON contains only name, type=simple,
+regular_price (mapped from price), status, stock_status and sku when supplied.
+No optional null/empty field is emitted. Leading zeros in valid price strings are
+accepted; validation/comparison uses Decimal and serialization retains the string.
+
+If supplied, SKU first uses one existing list_products request with page=1,
+per_page=1, no status filter. A match produces DUPLICATE_SKU with zero POSTs.
+Lookup failure stops too. This precheck is advisory and races other creators;
+WooCommerce create-time uniqueness remains authoritative. No SKU means no precheck
+and weaker later reconciliation. There is no update-existing or idempotent-success path.
+
+Pinned Woo 11.2.1 emits product_invalid_sku for SKU conflict; only that exact code in
+a bounded 400/409 response maps to DUPLICATE_SKU. No localized message matching or
+raw error forwarding. Sources: [product setter](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/abstracts/abstract-wc-product.php),
+[creation controller](https://raw.githubusercontent.com/woocommerce/woocommerce/11.2.1/plugins/woocommerce/includes/rest-api/Controllers/Version3/class-wc-rest-crud-controller.php).
+A concurrent data-store failure can instead appear as generic 5xx: it stays unknown,
+not guessed to be a duplicate. Successful creation requires HTTP 201 and a valid
+allowlisted Product, including matching simple type, regular price, status, stock
+status and supplied SKU. Return {product: Product, created: true}; no raw JSON.
+
+The shared request helper now handles GET and POST, retaining OAuthLib HMAC-SHA256,
+canonical signing origin, Service-DNS destination, Host, disabled redirects and
+HTTP retries=0. JSON is sent as application/json, not form parameters in the OAuth
+signature. This preserves the accepted HTTP OAuth design; it does not provide TLS
+confidentiality or JSON-body integrity. The signer receives the actual POST method.
+Each REST request retains its 8-second deadline/64KiB bound. At most one precheck
+and one POST occur; there are no automatic post-failure reconciliation requests.
+
+| Failure point | MCP result / write semantics |
+| --- | --- |
+| Input or SKU precheck failure | Safe existing error; no POST attempted |
+| Matching SKU or recognized create-time SKU conflict | DUPLICATE_SKU; not success/update |
+| HTTP 401/403/404 or other rejected 4xx | Existing auth/forbidden/not-found/request-rejected code; no retry or blanket claim that hooks had no side effects |
+| POST timeout/network failure, 408 or 5xx | Existing code plus write_outcome=unknown; retry_safe=false |
+| POST redirect, unexpected 2xx, oversized/malformed response or invalid Product | Existing code plus write_outcome=unknown; retry_safe=false |
+| Unexpected transport exception after attempt begins | WOO_INTERNAL_ERROR plus unknown/unsafe-to-retry semantics |
+
+These are SDK tool errors (is_error=true), with no structured success result. Only
+fixed codes and fixed outcome labels are exposed, never body/header/request/exception
+representations. Connection failures are conservatively unknown once sending is
+attempted, even if no bytes ultimately reached the store. Cancellation propagates
+without replay; a cancelled caller may receive no result and must assume an unknown
+outcome. Unknown never means non-creation or rollback. If SKU was supplied, a later
+separately requested lookup can inform an operator's decision; do not blindly retry.
+The tool does not implement durable idempotency or stop a caller explicitly invoking
+it twice. That is distinct from its own no-automatic-retry guarantee.
+
+Stage 4.6 offline evidence: 83 tests pass, including all previous 59, 21 create tests
+and 3 added official-client protocol tests. Tests count zero/one POST attempts,
+exercise a simulated committed write with lost response, and verify no follow-up
+read/retry. Current and legacy clients discover exactly four tools, validate schemas,
+return normalized success and receive sanitized duplicate/validation/unknown errors.
+No live write has occurred; runtime proof waits for deployment and separate approval.
 
 ## Connection contract
 

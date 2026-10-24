@@ -14,6 +14,7 @@ from woo_mcp.server import create_server
 from woo_mcp.woocommerce import WooClient
 from test_products import CREDS, PRODUCT, HEADERS
 from test_orders import ORDER, PRIVATE, assert_private_absent
+from test_create_product import CREATED, EMPTY, INPUT
 
 
 class ProtocolTests(unittest.IsolatedAsyncioTestCase):
@@ -54,8 +55,11 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def check_protocol(self, mode):
         async with self.connection(mode) as client:
             tools = (await client.list_tools()).tools
-            self.assertEqual([tool.name for tool in tools], ["list_products", "get_order", "list_orders"])
-            self.assertTrue(all(t.annotations.read_only_hint for t in tools))
+            self.assertEqual([tool.name for tool in tools], ["list_products", "get_order", "list_orders", "create_product"])
+            self.assertTrue(all(t.annotations.read_only_hint for t in tools[:3]))
+            self.assertFalse(tools[3].annotations.read_only_hint)
+            self.assertFalse(tools[3].annotations.idempotent_hint)
+            self.assertTrue(tools[3].annotations.destructive_hint)
             self.assertTrue(all(t.input_schema["additionalProperties"] is False for t in tools))
             schema = tools[0].input_schema
             self.assertFalse(schema["additionalProperties"])
@@ -166,3 +170,62 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
                     self.assertIsNone(result.structured_content)
                     self.assertIn(code, result.content[0].text)
                     assert_private_absent(self, result.model_dump_json())
+
+    async def test_create_protocols(self):
+        for mode in ("auto", "2026-07-28", "legacy"):
+            async with self.connection(mode, handler=lambda r: httpx.Response(201, json=CREATED)) as client:
+                tools = {t.name: t for t in (await client.list_tools()).tools}
+                tool = tools["create_product"]
+                schema = tool.input_schema
+                self.assertEqual(set(schema["required"]), {"name", "price"})
+                self.assertEqual(set(schema["properties"]), {"name", "price", "sku", "status", "stock_status"})
+                self.assertFalse(schema["additionalProperties"])
+                self.assertEqual(schema["properties"]["name"]["maxLength"], 200)
+                self.assertEqual(schema["properties"]["price"]["type"], "string")
+                self.assertEqual(schema["properties"]["status"]["enum"], ["publish", "draft"])
+                self.assertEqual(schema["properties"]["status"]["default"], "publish")
+                self.assertEqual(schema["properties"]["stock_status"]["default"], "instock")
+                self.assertEqual(set(tool.output_schema["properties"]), {"product", "created"})
+                result = await client.call_tool("create_product", INPUT)
+                self.assertFalse(result.is_error)
+                self.assertEqual(result.structured_content, {"created": True, "product": {**CREATED, "currency": "INR"}})
+                assert_private_absent(self, result.model_dump_json())
+                self.assertEqual([r.method for r in self.rest_calls], ["POST"])
+
+    async def test_create_validation(self):
+        async with self.connection() as client:
+            for args in ({}, {**INPUT, "name": " "}, {**INPUT, "price": 499.0},
+                         {**INPUT, "price": "1000000000"}, {**INPUT, "status": "private"},
+                         {**INPUT, "description": "SYNTHETIC-PRIVATE"}):
+                result = await client.call_tool("create_product", args)
+                self.assertTrue(result.is_error)
+                self.assertIsNone(result.structured_content)
+                self.assertIn("VALIDATION_ERROR", result.content[0].text)
+                assert_private_absent(self, result.model_dump_json())
+            self.assertEqual(self.rest_calls, [])
+
+    async def test_create_duplicates_and_unknown_errors(self):
+        for mode in ("auto", "legacy"):
+            for kind in ("precheck", "race", "timeout", "server"):
+                def handler(request):
+                    if request.method == "GET":
+                        return httpx.Response(200, json=[PRODUCT] if kind == "precheck" else [],
+                                              headers=HEADERS if kind == "precheck" else EMPTY)
+                    if kind == "race":
+                        return httpx.Response(400, json={"code": "product_invalid_sku", "message": "SYNTHETIC-PRIVATE"})
+                    if kind == "timeout":
+                        raise httpx.ReadTimeout("SYNTHETIC-PRIVATE")
+                    return httpx.Response(500, json=PRIVATE)
+                async with self.connection(mode, handler) as client:
+                    result = await client.call_tool("create_product", {**INPUT, "sku": PRODUCT["sku"]})
+                    self.assertTrue(result.is_error)
+                    self.assertIsNone(result.structured_content)
+                    text = result.content[0].text
+                    if kind in ("precheck", "race"):
+                        self.assertIn("DUPLICATE_SKU", text)
+                    else:
+                        self.assertIn("write_outcome=unknown", text)
+                        self.assertIn("retry_safe=false", text)
+                    assert_private_absent(self, result.model_dump_json())
+                    self.assertEqual([r.method for r in self.rest_calls],
+                                     ["GET"] if kind == "precheck" else ["GET", "POST"])
