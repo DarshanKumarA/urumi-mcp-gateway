@@ -2,7 +2,7 @@
 
 ## Current milestone
 
-**2026-10-24 - Stage 4.9A PASS: deployed Woo MCP and live read-only acceptance.** Following the user-verified WordPress API repair, fresh checks confirmed country IN, marker 3, all checkpointed options and unchanged product 11/order 12/storage. Immediate pre-upgrade host RAM was 3.859 GiB. One reviewed upgrade deployed release urumi revision 4; bootstrap r4 completed in 10 seconds without replacing the store Pods. Woo MCP is Ready with verified container/Secret-mount controls. Official-client Service-DNS discovery found five tools; list_products, get_order and list_orders(today) passed with normalized non-sensitive output. Final available RAM was 3.942 GiB. Temporary clients were removed. Earlier memory/drift interruptions remain below; the drift cause is unknown. Live write acceptance and gateway caller authentication/NetworkPolicy remain incomplete. Nothing staged or committed.
+**2026-10-24 - Stage 4.9B PASS: controlled live writes complete Woo MCP business/runtime acceptance.** Stage 4.9A was approved and committed as 88e5cae. One create_product invocation created product 16 / URUMI-MCP-LIVE-20261024-01 / 599 INR. One guarded update_order_status invocation deliberately changed order 12 from processing to on-hold; its other operational fields stayed unchanged. Independent access-log counts confirm exactly one POST and one PUT, with zero automatic retries. The product and on-hold order are retained. Release remains revision 4/deployed; all workloads Ready, original storage unchanged, final available RAM 3.954 GiB. The temporary client is removed. All five tool contracts now have local live acceptance; gateway-only caller authentication/NetworkPolicy and the wider assignment remain incomplete. Nothing staged or committed.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
 
@@ -18,7 +18,79 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record the complete Stage 4.9A history, verified country restoration, single revision-4 upgrade, deployed security checks, live read-only MCP acceptance and cleanup in progress and journey. Preserve prior interruptions and distinguish user-supplied raw-DB repair evidence from this run's independent WordPress reads. No source/chart changes, staging or commit. Earlier milestone sections retain historical evidence.
+Record Stage 4.9B's two authorized single-attempt writes, exact REST request counts, normalized verification, retained demo state and final health in progress and journey. Preserve the committed Stage 4.9A history and unknown drift cause. No application/chart changes, staging or commit. Earlier milestone sections retain historical evidence.
+
+## Stage 4.9B controlled live-write acceptance
+
+Started from clean main at 88e5cae. Initial available host RAM was 3.942 GiB;
+immediately before the diagnostic client it was 3.921 GiB, above the approximately
+3.5 GiB floor. Node Ready/MemoryPressure=False, all three application Pods Ready
+with zero restarts, release urumi revision 4/deployed and original storage bindings
+passed. With the user's explicit exception for this otherwise unexposed setting,
+one read-only WordPress option check confirmed country IN. All product/order
+access used the deployed MCP tools; no direct REST/SQL business operation.
+
+One temporary credential-free client Pod used the official SDK through
+http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp. It had no Secret volumes,
+literal credential environment or service-account token. Before either write,
+list_products found zero matches for URUMI-MCP-LIVE-20261024-01 and get_order
+verified order 12 was processing with its original items/499 INR/COD/free shipping.
+The client enforced at most one invocation and one outgoing MCP request per write.
+
+| Controlled operation | Exact input / observed result |
+| --- | --- |
+| create_product | name Urumi MCP Live Test Product; price string 599; SKU URUMI-MCP-LIVE-20261024-01; status publish; stock_status instock |
+| Created result | created=true; product ID 16; simple; matching name/SKU; price and regular_price 599 INR; publish/instock |
+| Exact-SKU verification | One matching product, ID 16, after creation and again after the order update; no duplicate or implicit update |
+| Public product | http://store.urumi.test:8080/product/urumi-mcp-live-test-product/ returned 200 anonymously with name, 599 and Add to cart; shop also displayed it |
+| Immediate order reread | get_order(12) immediately before mutation still processing; full normalized operational result matched the initial read |
+| update_order_status | order_id=12, expected_status=processing, status=on-hold; result order_id=12, observed_before_status=processing, after_status=on-hold, changed=true |
+| Post-write order | One get_order verification returned on-hold; every other normalized field matched, including product 11/SKU, quantity 1, unit price 499, total 499.00 INR, COD, free_shipping and zero shipping/tax totals |
+
+The expected-status guard prevents proceeding from an observed mismatch but is
+not atomic compare-and-swap; a concurrent writer can race between GET and PUT.
+Normal Woo status hooks/notifications/stock behavior remain possible. Only the
+status field was requested; no refund, second transition or reset to processing.
+No claim is made that every internal Woo side effect was inspected.
+
+| Write audit | Observed count/evidence |
+| --- | --- |
+| create_product tool invocation / outgoing MCP write request | 1 / 1 |
+| Product POST /wp-json/wc/v3/products | Exactly 1; HTTP 201 |
+| update_order_status tool invocation / outgoing MCP write request | 1 / 1 |
+| Order PUT /wp-json/wc/v3/orders/12 | Exactly 1; HTTP 200 |
+| Automatic retries | 0 |
+
+POST/PUT evidence came from captured WordPress Apache access logs, bounded from
+the diagnostic start (2026-10-24T15:35:10.657641Z) and filtered to the Woo MCP Pod
+source IP. Only method/path/count/status projections were displayed, not raw log
+lines, Authorization headers or credential material. Client counters agreed.
+The client made three list_products and three get_order calls in total. There
+was no ambiguous write response; emergency read-only reconciliation was not
+needed. The exact-SKU checks above are normal post-success verification. No
+second write attempt was made, and the application retry policy was unchanged.
+
+Strict JSON-mode DTO validation and text/structured-result equality checks passed;
+no billing/contact/address/customer fields, raw Woo response or credentials were
+emitted. A captured Woo MCP log credential-pattern scan passed. The client exited
+0 with zero restarts and was deleted; no ConfigMap or diagnostic repository file
+was created. No image rebuild, Helm operation or persistent Kubernetes
+configuration change occurred.
+
+Final release remained revision 4/deployed. WordPress, MariaDB and Woo MCP kept
+their Pod UIDs, were Ready and had zero restarts. No OOMKilled termination or
+namespace OOM event was observed; MemoryPressure=False. Both original PVC/PV
+names and UIDs remained Bound. Anonymous shop, new product and original product
+pages returned 200 with real content. Final Windows RAM was 15.726 GiB total /
+11.772 used / 3.954 available; node usage 1228Mi, WordPress 189Mi, MariaDB 121Mi,
+Woo MCP 75Mi. These samples do not establish full-stack capacity.
+
+Product 16 is intentionally retained as durable demo evidence. Order 12 is
+intentionally left on-hold as the Stage 4.9B acceptance transition. Together with
+Stage 4.9A, local Woo MCP business/runtime acceptance is complete for the five
+implemented tools. Gateway-only caller authentication and targeted NetworkPolicy
+remain pending; this is not overall assignment completion. Nothing staged or
+committed; stop for review.
 
 ## Stage 4.9A cluster start and memory-gated stop
 
@@ -1208,6 +1280,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-Stage 4.9A passes and stops for review: release 4 deployed, bootstrap r4 Complete, internal Woo MCP Ready, five-tool discovery and three read-only tool contracts accepted against the store. Country IN and all checkpointed options/data/storage remain intact after the verified repair; its initiating cause remains unknown. The diagnostic JSON-validation correction and repeated read are documented above. Temporary clients removed, deployed workloads remain running. Live write acceptance, gateway caller enforcement and broader assignment work remain pending. Nothing staged or committed; earlier interruption evidence is preserved.
+Stage 4.9B passes and stops for review. Product 16 is retained, and order 12 deliberately remains on-hold after exactly one successful invocation/REST mutation per write tool and zero automatic retries. Local five-tool business/runtime acceptance is complete; release 4 and existing store/storage remain healthy. Temporary client removed. Gateway caller enforcement and broader assignment work remain pending. Nothing staged or committed; Stage 4.9A interruption/repair evidence and unknown drift cause are preserved.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
