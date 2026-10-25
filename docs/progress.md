@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-25 - Stage 5.1 gateway protocol core implemented for offline review.** Woo MCP runtime checkpoint fef1b8c remains frozen. A separate apps/gateway package provides SDK Streamable HTTP discovery/routing, immutable registration namespaces, bounded upstream clients, isolated failure/health and synthetic static credentials. PostgreSQL remains the selected future store; only an in-memory repository exists. There is no user authentication, audit persistence, management REST, chat or gateway deployment. Existing k3d containers remain stopped. No staging or commit.
+
 **2026-10-24 - Stage 4.9B PASS: controlled live writes complete Woo MCP business/runtime acceptance.** Stage 4.9A was approved and committed as 88e5cae. One create_product invocation created product 16 / URUMI-MCP-LIVE-20261024-01 / 599 INR. One guarded update_order_status invocation deliberately changed order 12 from processing to on-hold; its other operational fields stayed unchanged. Independent access-log counts confirm exactly one POST and one PUT, with zero automatic retries. The product and on-hold order are retained. Release remains revision 4/deployed; all workloads Ready, original storage unchanged, final available RAM 3.954 GiB. The temporary client is removed. All five tool contracts now have local live acceptance; gateway-only caller authentication/NetworkPolicy and the wider assignment remain incomplete. Nothing staged or committed.
 
 **2026-10-21 — Stage 3.8 PASS: controlled Pod replacement, retained storage and database-dependency loss validated.** Stage 3.7 was approved and committed as af7bb37. Separate WordPress and MariaDB Pod deletions recovered in approximately 7.8s and 7.9s. A retention-checked MariaDB scale-down made WordPress NotReady while its TCP listener and container stayed healthy; restoring one database replica recovered both workloads in approximately 9s. Product 11, Processing order 12, marker 3, WooCommerce 11.2.1, selected webroot files and both claim/PV bindings persisted. Release urumi remains revision 3/deployed; no bootstrap rerun, extra order, OOMKilled or MemoryPressure was observed. Final application Pods have zero restarts. Node-loss protection, backup/restore, production behavior and full-stack capacity are not established by these tests.
@@ -18,7 +20,29 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 4.9B's two authorized single-attempt writes, exact REST request counts, normalized verification, retained demo state and final health in progress and journey. Preserve the committed Stage 4.9A history and unknown drift cause. No application/chart changes, staging or commit. Earlier milestone sections retain historical evidence.
+Implement Stage 5.1 under apps/gateway and document concrete gateway contracts in architecture/threat-model/progress/journey. Preserve Stage 4.9A/4.9B history and the frozen Woo application. No runtime mutation, database, Helm change, staging or commit. Earlier milestone sections retain historical evidence.
+
+## Stage 5.1 offline gateway protocol core
+
+Started from clean main at fef1b8c on 2026-10-25. Docker read-only inspection found both urumi-local containers stopped; they remain stopped. No Kubernetes API or live Woo request, credential access, image build, store mutation or Woo-source change.
+
+| Area | Implemented evidence and boundary |
+| --- | --- |
+| SDK / backend | Python 3.13, official mcp 2.3.0 low-level Server handlers and Streamable HTTP /mcp; a module of the accepted single backend, no handwritten protocol or separate FastAPI service |
+| Repository | Async registration/observation interface plus MemoryRepository; immutable UUID/unique slug, mutable display/URL/enabled/credential; PostgreSQL persistence remains future work |
+| Namespacing | server_a__shared_name and server_b__shared_name coexist; exact registered slug plus authoritative stored original-name mapping; content-derived SHA-256 suffix shortens only overlong names; exact original mapping is retained |
+| Enabled vs health | Disabled servers receive no new contact; connected/unreachable/unknown never overwrite enabled; late observation/configuration races are rejected |
+| Aggregation | Concurrent discovery of enabled servers; healthy peers survive dead/slow peers; last-good metadata retained internally, unavailable tools excluded from current listings per Stage 5.1 instruction |
+| Timeout / invocation | 5s discovery/connect, 30s call; operation-scoped SDK sessions; original tool name forwarded; no automatic retries, redirects or reconciliation; attempted-call failure reports unknown write outcome / unsafe retry |
+| Schemas / results | Input/output schemas, descriptions, titles and annotations preserved; supported content/structured result normalized; local refs work and remote refs are not fetched; arbitrary top-level extension metadata/icons/task hints not proxied |
+| Credentials / untrusted content | Synthetic bearer/static headers scoped per upstream; caller headers not forwarded, literal credential reflection refused, fixed errors and wire-log suppression; descriptions/results remain untrusted data, not instructions or authorization |
+| Test boundary | Official client -> gateway ASGI -> official SDK upstream ASGI fixtures; current/legacy clients and a legacy upstream; no real listening TCP, Linux execution or live upstream acceptance |
+
+Validation: 51 unittest tests pass, including independent same-name routing, exact original names, structured schemas/results, disabled/removed peers, dead/slow peers, bounded pagination, cancellation cleanup, configuration races and a single mutating call despite HeaderMismatch. The last suite ran in the isolated gateway environment; no fixture contacts the store. Python compilation, pip check and extras-aware direct dependency/lock closure checks pass: 29 exact packages, hash-verified installation, no Woo dependency changes. No formatter/linter is configured in this repository, so no formatting-tool result is claimed. Final collision review confirmed the existing digest hashes the complete unshortened name, not its length. Six added tests cover the 128-character boundary, safe characters, deterministic full-content hashing, equal-length/common-prefix distinction, separate slugs, exact original routing and forced-collision rejection before catalog publication; existing shared-name/current/legacy regressions remain green.
+
+Validation corrections: initial lock extraction missed PyJWT's crypto extra; hash installation failed safely before accepting that incomplete closure. Corrected extra traversal produced the 29-package lock. An early test command ran before installation finished and failed imports; the final isolated run passed. First protocol fixtures incorrectly constructed an SDK error and a remote-ref schema; corrected them so tests exercise the intended behavior. Concurrent-call review fixed safe error preservation through exception groups and added a pre-dispatch configuration check. A 120ms concurrency fixture budget also timed out healthy SDK setup under debug scheduling; it now uses a 500ms test budget against a 2s slow upstream, leaving the real 5s/30s defaults unchanged. Final review passed for 79 local documentation links/anchors, 69 tables, credential/contact patterns and LF/whitespace. The complete tracked and new-file diffs were reviewed; only the planned package and four documents changed.
+
+The source implementation advances REQ-GW-01 through REQ-GW-05 only at the protocol-core level. Mandatory admin APIs, PostgreSQL durability, users/roles/hashed revocable keys, audit, three real upstreams, gateway-to-Woo caller authentication/NetworkPolicy and client refresh/demo behavior remain incomplete. No fake identity or authorization is installed. Proposed Stage 5.2: review persistent registry and identity/auth/audit contracts, then implement them in small slices before deployment. See [gateway README](../apps/gateway/README.md), [architecture](architecture.md#stage-51-gateway-protocol-core) and [threat boundaries](threat-model.md#stage-51-gateway-protocol-boundary).
 
 ## Stage 4.9B controlled live-write acceptance
 
@@ -1280,6 +1304,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-Stage 4.9B passes and stops for review. Product 16 is retained, and order 12 deliberately remains on-hold after exactly one successful invocation/REST mutation per write tool and zero automatic retries. Local five-tool business/runtime acceptance is complete; release 4 and existing store/storage remain healthy. Temporary client removed. Gateway caller enforcement and broader assignment work remain pending. Nothing staged or committed; Stage 4.9A interruption/repair evidence and unknown drift cause are preserved.
+Stage 5.1 is implemented offline and awaits review. Only apps/gateway and the four appropriate architecture/security/progress/journey documents changed. Woo MCP and Helm are unchanged; k3d remains stopped. No staging or commit. Authentication, persistence, auditing and runtime gateway integration remain future milestones.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
