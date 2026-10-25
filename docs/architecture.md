@@ -303,7 +303,7 @@ Runtime validation must cover fresh install, completed and partial reruns, safe 
 
 ## Additional upstreams and cross-server demonstration
 
-A12 selects arithmetic and store policy/reference servers for deterministic behavior, no external services, and an easily explained demo. Exact tool schemas and policy content remain to be designed. A harmless overlapping tool name on two servers may be introduced deliberately to demonstrate A4; no particular overlap tool is committed yet.
+A12 selects arithmetic and store policy/reference servers for deterministic behavior, no external services, and an easily explained demo. Stage 6.1 implements the concrete schemas and dataset below. A harmless overlapping tool name on two servers may be introduced deliberately to demonstrate A4; no particular overlap tool is committed yet.
 
 The planned prompt is: “Using today's WooCommerce orders, calculate today's total revenue and average order value.” WooCommerce supplies the orders and arithmetic performs the calculation. Define order inclusion, pagination, currency/rounding, refunds, and empty-order behavior when designing the tool/demo contract so the result is explainable; the assignment itself does not prescribe a revenue accounting definition.
 
@@ -644,3 +644,51 @@ START/finalization/reconnect and deletion/revocation history. These are local fi
 results, not production or gateway-to-Woo deployment acceptance. Additional real
 upstreams, React/chat, PostgreSQL runtime storage/backup, public TLS, gateway hosting,
 gateway-to-Woo caller authentication/NetworkPolicy and final demo remain incomplete.
+
+
+## Stage 6.1 deterministic auxiliary upstreams
+
+A12 now has two separate Python 3.13 applications, using official MCP 2.3.0,
+Pydantic 2.14.1 and Uvicorn 0.54.0. Each exposes exactly one read-only/idempotent tool
+at /mcp; no FastAPI, database, outbound business request or credential dependency.
+Arithmetic and Store Policy do not know how to fetch Woo orders. Gateway/chat owns
+composition, preserving independently understandable upstream responsibilities.
+
+- `arithmetic__sum_amounts`: amounts is 1–100 strict decimal strings, up to 18 integer
+  and 6 fractional digits, with negatives allowed. Optional currency is three uppercase
+  letters. Decimal/local precision 40 gives exact total/min/max; average rounds to six
+  places, half-even. Normalized string outputs include count and nullable currency.
+- `store_policy__get_policy`: strict cod/dispatch/cancellation key; returns only key,
+  title and operational guidance from immutable committed application data. COD is
+  not prepaid; on-hold dispatch needs operator review; status changes are not refunds.
+
+Intended future prompts: "What orders came in today, and what is their total and
+average order value?" uses Woo list_orders then Arithmetic sum_amounts. "For today's
+COD orders, what handling policy applies?" uses Woo list_orders then Store Policy
+get_policy. Chat must handle store-local date, pagination, currency and status scope;
+a single page is not the entire day, zero orders has no average, and >100 totals needs
+an explicitly tested batching strategy. No revenue-accounting or refund claim is made.
+These are future chat/external-client acceptance targets, not executed orchestration.
+
+The existing Helm chart gains shared stateless Deployment/Service templates driven by
+auxiliaryMcp entries. Local/prod opt in to both; defaults opt out. Resources are
+urumi-arithmetic-mcp and urumi-store-policy-mcp, ClusterIP :8000 /mcp. No auxiliary
+Ingress, NodePort, LoadBalancer, PVC, Secret or API-token mount. SDK exact Host forms
+include Service short/namespace/.svc/FQDN, bare and :8000; no browser Origins.
+
+Both containers use the reviewed Python 3.13.17 slim-bookworm Linux/amd64 digest,
+UID/GID 10001, read-only root, no privilege escalation, ALL capabilities dropped and
+RuntimeDefault seccomp. TCP startup/liveness/readiness inspect only the local listener.
+Requests 25m/64Mi and limits 250m/128Mi are initial per-workload hypotheses. Docker
+acceptance passed at those limits, but it does not prove sustained load or cluster
+capacity. Existing store/Woo resources and budgets are unchanged.
+
+36 application/protocol tests (21 arithmetic, 15 policy), real listening TCP and both
+Docker discovery/call/security/shutdown smokes pass. Official Kubernetes v1.35.5 schema
+and local/prod Helm checks render 14 objects, four more than before, with all previous
+10 objects unchanged. No Kubernetes deployment or gateway registration was performed.
+Three upstream implementations now exist; the mandatory connected-three-upstream and
+cross-server prompt demonstration remain unproven until registered/runtime acceptance.
+Internal-only Kubernetes topology is defined, not deployed; gateway-only caller
+isolation/NetworkPolicy and production registry configuration remain future work.
+See [Arithmetic](../apps/arithmetic-mcp/README.md) and [Store Policy](../apps/store-policy-mcp/README.md).

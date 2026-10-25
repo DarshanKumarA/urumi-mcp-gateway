@@ -32,3 +32,18 @@ wooMcp:
     currency: INR
     store_timezone: Asia/Kolkata
   # Resources/security inherit shared starting budgets; validate in Stage 4.9.
+
+# Same stateless templates; Kubernetes runtime acceptance remains pending.
+auxiliaryMcp:
+  arithmetic-mcp:
+    enabled: true
+    image:
+      repository: urumi-arithmetic-mcp
+      tag: stage6.1
+      pullPolicy: Never
+  store-policy-mcp:
+    enabled: true
+    image:
+      repository: urumi-store-policy-mcp
+      tag: stage6.1
+      pullPolicy: Never

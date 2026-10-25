@@ -54,3 +54,18 @@ wooMcp:
     currency: INR
     store_timezone: Asia/Kolkata
   # Same templates, resources/security; no real credentials in either values file.
+
+# Same stateless templates; Kubernetes runtime acceptance remains pending.
+auxiliaryMcp:
+  arithmetic-mcp:
+    enabled: true
+    image:
+      repository: registry.example.invalid/urumi/arithmetic-mcp
+      tag: stage6.1
+      pullPolicy: IfNotPresent
+  store-policy-mcp:
+    enabled: true
+    image:
+      repository: registry.example.invalid/urumi/store-policy-mcp
+      tag: stage6.1
+      pullPolicy: IfNotPresent

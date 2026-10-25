@@ -1,0 +1,10 @@
+# Runtime-only allowlist; no tests, credentials, repository metadata or caches.
+**
+!Dockerfile
+!.dockerignore
+!requirements.lock
+!src/
+src/**
+!src/store_policy_mcp/
+src/store_policy_mcp/**
+!src/store_policy_mcp/*.py

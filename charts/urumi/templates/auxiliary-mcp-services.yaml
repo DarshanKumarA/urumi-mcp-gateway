@@ -1,0 +1,22 @@
+{{- range $component, $cfg := .Values.auxiliaryMcp }}
+{{- if $cfg.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "urumi.auxiliaryMcpName" (dict "root" $ "component" $component) }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "urumi.selectorLabels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+{{- end }}
+{{- end }}

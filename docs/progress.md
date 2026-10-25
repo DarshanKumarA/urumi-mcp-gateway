@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-25 - Stage 6.1 auxiliary upstreams implemented for review.** Stage 5.4 is committed as 8437d84. Arithmetic sum_amounts and Store Policy get_policy now have independent SDK apps, 36 passing tests, listening-TCP acceptance, secured Docker images and shared Helm templates. Local/prod render 14 objects with all previous 10 unchanged. No Kubernetes deployment or actual gateway registration; k3d remains stopped. Woo/gateway code frozen; nothing staged or committed.
+
 **2026-10-25 - Stage 5.4 authenticated MCP and attributed audit implemented for review.** Stage 5.3 is committed as a3816e0. Every external MCP HTTP request now verifies its gateway key; request-local identity enters one shared audited invocation service. Explicit 0003_audit commits START before upstream dispatch and retains interrupted/unknown records. Admin-only audit listing is implemented. 160 tests, including all prior 130, and real PostgreSQL migration/history smoke pass. Woo/Helm unchanged, k3d stopped; no staging/commit or public deployment.
 
 **2026-10-25 - Stage 5.3 identity and protected REST implemented for review.** Stage 5.2 is committed as 05509a7. Explicit 0002_identity adds users and hash-only sessions/invitations/API keys; Argon2id, deliberate bootstrap and same-origin admin/member guards protect REST. 130 tests and real PostgreSQL smoke pass. External /mcp authentication and audit remain Stage 5.4; no public deployment. Woo/Helm unchanged, k3d stopped, nothing staged/committed.
@@ -26,7 +28,49 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 5.4 per-request identity, shared audited invocation, durable history and validation while preserving earlier milestones. Only gateway source/tests/migration/package description and appropriate governance docs change; dependencies and old migrations stay unchanged. No Woo/Helm changes, staging or commit.
+Record Stage 6.1 contracts, two-server demo targets, deterministic dependency-free
+business logic, container evidence and static Helm boundaries. Preserve prior runtime
+history. No Woo/gateway implementation, store state, Helm release or cluster changes.
+
+## Stage 6.1 Arithmetic and Store Policy upstreams
+
+| Area | Evidence / boundary |
+| --- | --- |
+| Arithmetic | One sum_amounts tool; bounded strict decimal strings, exact sum/min/max, 6-place half-even average, optional currency label |
+| Policy | One get_policy tool; cod/dispatch/cancellation enum, immutable committed operational guidance, structured allowlist |
+| Responsibility | Neither fetches Woo data; no credentials, DB, runtime caller file access, shell or eval; gateway/chat composes tools |
+| Dependencies | Python 3.13; MCP 2.3.0, Pydantic 2.14.1, Uvicorn 0.54.0; existing reviewed hash versions, independent app locks |
+| Tests | Arithmetic 21 + Policy 15 = 36; current/legacy/auto official clients, strict validation, schemas, results and Host/Origin rejection |
+| Real process | Both listening-TCP factories discover/call correctly and shut down cleanly |
+| Docker | urumi-arithmetic-mcp:stage6.1 = 223695465 bytes; urumi-store-policy-mcp:stage6.1 = 223699516 bytes (213.33 / 213.34 MiB respectively) |
+| Runtime security | Both UID/GID 10001:10001; read-only write rejected; CapEff=0, NoNewPrivs=1, seccomp=2; no mounts/credentials; exit 0 and no OOM |
+| Resources | Per app requests 25m/64Mi, limits 250m/128Mi; Docker smoke used these limits; sustained/Kubernetes capacity unproven |
+| Helm | Two Deployment + ClusterIP pairs, same templates local/prod; exact Service Host allowlists; listener-only probes; no API-token mount |
+| Inventory | 14 objects each: 4 Deployments, 1 StatefulSet, 5 Services, 1 ConfigMap, 1 Job, 1 PVC, 1 Ingress; prior 10 unchanged |
+| Static boundaries | No auxiliary Ingress/NodePort/LoadBalancer/PVC/Secret; no Secret/Namespace/PV objects in full render; existing store Ingress/PVC retained |
+| Schema | Local/prod lint, duplicate-key rejection and official v1.35.5 OpenAPI validation pass; not admission/runtime validation |
+| Cleanup | Temporary TCP processes and Docker containers removed; images retained for later authorized import; no Kubernetes start/apply |
+
+The images use official Python 3.13.17-slim-bookworm pinned to Linux/amd64 digest
+4cea12ab7d78a3312c85f8cab19b6971d4fe9704da25443986c0bc20a6678850. Fresh hash-locked
+Windows installs and Linux image installs passed. No runtime/test dependency was
+added to Woo or gateway. No real store data was used in the new tools' acceptance.
+Compilation, pip check, exact dependency closure (29 Windows / 28 Linux packages),
+credential/contact scan over 35 changed/new files, 94 local documentation links/anchors,
+74 Markdown tables and git diff --check pass. Both app locks contain only runtime
+SDK/Uvicorn dependencies; no frozen application files changed.
+
+Intended prompts are documented in [Arithmetic](../apps/arithmetic-mcp/README.md#intended-composition)
+and [Policy](../apps/store-policy-mcp/README.md#intended-composition): today's orders
+then aggregate their totals/average, or today's COD orders then retrieve COD guidance.
+Pagination, homogeneous currency, empty results and the 100-item bound must be handled
+by future orchestration. Three implementations are not yet three connected upstreams.
+
+Proposed next reviewed slice: gateway hosting/container and PostgreSQL/Helm preparation
+for the authenticated audited backend, preserving these upstreams; no deployment until
+an explicit full-stack runtime gate. Dashboard/chat, live three-upstream registration,
+gateway-only enforcement/NetworkPolicy, production VPS and final demo remain pending.
+
 
 ## Stage 5.4 authenticated MCP and durable attributed audit
 

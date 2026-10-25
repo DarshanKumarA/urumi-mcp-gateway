@@ -119,3 +119,32 @@ wooMcp:
     readOnlyRootFilesystem: true
     capabilities:
       drop: [ALL]
+
+# Stage 6.1 stateless upstreams: opt in through environment values; no Secrets.
+auxiliaryMcp:
+  arithmetic-mcp:
+    enabled: false
+    image:
+      repository: urumi-arithmetic-mcp
+      tag: stage6.1
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+  store-policy-mcp:
+    enabled: false
+    image:
+      repository: urumi-store-policy-mcp
+      tag: stage6.1
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 25m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi

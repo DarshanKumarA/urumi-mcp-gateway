@@ -270,3 +270,27 @@ not create attributed invocation events. Generic successful upstream results rem
 untrusted and are not a universal PII-filtering guarantee; they are never copied into
 audit rows. Dashboard/chat, additional upstreams, hosting, gateway-to-Woo credentials/
 NetworkPolicy, comprehensive SSRF and optional encrypted upstream storage remain open.
+
+
+## Stage 6.1 auxiliary upstream boundaries
+
+Arithmetic and Store Policy require no credential and perform no outbound business
+I/O. Inputs are strict and bounded; neither accepts URLs, paths, executable expressions
+or arbitrary metadata. Decimal arithmetic avoids binary-float surprises and explicitly
+bounds scale/count; policy data is immutable committed reference text. Returned
+metadata/text is still untrusted input to a future chat model, not system authority.
+Policy guidance never authorizes cancellation, dispatch or refunds by itself.
+
+SDK Host/DNS-rebinding protection stays enabled with exact Service forms; browser
+Origins are rejected. Non-root UID/GID 10001, read-only filesystem, no-new-privileges,
+zero effective capabilities and default seccomp were observed in Docker. Helm sets
+RuntimeDefault, drops ALL capabilities and disables API-token automount. No auxiliary
+Secret/PVC/public Service/Ingress exists in the static render. Listener probes indicate
+local availability, not correctness of a full tool request or upstream composition.
+
+These are container/static-template facts, not live Kubernetes isolation. ClusterIP
+alone does not restrict callers to the gateway, and Host checks are not authentication.
+Gateway caller-boundary/targeted NetworkPolicy work remains pending; no new credential
+or optional policy system is introduced here. Bounded tool models do not impose a
+transport body-size/rate limit before SDK parsing; resource limits are starting budgets,
+not load/capacity proof. No customer data or live Woo request entered these tests.

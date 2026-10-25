@@ -1,0 +1,73 @@
+{{- range $component, $cfg := .Values.auxiliaryMcp }}
+{{- if $cfg.enabled }}
+{{- $context := dict "root" $ "component" $component }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "urumi.auxiliaryMcpName" $context }}
+  namespace: {{ $.Release.Namespace | quote }}
+  labels:
+    {{- include "urumi.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: {{ $component }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "urumi.selectorLabels" $ | nindent 6 }}
+      app.kubernetes.io/component: {{ $component }}
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.labels" $ | nindent 8 }}
+        app.kubernetes.io/component: {{ $component }}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.io/os: linux
+        kubernetes.io/arch: amd64
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ $component }}
+          image: {{ printf "%s:%s" $cfg.image.repository $cfg.image.tag | quote }}
+          imagePullPolicy: {{ $cfg.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: MCP_ALLOWED_HOSTS
+              value: {{ include "urumi.auxiliaryMcpHosts" $context | quote }}
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml $cfg.resources | nindent 12 }}
+{{- end }}
+{{- end }}
