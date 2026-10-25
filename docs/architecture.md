@@ -72,15 +72,15 @@ A5 keeps administrator configuration separate from observed health. The dashboar
 
 Disabled servers disappear immediately from the gateway's available catalog for new requests, and calls using stale names are rejected by a current-state check. This differs from retaining the catalog of an enabled but unreachable server. Validate notification/refresh mechanics so both chat and the external client's displayed tools reflect disabling; do not assume a client has already discarded its local cache.
 
-Connection/discovery and tool-call timeouts remain configurable defaults, not architectural constants. Values, health-check cadence, and startup observation behavior remain to be validated. Do not automatically retry ambiguous writes such as product creation after timeout: the operation may already have succeeded. Exact error shapes and audit behavior after process interruption still need design.
+Connection/discovery and tool-call timeouts remain configurable defaults, not architectural constants. Values, health-check cadence, and startup observation behavior remain to be validated. Do not automatically retry ambiguous writes such as product creation after timeout: the operation may already have succeeded. Stage 5.4 below now defines safe audit errors and interrupted/unknown records; runtime hosting remains unvalidated.
 
 ## Identity credentials and persistence
 
-A6 requires server-side dashboard sessions and request-time external key validation, including revocation during an existing MCP session. Raw generated API keys are shown once and never recoverably stored. Stage 5.3 now specifies and validates username/password, cookie sessions, invitations and key verification below; external MCP enforcement and audit remain Stage 5.4 work.
+A6 requires server-side dashboard sessions and request-time external key validation, including revocation during an existing MCP session. Raw generated API keys are shown once and never recoverably stored. Stage 5.3 now specifies and validates username/password, cookie sessions, invitations and key verification below; Stage 5.4 now implements external MCP enforcement and durable audit below.
 
 A7 separates user credential verifiers from recoverable service credentials. PostgreSQL holds user/key verification data, metadata, and Secret references; actual service credentials live in Kubernetes Secrets. WooCommerce REST credentials belong only to WooCommerce MCP, LLM provider credentials only to backend chat orchestration, and upstream credentials to the gateway for the intended upstream. No upstream credential value is returned by a read API or sent to a browser/external client. Gateway client tokens are never forwarded as upstream credentials. Runtime Secret creation/update/access and injection remain unvalidated; no Kubernetes API permission model has been selected.
 
-A8 originally defined an entity inventory. Stage 5.2 implemented the registry; Stage 5.3 explicitly authorizes identity tables below. Audit entities remain future work.
+A8 originally defined an entity inventory. Stage 5.2 implemented the registry; Stage 5.3 explicitly authorizes identity tables below. Stage 5.4 adds the explicit audit schema below.
 
 | Entity | Responsibility | Details still to design |
 | --- | --- | --- |
@@ -92,7 +92,7 @@ A8 originally defined an entity inventory. Stage 5.2 implemented the registry; S
 | mcp_tools | Last successfully discovered metadata and authoritative exposed/server/original-name mapping | Schema representation, refresh, stale markers and invalidation |
 | audit_events | Required user/server/tool/time/duration/outcome and denied-call evidence | Denial fields, redaction, retention, persistence-failure handling |
 
-Invitations are manually shared; no email delivery service is required initially. Known revoked keys may produce an attributed denied audit event; unknown invalid credentials must never be falsely attributed. The demo's known revoked-key attempt needs evidence without retaining its raw key. Audit writes and failure handling still need validation; the entity inventory is not proof of complete logging.
+Invitations are manually shared; no email delivery service is required initially. Stage 5.4 rejects revoked/invalid keys before tool dispatch and does not store them as authenticated tool-call events. Official-client denial evidence proves next-request revocation without retaining the raw key. Durable audit behavior is specified below; dashboard visibility and runtime hosting remain incomplete.
 
 ## Kubernetes and Helm boundaries
 
@@ -508,7 +508,7 @@ Detailed modules, exact deadline/cap/error contracts and reproducible tests are 
 Implemented for review on 2026-10-25 after 8245873. One backend now composes FastAPI
 REST under /api with the existing official SDK /mcp app and explicitly owns both
 lifespans. At that checkpoint identity, authorization, audit, dashboard and chat were absent.
-At the Stage 5.2 checkpoint these endpoints were unauthenticated. Stage 5.3 now protects REST management; external /mcp remains unauthenticated and local-only.
+At the Stage 5.2 checkpoint these endpoints were unauthenticated. Stage 5.3 protects REST management; Stage 5.4 adds per-request MCP authentication and audit. Public hosting remains unvalidated.
 
 SQLAlchemy 2.0.55 Core + Psycopg 3.3.6 implement the same async repository interface
 using worker-thread transactions; FastAPI 0.162.0 and Alembic 1.20.1 provide REST and
@@ -553,8 +553,8 @@ DEC-030 records the boundary; encryption remains optional and unimplemented.
 80 tests pass, including all 51 Stage 5.1 regressions, SQLite repository/API checks
 and combined REST/MCP ASGI acceptance. A separate real PostgreSQL 18.0 migration and
 repository smoke passed using a disposable Docker fixture, then removed it. No k3d
-start, Woo change, live upstream call or Kubernetes deployment occurred. Public
-MCP authentication and final gateway-only enforcement remain incomplete; REST protection is implemented in Stage 5.3 below.
+start, Woo change, live upstream call or Kubernetes deployment occurred.
+Those Stage 5.2 tests did not prove MCP authentication or final gateway-only enforcement; Stage 5.4 now implements the former below.
 
 
 ## Stage 5.3 identity and protected management
@@ -580,12 +580,67 @@ last 24 hours by default, bind the intended username, return a token once and re
 atomically. Own API keys are issued once, listed by safe prefix/metadata and revocable;
 admins can identify/revoke another member's key. The reusable verifier checks current
 revocation/enabled state each time and returns user/key identity only, not a hash.
-It is not yet attached to /mcp.
+Stage 5.4 attaches it to every /mcp HTTP request below.
 
 Every /api/servers route shares an admin dependency: anonymous 401, member 403.
 See the [identity contract](../apps/gateway/README.md#stage-53-identity-and-authorization)
 for exact settings, routes and cookie/CSRF limits. REST and official MCP lifespan
 still share the existing core; Woo is unchanged. 130 tests plus disposable PostgreSQL
 migration/reconnect/revocation/concurrency smoke pass. This is fixture evidence, not
-public deployment. External MCP authentication, audit, UI/chat and gateway-only
-upstream enforcement remain pending; upstream encryption/advanced SSRF remain absent.
+public deployment. At that checkpoint external MCP authentication/audit were pending;
+Stage 5.4 implements them below. UI/chat, gateway-only upstream enforcement,
+upstream encryption and advanced SSRF remain incomplete.
+
+
+## Stage 5.4 authenticated MCP and shared audited invocation
+
+The official SDK /mcp app is wrapped in pure ASGI Bearer middleware. Every HTTP
+request verifies the current user/key through the Stage 5.3 verifier, including
+initialize, tools/list and tools/call; there is no key-validity cache or cookie/query
+fallback. Invalid/revoked/disabled identities receive 401 and a Bearer challenge;
+verification storage failure returns sanitized 503 without dispatch. Revocation
+blocks the next request, not an operation already in flight.
+
+An immutable safe Principal is placed in a copied request-state mapping. The SDK's
+originating Request exposes it to modern and legacy handlers. No shared current-user
+variable or ContextVar is used. Authorization is removed before the SDK receives the
+request, and upstream credentials remain registration-scoped. Concurrent A/B protocol
+tests prove identity separation. SDK Host/Origin controls and stateless behavior remain.
+
+External calls use InvocationService.invoke_tool(principal, name, arguments), wrapping
+the same Gateway.call_tool rather than duplicating routing. Future dashboard chat must
+use this service with a server-verified session principal; that source is reserved and
+unit-tested, but no chat endpoint exists. Members have general enabled-tool access;
+annotations do not enforce optional granular permissions.
+
+Explicit 0003_audit follows unchanged 0001/0002, with no startup schema creation.
+Audit fields are event UUID, user UUID/username snapshot, nullable key UUID,
+auth_source, nullable historical server UUID/slug, exposed/original tool names, UTC
+start/completion, monotonic duration_ms, outcome and fixed error code. User/key FKs
+restrict hard deletion. Server identity is a snapshot without a live FK, preserving
+removed-server attribution. Triggers freeze identity and finalized rows. No arguments,
+results, raw tokens/hashes, credentials, headers, customer PII or exception bodies are
+stored. Unknown caller-controlled names use an unresolved sentinel; known server and
+resolved tool identities are retained from the authoritative route mapping.
+
+START is committed before upstream discovery/dispatch through the call path. Resolved
+tool identity commits before invocation. Failed initial persistence prevents execution;
+resolved validation/routing/upstream failures finalize as failed. Successful calls
+finalize succeeded. Finalization failure returns an unknown-outcome, unsafe-to-retry
+error without replay. Cancellation/crash can leave started; this means interrupted or
+unknown, not definitive failure. PostgreSQL cannot atomically commit a remote mutation:
+there is no distributed exactly-once guarantee or automatic reconciliation worker.
+
+Admin-session GET /api/audits provides bounded page/per_page (default 20, max 100)
+and safe user/server/tool/outcome filters. Members receive 403, anonymous 401. Discovery
+and authentication failures create no normal tool-call events; invalid transport
+messages rejected before the call handler are outside that invocation audit boundary.
+See [exact audit contract](../apps/gateway/README.md#stage-54-authenticated-mcp-and-attributed-audit).
+
+160 tests pass, retaining all previous 130, with current/legacy clients, concurrent
+attribution, immediate revocation, zero-dispatch audit failure and single-dispatch
+finalization failure. Real disposable PostgreSQL validates all three migrations,
+START/finalization/reconnect and deletion/revocation history. These are local fixture
+results, not production or gateway-to-Woo deployment acceptance. Additional real
+upstreams, React/chat, PostgreSQL runtime storage/backup, public TLS, gateway hosting,
+gateway-to-Woo caller authentication/NetworkPolicy and final demo remain incomplete.

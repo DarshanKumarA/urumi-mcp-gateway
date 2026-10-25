@@ -119,12 +119,28 @@ async def setup(mode="auto", *, discovery=1.0, call=1.0, incoming_headers=None):
     upstream = UpstreamClient(timeouts=Timeouts(discovery, call),
                               transport_factory=lambda s: fixtures[s.id].transport())
     gateway = Gateway(repo, upstream)
-    app = create_app(gateway)
+    from test_persistence import DatabaseFixture
+    from urumi_gateway.identity import IdentityService, digest
+    from urumi_gateway.identity_repository import IdentityRepository
+    from urumi_gateway.audit_repository import AuditRepository
+    from urumi_gateway.invocation import InvocationService
+    db = DatabaseFixture()
+    identity = IdentityService(IdentityRepository(db.engine))
+    user = await identity.bootstrap_admin("fixture_admin", "synthetic-protocol-password-only")
+    headers = dict(incoming_headers or {})
+    if "Authorization" in headers:
+        raw = headers["Authorization"].removeprefix("Bearer ")
+        await identity.repo.create_key(user["id"], "Synthetic supplied fixture", raw[:18], digest(raw), identity.clock())
+    else:
+        raw = (await identity.create_key(user, "Synthetic protocol fixture"))["raw_key"]
+        headers["Authorization"] = "Bearer " + raw
+    app = create_app(gateway, identity=identity, invocations=InvocationService(gateway, AuditRepository(db.engine)))
     async with AsyncExitStack() as stack:
+        stack.callback(db.close)
         for application in (a.app, b.app, app):
             await stack.enter_async_context(application.router.lifespan_context(application))
         http = await stack.enter_async_context(httpx2.AsyncClient(
-            transport=httpx2.ASGITransport(app=app), trust_env=False, headers=incoming_headers))
+            transport=httpx2.ASGITransport(app=app), trust_env=False, headers=headers))
         client = await stack.enter_async_context(Client(
             streamable_http_client("http://127.0.0.1:8000/mcp", http_client=http),
             mode=mode, cache=None))

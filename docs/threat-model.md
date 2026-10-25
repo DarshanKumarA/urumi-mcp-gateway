@@ -186,7 +186,7 @@ Last-good cached tool schemas/descriptions remain untrusted data, not trusted HT
 or model instructions. Failures retain stale management metadata but never enable
 a disabled server or publish stale live MCP routes. Revision checks reject late
 observations. Removal deletes credential/cache state; future audits must preserve
-historical attribution independently. No audit table or retention policy is invented.
+historical attribution independently. Stage 5.4 now implements the audit table below; retention policy remains unselected.
 
 
 ## Stage 5.3 identity and REST enforcement
@@ -204,8 +204,8 @@ Two concurrent hash workers bound hashing memory, not request rate/queue capacit
 or all enumeration timing. Random 256-bit tokens use SHA-256; password and token
 threat models differ. Current expiry/revocation/user-enabled checks are server-side.
 API-key verification uses constant-time digest comparison after indexed lookup;
-admin revocation immediately invalidates that same raw key in tests. External MCP
-does not yet invoke the verifier; Stage 5.4 must check every request, not handshake alone.
+admin revocation immediately invalidates that same raw key in tests. Stage 5.4 now
+invokes this verifier on every external MCP request, not only the handshake.
 
 Cookies are host-only HttpOnly/Lax/Path=/; production requires Secure and HTTPS.
 Exact configured Origin is mandatory on unsafe REST including login/acceptance;
@@ -222,7 +222,51 @@ erased. User references restrict deletion for future audits. Disabling blocks to
 while disabled; explicitly revoke if permanent invalidation is needed before enable.
 
 130 tests plus real disposable PostgreSQL migration/concurrency/reconnect smoke pass.
-No cluster/Woo changes. Remaining: external MCP still open, audit absent, no rate
-limiting/recovery/MFA, broad SSRF absent, upstream PostgreSQL credentials recoverable
+No cluster/Woo changes. External MCP authentication/audit were absent at Stage 5.3
+and are implemented in Stage 5.4 below. Remaining: no rate limiting/recovery/MFA,
+broad SSRF absent, upstream PostgreSQL credentials recoverable
 without application encryption, runtime Secrets and gateway-only caller enforcement
 pending. REST identity does not make this backend production-ready.
+
+
+## Stage 5.4 MCP identity and audit evidence
+
+Per-request Bearer verification denies absent/malformed/unknown/revoked/disabled-user
+keys before SDK transport dispatch; storage-verification failure fails closed. Cookie,
+query and forwarded-header alternatives do not authenticate. Admin revocation denies
+the same official client's next HTTP request with 401 and no additional upstream
+contact. In-flight operations are not revoked retroactively. No key-validity cache.
+
+A frozen principal in copied ASGI state avoids shared-user contamination. Concurrent
+A/B official-client calls verify distinct user/key attribution; the original state
+is unchanged. Raw Authorization is stripped before SDK handling and never forwarded.
+Only configured upstream credentials are used. Authentication does not imply that
+members are read-only: optional tool-specific permissions are absent, and enabled
+mutating tools carry the upstream account's authority.
+
+The shared invocation service commits minimal audit START before upstream work and
+fails closed if that write fails. A second commit binds the exact resolved route;
+zero business calls occur on binding failure. Tests observe committed START from
+another connection before dispatch, and force start/finalization errors. Finalization
+failure makes one call maximum and returns unknown outcome/unsafe retry; cancellation
+leaves started. There is no atomic transaction across PostgreSQL and upstream side
+effects, no automatic replay, and no exactly-once guarantee. Operators must treat
+interrupted started rows as unknown and investigate without blindly retrying writes.
+
+Audit storage contains identifiers/snapshots, timestamps, duration and fixed outcomes/
+codes only; no arguments/results, gateway key/hash, credential, Authorization, customer
+PII or arbitrary error body. Unknown caller tool strings are not persisted verbatim.
+Known upstream tool names remain untrusted metadata, not privileged instructions.
+The schema restricts identity deletion and preserves server snapshots after removal;
+completed audit records are immutable through the normal DB update path. This is not
+tamper-proof storage against a database administrator, retention/backup policy or a
+cryptographic audit chain. GET /api/audits requires an admin session and bounds queries.
+
+160 tests and real disposable PostgreSQL validate these local contracts. No live Woo,
+Kubernetes or public TLS tests occurred. SDK/HTTP/SQL debug and body/header/access
+logging must remain off; external operator logging/tracing could still leak rejected
+input. Auth failures and malformed transport messages rejected before tools/call do
+not create attributed invocation events. Generic successful upstream results remain
+untrusted and are not a universal PII-filtering guarantee; they are never copied into
+audit rows. Dashboard/chat, additional upstreams, hosting, gateway-to-Woo credentials/
+NetworkPolicy, comprehensive SSRF and optional encrypted upstream storage remain open.

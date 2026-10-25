@@ -43,6 +43,8 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(self.started.wait(), 5)
         login = await self.http.post("/api/auth/login", json={"username": "fixture_admin", "password": "synthetic-admin-password-only"})
         self.assertEqual(login.status_code, 200)
+        self.gateway_key = (await self.http.post("/api/keys", json={"label": "protocol fixture"})).json()["raw_key"]
+        self.http.headers["Authorization"] = "Bearer " + self.gateway_key
         response = await self.http.post("/api/servers", json={"slug": "server_a", "display_name": "A",
             "url": "http://127.0.0.1:9001/mcp", "credential": {"kind": "bearer", "value": SYNTHETIC}})
         self.assertEqual(response.status_code, 201)

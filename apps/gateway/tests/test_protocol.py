@@ -361,7 +361,7 @@ class ProtocolTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(a.calls), 1)
 
     async def test_caller_headers_are_not_upstream_credentials(self):
-        caller = "synthetic-caller-value-only"
+        caller = "urumi_key_" + "A" * 43  # Synthetic fixture, never a deployment key.
         async with setup(incoming_headers={"Authorization": "Bearer " + caller}) as state:
             client, gateway, repo, sa, sb, a, b = state
             await client.list_tools()

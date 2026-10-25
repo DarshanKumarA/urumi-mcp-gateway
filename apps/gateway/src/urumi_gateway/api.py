@@ -1,4 +1,4 @@
-"""Single REST/MCP backend. REST is protected; external MCP auth remains pending."""
+"""Single REST/MCP backend. REST sessions and per-request MCP identity with durable invocation audits."""
 
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -14,6 +14,9 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from .identity import IdentityService, AuthConfig, IdentityError
 from .identity_repository import IdentityRepository
 from .auth_api import identity_router, admin, same_origin
+from .audit_repository import AuditRepository, AuditUnavailable
+from .audit_api import audit_router
+from .invocation import InvocationService
 from .core import Gateway
 from .database import SQLRepository, RepositoryUnavailable, make_engine
 from .errors import GatewayError
@@ -24,8 +27,10 @@ from .server import create_app as mcp_app
 def create_app(repository, *, upstream=None, seed=False, auth_config=None, identity=None):
     gateway = Gateway(repository, upstream)
     service = Management(gateway)
-    mcp = mcp_app(gateway)
     identity = identity or IdentityService(IdentityRepository(repository.engine), auth_config)
+    audits = AuditRepository(repository.engine)
+    invocations = InvocationService(gateway, audits)
+    mcp = mcp_app(gateway, identity=identity, invocations=invocations)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -37,6 +42,8 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
 
     app = FastAPI(title="Urumi management", lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
+    app.state.audits = audits
+    app.state.invocations = invocations
     app.state.identity = identity
     app.state.gateway = gateway
     app.state.management = service
@@ -48,6 +55,10 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
         if request.url.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         return response
+
+    @app.exception_handler(AuditUnavailable)
+    async def audit_unavailable(request, error):
+        return JSONResponse({"error": "AUDIT_UNAVAILABLE"}, status_code=503)
 
     @app.exception_handler(IdentityError)
     async def authentication_failed(request, error):
@@ -111,6 +122,7 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
     async def refresh(server_id: UUID):
         return await service.refresh(server_id)
 
+    app.include_router(audit_router(audits))
     app.include_router(identity_router(identity))
     app.include_router(management)
 

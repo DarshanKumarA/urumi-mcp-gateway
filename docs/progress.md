@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-25 - Stage 5.4 authenticated MCP and attributed audit implemented for review.** Stage 5.3 is committed as a3816e0. Every external MCP HTTP request now verifies its gateway key; request-local identity enters one shared audited invocation service. Explicit 0003_audit commits START before upstream dispatch and retains interrupted/unknown records. Admin-only audit listing is implemented. 160 tests, including all prior 130, and real PostgreSQL migration/history smoke pass. Woo/Helm unchanged, k3d stopped; no staging/commit or public deployment.
+
 **2026-10-25 - Stage 5.3 identity and protected REST implemented for review.** Stage 5.2 is committed as 05509a7. Explicit 0002_identity adds users and hash-only sessions/invitations/API keys; Argon2id, deliberate bootstrap and same-origin admin/member guards protect REST. 130 tests and real PostgreSQL smoke pass. External /mcp authentication and audit remain Stage 5.4; no public deployment. Woo/Helm unchanged, k3d stopped, nothing staged/committed.
 
 **2026-10-25 - Stage 5.2 persistent registry and management API implemented for review.** Stage 5.1 was committed as 8245873. PostgreSQL repository, explicit migration, insert-only Woo seed and safe FastAPI REST DTOs now share the existing gateway core. 80 offline tests and a separate real PostgreSQL smoke pass. Identity/roles/audit and public deployment remain incomplete. Woo/Helm are unchanged; k3d stayed stopped. Nothing staged or committed.
@@ -24,7 +26,44 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 5.3 identity, protected management, invitation/key lifecycle and validation while preserving earlier history. Only gateway source/tests/dependencies and appropriate governance docs change; no Woo/Helm changes, staging or commit.
+Record Stage 5.4 per-request identity, shared audited invocation, durable history and validation while preserving earlier milestones. Only gateway source/tests/migration/package description and appropriate governance docs change; dependencies and old migrations stay unchanged. No Woo/Helm changes, staging or commit.
+
+## Stage 5.4 authenticated MCP and durable attributed audit
+
+| Area | Implementation/evidence |
+| --- | --- |
+| Baseline | Clean main at a3816e0; validated Woo untouched; k3d remains stopped |
+| HTTP auth | Every SDK transport request verifies Bearer through existing key service; absent/malformed/unknown/revoked/disabled denied with 401 challenge; DB verifier outage 503 |
+| Identity | Frozen safe principal in copied request state; Authorization stripped before SDK; concurrent users remain separately attributed |
+| Revocation | Admin revokes B via existing REST; same connected official client next request gets 401, zero additional upstream contact |
+| Shared invocation | Existing core reused; future session-derived chat seam tested, no chat implementation |
+| Audit START | Initial transaction committed before upstream work; failure means zero dispatch; exact original mapping committed before business call |
+| Outcomes | UTC timestamps, monotonic duration, succeeded/failed and allowlisted codes; rejected routed calls also audited |
+| Interrupted/finalization | Cancellation leaves started; forced finalization failure leaves durable START after exactly one invocation, reports unknown/unsafe retry; no replay |
+| History | 0003_audit after unchanged 0001/0002; user/key restrictive references, immutable snapshots, historical server ID/slug survives removal |
+| Privacy | No args/results/key/hash/header/credential/PII columns; unknown caller names use unresolved sentinel; malicious error content becomes fixed code |
+| Audit API | Admin-only GET /api/audits; default 20/max 100 per page, user/server/tool/outcome filters; member 403, anonymous 401 |
+| Protocol/regressions | 160 tests = previous 130 plus 30 auth/audit tests; all 80 Stage 5.2 and 51 Stage 5.1 regressions retained; modern/legacy SDK clients |
+| PostgreSQL | Disposable 18.0: empty 0001 -> 0002 -> 0003, schema parity, durable START/finalization/reconnect, deletion/revocation history, immutable constraints; container removed |
+| Runtime boundary | Synthetic ASGI fixtures only; no listening TCP acceptance, real upstream business request or Kubernetes action |
+
+Initial audit failure and route-binding failure prevent business execution. Finalization
+can fail after a remote mutation, or its commit acknowledgement can be lost: started
+means interrupted/unknown and must not trigger automatic retries. There is no distributed
+exactly-once guarantee. Discovery/auth failures are not tool-call events; malformed
+transport rejected before the handler is outside normal invocation auditing.
+
+Dependencies remain unchanged and hash-locked; compilation, pip check, Windows/Linux
+closure (41/39 packages), hash-enforced Windows wheel resolution, credential/contact
+scan, 103 local documentation links/anchors, 75 tables and git diff --check pass.
+Linux dependency closure is metadata validation, not Linux runtime execution. Audit retention/backup/operational repair, rate limiting, comprehensive
+SSRF and upstream application encryption remain unimplemented. Management REST and
+external MCP are now authenticated in fixture acceptance; deployment is still pending.
+Additional two real upstreams, React dashboard, chat, gateway hosting, gateway-to-Woo
+caller authentication/NetworkPolicy and final demo remain incomplete. Proposed next
+reviewed slice: dashboard management UI for the existing identity/server/team/key/audit
+APIs, with chat and deployment separately scoped. See [audit contract](../apps/gateway/README.md#stage-54-authenticated-mcp-and-attributed-audit)
+and [decision](decisions.md#dec-032-stage-54-request-identity-and-durable-invocation-audit).
 
 ## Stage 5.3 identity and protected REST management
 

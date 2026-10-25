@@ -145,14 +145,28 @@ class Gateway:
                 return copy.deepcopy(catalog.tools[name].input_schema)
         return None
 
-    async def call_tool(self, name, arguments):
+    async def registered_server(self, name):
+        slug, separator, _ = name.partition("__")
+        if not separator:
+            return None
+        return next((s for s in await self.repository.list() if s.slug == slug), None)
+
+    async def audit_target(self, name):
+        server = await self.registered_server(name)
+        catalog = self._catalogs.get(server.id) if server else None
+        # Unrecognized caller strings can contain secrets/PII. Persist only a
+        # previously discovered tool name; cold valid names bind before dispatch.
+        known = catalog is not None and name in catalog.originals
+        return {"server_id": server.id if server else None,
+                "server_slug": server.slug if server else None,
+                "gateway_tool": name if known else "<unresolved>",
+                "upstream_tool": catalog.originals[name] if known else None}
+
+    async def call_tool(self, name, arguments, *, before_dispatch=None):
         attempted = False
         server = None
         try:
-            slug, separator, _ = name.partition("__")
-            if not separator:
-                raise GatewayError("UNKNOWN_TOOL")
-            server = next((s for s in await self.repository.list() if s.slug == slug), None)
+            server = await self.registered_server(name)
             if server is None:
                 raise GatewayError("UNKNOWN_TOOL")
             if not server.enabled:
@@ -165,6 +179,8 @@ class Gateway:
                 raise GatewayError("UPSTREAM_UNAVAILABLE")
             if name not in catalog.originals:
                 raise GatewayError("UNKNOWN_TOOL")
+            if before_dispatch is not None:
+                await before_dispatch(server, catalog.originals[name])
             try:
                 validator(catalog.tools[name].input_schema).validate(arguments)
             except Exception:

@@ -7,6 +7,7 @@ import asyncio
 import os
 from pathlib import Path
 from uuid import uuid4
+from datetime import datetime, timezone
 
 import sqlalchemy as sa
 from alembic.autogenerate import compare_metadata
@@ -18,6 +19,8 @@ from test_persistence import migrate
 from support import SYNTHETIC
 from urumi_gateway.identity import IdentityService, IdentityError, digest
 from urumi_gateway.identity_repository import IdentityRepository, users, sessions, invitations, api_keys
+from urumi_gateway.audit_repository import AuditRepository, audit_events
+from urumi_gateway.mcp_auth import Principal
 
 
 async def exercise(engine):
@@ -139,6 +142,47 @@ async def identity_exercise(engine):
             raise AssertionError("Revoked identity accepted")
 
 
+async def audit_exercise(engine):
+    identity = IdentityService(IdentityRepository(engine))
+    admin = await identity.bootstrap_admin("fixture_admin", "synthetic-unused-password")
+    issued = await identity.create_key(admin, "Audit fixture")
+    principal = Principal(admin["id"], admin["username"], "admin", issued["key"]["id"])
+    registry, audits = SQLRepository(engine), AuditRepository(engine)
+    server = Upstream("audit_fixture", "Audit fixture", "http://localhost:9001/mcp")
+    await registry.add(server)
+    target = dict(server_id=server.id, server_slug=server.slug, gateway_tool="audit_fixture__echo")
+    event_id = await audits.start(principal, target, datetime.now(timezone.utc))
+    # Separate transaction proves durable START visibility before dispatch.
+    with engine.connect() as c:
+        assert c.execute(sa.select(audit_events.c.outcome)).scalar_one() == "started"
+    await audits.bind_tool(event_id, "audit_fixture__echo", "echo")
+    await audits.finish(event_id, "succeeded", None, datetime.now(timezone.utc), 1)
+    engine.dispose()
+    before = (await AuditRepository(engine).list_events())["items"][0]
+    assert before["outcome"] == "succeeded" and before["upstream_tool"] == "echo"
+    assert before["user_id"] == admin["id"] and before["api_key_id"] == issued["key"]["id"]
+    assert issued["raw_key"] not in repr(before) and digest(issued["raw_key"]) not in repr(before)
+    await registry.remove(server.id)
+    await identity.revoke_key(admin, admin["id"], issued["key"]["id"])
+    try:
+        await identity.verify_key(issued["raw_key"])
+    except IdentityError:
+        pass
+    else:
+        raise AssertionError("Revoked key accepted")
+    engine.dispose()
+    assert (await audits.list_events())["items"][0] == before
+    for operation in (audit_events.update().values(username="changed"),
+                      api_keys.delete().where(api_keys.c.id == issued["key"]["id"])):
+        try:
+            with engine.begin() as c:
+                c.execute(operation)
+        except sa.exc.DBAPIError:
+            pass
+        else:
+            raise AssertionError("Historical audit attribution changed")
+
+
 def main():
     engine = None
     try:
@@ -152,9 +196,10 @@ def main():
         migrate(engine)
         asyncio.run(exercise(engine))
         asyncio.run(identity_exercise(engine))
+        asyncio.run(audit_exercise(engine))
         migrate(engine, "base", down=True)
         migrate(engine)
-        print("PASS: PostgreSQL 0001 + 0002 empty migration/schema; registry regressions; Argon2 admin bootstrap; session/invitation/key hash persistence; concurrent single-use invitation; immediate revocation; reconnect persistence; restrictive identity constraints; downgrade/upgrade")
+        print("PASS: PostgreSQL 0001 -> 0002 -> 0003 empty migration/schema; registry and identity regressions; committed audit START/finalization; reconnect persistence; attribution survives server removal/key revocation; immutable audit and restrictive key constraints; immediate revocation; downgrade/upgrade")
     except Exception:
         print("FAIL: PostgreSQL fixture validation; raw DB details suppressed")
         raise SystemExit(1) from None

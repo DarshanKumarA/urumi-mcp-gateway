@@ -1,10 +1,10 @@
 # Gateway protocol core and persistent management
 
-Stage 5.3 adds PostgreSQL identities, opaque browser sessions, admin/member REST
-authorization, member invitations and hashed revocable API keys to the same backend.
-**External `/mcp` remains unauthenticated; no audits or public deployment yet.**
-The protocol-only `server.create_app` retains its in-memory test default;
-`api.create_production_app` requires PostgreSQL and never falls back to memory.
+Stage 5.4 adds per-request external MCP Bearer authentication and durable attributed
+audits to the existing identity, registry and admin/member REST backend.
+**No public deployment, dashboard or chat acceptance yet.** Both SDK application
+factories now require identity/invocation dependencies; there is no unauthenticated
+default MCP factory. `api.create_production_app` requires PostgreSQL.
 
 ## Files and validation
 
@@ -19,6 +19,9 @@ The protocol-only `server.create_app` retains its in-memory test default;
 - `database.py`: SQLAlchemy tables/repository, transaction boundaries and one-time Woo seed.
 - `management.py`: strict input models, credential lifecycle and safe read DTOs.
 - `api.py`: FastAPI REST routes and shared SDK MCP lifespan.
+- `mcp_auth.py`: per-request key verification and immutable request-state principal.
+- `invocation.py`: shared audit-before-dispatch wrapper around the core.
+- `audit_repository.py` / `audit_api.py`: committed metadata and admin-only listing.
 - `migrations/` and `alembic.ini`: explicit versioned schema, no startup DDL.
 - `tests/`: synthetic SDK upstreams, SQLite repository/API tests and opt-in PostgreSQL smoke.
 
@@ -53,16 +56,18 @@ Future lock updates must check extras/platform closure and verify wheel hashes.
 ## Flow and lifecycle
 
 ```text
-Official client -> /mcp (SDK ASGI)
+Official client -> per-request Bearer verification -> /mcp (SDK ASGI)
   tools/list -> enabled registrations -> concurrent bounded SDK discovery
              -> stored namespaced catalog -> supported MCP schemas
-  tools/call -> exact slug + stored mapping + current registration
-             -> argument validation -> upstream SDK session -> original tool name
-             -> normalized MCP content/structured result or safe tool error
+  tools/call -> request-local principal -> InvocationService -> COMMIT audit START
+             -> exact slug + stored mapping + current registration
+             -> COMMIT resolved tool identity -> argument validation
+             -> upstream SDK session -> original tool name (one attempt)
+             -> finalize audit -> preserved MCP result or safe tool error
 ```
 
 This core is a module of the accepted single backend. REST now uses the same
-repository/core; future auth/audit/chat can do so too; none of those responsibilities live in Woo MCP.
+repository/core; authenticated auditing wraps it and future chat will reuse that path; none of those responsibilities live in Woo MCP.
 Each upstream operation owns and closes its HTTP client and SDK session in the same
 async task. No pool, worker, background health loop or persistent legacy session is
 maintained across operations. This costs another handshake/list on each call, but
@@ -183,7 +188,7 @@ loopback-only Docker fixture was removed; k3d remained stopped. No live upstream
 or Woo request, customer data or real credentials were involved.
 
 Stage 5.3 now implements and tests REST identity/roles, invitations and hashed
-revocable keys below. External MCP key enforcement and audit remain Stage 5.4 work.
+revocable keys below. Stage 5.4 implements external MCP key enforcement and audit below.
 Three real upstreams, gateway-to-Woo authentication/NetworkPolicy, hosting,
 dashboard/chat and the final demo remain incomplete.
 
@@ -232,10 +237,8 @@ FastAPI explicitly enters/exits the SDK app lifespan and mounts it last, preserv
 `/mcp`. The same Gateway/repository serves REST refresh and MCP. Shutdown disposes
 the DB pool. A DB failure gives a fixed safe error, not raw SQL/driver details.
 Alembic downgrade is explicitly destructive to registry data; never use it as an
-automatic recovery step. Stage 5.3 adds identity tables in `0002_identity`; audit
-tables remain deferred. Future
-audit rows must retain a server-ID/slug snapshot or nullable non-cascading reference;
-removing a registration must not cascade-delete audit history.
+automatic recovery step. Stage 5.3 adds `0002_identity`; Stage 5.4 adds `0003_audit`.
+The earlier migrations are unchanged. Audit snapshots survive registration removal.
 
 For the opt-in PostgreSQL smoke, provision an EMPTY disposable loopback DB named
 `urumi_gateway_fixture`; set `URUMI_TEST_DATABASE_URL_FILE` to its protected URL-file
@@ -286,8 +289,8 @@ or comprehensive SSRF protection; that stand-out hardening remains future work.
 
 All management routes now require a real admin browser session. Anonymous callers
 receive 401; members receive 403. No fake admin or public deployment is provided.
-Host validation is not authorization. External `/mcp` is still unauthenticated;
-no browser UI/CORS, audit or chat is included.
+Host validation is not authorization. External `/mcp` now requires its own Bearer
+key on every HTTP request; browser sessions cannot authenticate MCP. No UI/chat yet.
 
 Persistence references: [SQLAlchemy PostgreSQL/Psycopg](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg),
 [Alembic migrations](https://alembic.sqlalchemy.org/en/latest/tutorial.html),
@@ -381,7 +384,7 @@ hash lookup is followed by constant-time digest comparison for API-key verificat
 The reusable verifier returns safe user/key identity, never hash/raw key. Every
 verification checks revocation and current enabled user with no identity cache.
 Admin revocation makes the same raw key fail on its next verification. Stage 5.4
-must connect this verifier to every MCP request, including already-connected clients.
+now calls this verifier on every MCP request, including already-connected clients.
 
 | Route | Authorization / behavior |
 | --- | --- |
@@ -420,11 +423,91 @@ concurrent single-use acceptance, hash-only persistence, reconnect, session/key
 revocation and restrictive identity constraints; the fixture container was removed.
 No real users/credentials, Woo calls or Kubernetes actions were performed.
 
-External `/mcp` is still unauthenticated. Audits, rate limits/password recovery,
+At the Stage 5.3 checkpoint external `/mcp` was unauthenticated and audit absent.
+Stage 5.4 addresses those below. Rate limits/password recovery,
 MFA, dashboard/chat, public TLS/hosting, gateway-only upstream enforcement and broad
 SSRF containment are not implemented. Upstream credentials still have the approved
 Stage 5.2 recoverable PostgreSQL baseline without application encryption. Do not
-expose this backend publicly. Stage 5.4 should wire per-request key verification and
-mandatory attributed audit events around the existing gateway invocation path.
+expose this backend publicly before hosting/security acceptance.
 
 Password reference: [argon2-cffi API and defaults](https://argon2-cffi.readthedocs.io/en/stable/api.html).
+
+## Stage 5.4 authenticated MCP and attributed audit
+
+Every HTTP request reaching the SDK transport requires exactly one Authorization
+header with Bearer and a valid gateway key. Initialize, discovery, calls and other
+HTTP methods are checked; query parameters, cookies, forwarded headers and tool
+arguments never authenticate. Missing/malformed/unknown/revoked/disabled-user keys
+receive 401 with a Bearer challenge; verifier unavailability fails closed with a
+sanitized 503. Key validity is never cached. Revocation blocks the next HTTP request
+on an existing client; it does not undo an already-dispatched operation.
+
+Middleware copies ASGI request state, inserts a frozen safe Principal (user UUID,
+username, role, key UUID, authentication source), then removes Authorization before
+the SDK runs. The pinned SDK carries the originating HTTP Request into current and
+legacy handler contexts. There is no global current-user value or ContextVar to
+reset. Concurrent real-client tests overlap A/B calls and verify separate audit
+attribution. Request-state copies leave the incoming shared state unchanged.
+
+`InvocationService.invoke_tool(principal, name, arguments)` is the only external
+call path. It wraps, rather than duplicates, `Gateway.call_tool`. Future chat must
+construct a session-derived principal server-side and use this same service; a
+reserved session-source fixture proves the seam without implementing chat. The
+browser cannot select principal fields. Gateway keys never become upstream headers;
+only each registration's configured credential reaches its upstream.
+
+### Durable event and failure boundary
+
+Explicit `0003_audit` adds `audit_events`: immutable event UUID, user UUID/username
+snapshot, nullable key UUID, api_key/session source, historical nullable server UUID
+and slug, exposed/original tool names, UTC started/completed timestamps, monotonic
+duration_ms, started/succeeded/failed outcome and allowlisted error code. There are
+no argument/result, token/hash, header, upstream credential or exception-body columns.
+User/key foreign keys restrict deletion. Server UUID/slug are historical snapshots,
+not cascading references; removing a registration preserves them. Database triggers
+freeze identity snapshots and completed rows. There is no audit deletion API.
+
+The initial START transaction commits before any upstream operation in the invocation
+path. Cold route discovery follows that commit. The authoritative original tool name
+is bound and committed before dispatch; already-known names can be recorded initially.
+Unknown caller strings are stored as `<unresolved>` to avoid persisting arbitrary
+PII/token text, while a recognized server UUID/slug is retained. Resolved invalid
+arguments, disabled/dead peers, timeouts and upstream errors finish as failed with a
+fixed code. Ordinary discovery has no audit event; unauthenticated requests and
+malformed transport messages rejected before tools/call are not normal call events.
+
+Initial insert/commit or route-binding failure prevents business dispatch. Finalization
+failure after execution returns `AUDIT_FINALIZATION_FAILED; write_outcome=unknown;
+retry_safe=false`, with no replay or automatic reconciliation. Cancellation/crash
+can leave a durable started row: interpret it as interrupted/outcome unknown, never
+as proof of success or failure. A lost database commit acknowledgement can also make
+finalization uncertain; inspect durable state operationally. PostgreSQL and the remote
+mutation are not one transaction, and this provides no distributed exactly-once claim.
+Safe successful structured results and existing schemas/annotations remain intact.
+
+### Admin audit query
+
+`GET /api/audits` requires an admin browser session (anonymous 401, member 403).
+Pagination is page >= 1 (maximum 100000), per_page 1–100, default 20. Optional filters
+are user_id UUID, server_slug, tool (known exposed name), and outcome. Response items
+contain only the safe audit fields above plus collection page/per_page/total/has_more;
+no argument/result recovery or credential endpoint exists. Listing errors are sanitized.
+
+### Validation and limits
+
+All 160 tests pass, including the previous 130 regressions. No dependency additions.
+Stage 5.4 uses synthetic identities and upstream ASGI fixtures, not live Woo or a
+listening network deployment. Current/legacy official-client tests exercise per-request
+authentication, immediate admin revocation, concurrent attribution, committed START
+visibility from another DB connection, failed-start zero dispatch, failed-finalization
+one dispatch, interrupted records, safe query authorization and historical attribution.
+Real disposable PostgreSQL 18.0 applies 0001 -> 0002 -> 0003 from empty, compares schema,
+checks START/finalization/reconnect, removal/revocation survival and immutable constraints,
+then downgrades/upgrades only that disposable fixture and removes its container.
+
+Auth/audit do not imply tool-specific permissions: members can invoke enabled mutating
+tools. Rate limits, audit retention/backup/operational repair, comprehensive SSRF,
+application encryption of recoverable upstream credentials, public TLS/hosting,
+additional real upstreams, dashboard/chat and gateway-to-Woo authentication/NetworkPolicy
+remain incomplete. Do not enable access/body/header/SQL-result logging or unreviewed
+telemetry; auth rejection is not permission to log a submitted key URL or header.
