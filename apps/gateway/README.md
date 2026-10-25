@@ -1,8 +1,8 @@
 # Gateway protocol core and persistent management
 
-Stage 5.2 adds PostgreSQL persistence and FastAPI management routes to the same
-backend. There are no users, authorization, API keys, audits or chat yet.
-**NOT YET AUTHORIZED: loopback development only; never expose to real callers.**
+Stage 5.3 adds PostgreSQL identities, opaque browser sessions, admin/member REST
+authorization, member invitations and hashed revocable API keys to the same backend.
+**External `/mcp` remains unauthenticated; no audits or public deployment yet.**
 The protocol-only `server.create_app` retains its in-memory test default;
 `api.create_production_app` requires PostgreSQL and never falls back to memory.
 
@@ -44,7 +44,8 @@ supplies standard typed SQL/transactions without a custom ORM; Psycopg connects 
 PostgreSQL; Alembic owns migrations; Pydantic validates management DTOs. Synchronous
 DB operations run with `asyncio.to_thread` so Windows does not need Psycopg's async
 selector-loop policy. Database pool/connect/statement waits are bounded at 5s.
-The 39-package hash lock retains existing SDK pins and adds their exact dependency
+Stage 5.3 adds `argon2-cffi==25.1.0` (bindings locked at `26.1.0`).
+The 41-package hash lock retains existing SDK pins and adds their exact dependency
 closure. Windows-only pywin32/tzdata use markers. Tests use stdlib unittest/SQLite;
 no separate test framework or OAuth signer is added. Uvicorn remains SDK-transitive.
 Future lock updates must check extras/platform closure and verify wheel hashes.
@@ -72,7 +73,7 @@ current and legacy downstream clients. No handwritten JSON-RPC implementation.
 ## Registry and names
 
 An immutable UUID and unique immutable slug identify a registration. Slugs are
-1–32 lowercase ASCII letters/digits separated by single underscores, starting with
+1â€“32 lowercase ASCII letters/digits separated by single underscores, starting with
 a letter. Mutable fields are display name, HTTP(S) URL, enabled and optional static
 credential. URLs cannot contain user-info, query strings or fragments. This is
 input hygiene, not a full SSRF defense or an allowlist of network destinations.
@@ -181,10 +182,10 @@ observations, concurrent idempotent seed and deletion cleanup. The disposable
 loopback-only Docker fixture was removed; k3d remained stopped. No live upstream
 or Woo request, customer data or real credentials were involved.
 
-Sessions/admin-member authorization, invitations, hashed/revocable user keys,
-audit, three real upstreams, gateway-to-Woo authentication/NetworkPolicy, hosting,
-dashboard/chat and the final demo remain incomplete. Proposed Stage 5.3 is identity,
-sessions and admin/member enforcement before exposing the management surface.
+Stage 5.3 now implements and tests REST identity/roles, invitations and hashed
+revocable keys below. External MCP key enforcement and audit remain Stage 5.4 work.
+Three real upstreams, gateway-to-Woo authentication/NetworkPolicy, hosting,
+dashboard/chat and the final demo remain incomplete.
 
 References: [SDK 2.3.0 release](https://github.com/modelcontextprotocol/python-sdk/releases/tag/v2.3.0),
 [MCP tools contract](https://modelcontextprotocol.io/specification/2026-07-28/server/tools),
@@ -200,7 +201,8 @@ last-good tool-metadata cache with its revision/check time. No tool results are 
 The database enforces unique slug, health/credential consistency, and immutable ID/slug
 via a migration-installed trigger. Application validation rejects identity edits too.
 
-`registry_bootstrap` holds only the `woocommerce-v1` seed receipt. Startup inserts
+`registry_bootstrap` holds the `woocommerce-v1` receipt and, from Stage 5.3, the
+separate `identity-admin-v1` explicit-admin receipt. Startup inserts
 WooCommerce once: slug `woocommerce`, display name `WooCommerce`, URL
 `http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp`, enabled, no credential.
 Concurrent startups are safe. A preexisting slug is preserved entirely. After first
@@ -218,6 +220,10 @@ that file path in the environment:
 ```powershell
 $env:PYTHONPATH = 'apps/gateway/src'
 apps/gateway/.venv/Scripts/python -m alembic -c apps/gateway/alembic.ini upgrade head
+# Explicit local-only non-secret settings; see bootstrap/identity instructions below.
+$env:URUMI_ENVIRONMENT = 'local'
+$env:URUMI_BROWSER_ORIGIN = 'http://127.0.0.1:8000'
+$env:URUMI_COOKIE_SECURE = 'false'
 apps/gateway/.venv/Scripts/python -m uvicorn urumi_gateway.api:create_production_app --factory --host 127.0.0.1 --port 8000 --no-access-log
 ```
 
@@ -226,7 +232,8 @@ FastAPI explicitly enters/exits the SDK app lifespan and mounts it last, preserv
 `/mcp`. The same Gateway/repository serves REST refresh and MCP. Shutdown disposes
 the DB pool. A DB failure gives a fixed safe error, not raw SQL/driver details.
 Alembic downgrade is explicitly destructive to registry data; never use it as an
-automatic recovery step. No users/session/key/audit tables are introduced. Future
+automatic recovery step. Stage 5.3 adds identity tables in `0002_identity`; audit
+tables remain deferred. Future
 audit rows must retain a server-ID/slug snapshot or nullable non-cascading reference;
 removing a registration must not cascade-delete audit history.
 
@@ -277,12 +284,147 @@ default port and empty path without changing a nonempty path. Internal Service D
 is allowed intentionally. This is **not** DNS pinning, network egress restriction,
 or comprehensive SSRF protection; that stand-out hardening remains future work.
 
-Management routes currently have no authentication or admin/member authorization.
-No fake admin is inserted; tests explicitly exercise this temporary limitation.
-Loopback Host validation is not caller authorization. No public deployment, browser
-UI/CORS, user keys, audit or chat is included in this milestone.
+All management routes now require a real admin browser session. Anonymous callers
+receive 401; members receive 403. No fake admin or public deployment is provided.
+Host validation is not authorization. External `/mcp` is still unauthenticated;
+no browser UI/CORS, audit or chat is included.
 
 Persistence references: [SQLAlchemy PostgreSQL/Psycopg](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg),
 [Alembic migrations](https://alembic.sqlalchemy.org/en/latest/tutorial.html),
 [FastAPI lifespan](https://fastapi.tiangolo.com/advanced/events/),
 [official PostgreSQL image](https://hub.docker.com/_/postgres).
+
+
+## Stage 5.3 identity and authorization
+
+`identity_repository.py` owns identity SQL and safe field allowlists; `identity.py`
+centralizes passwords, sessions, invitations and API-key verification. `auth_api.py`
+is the REST adapter and shared session/admin/Origin guards. `bootstrap_admin.py`
+is a deliberate operator command. No SQL lives in handlers. Gateway routing/core,
+Woo MCP and the accepted `0001_registry` snapshot are unchanged.
+
+### Schema and bootstrap
+
+Apply explicit `0002_identity` after `0001_registry`; startup never creates tables.
+`users` stores immutable UUID/unique lowercase username, admin/member role, Argon2id
+password hash, enabled flag and UTC timestamps. `sessions`, `invitations` and
+`api_keys` store only token digests plus lifecycle metadata. User references use
+`ON DELETE RESTRICT`; disable members rather than deleting identities. Future audit
+history must retain attribution, not cascade away with users or registrations.
+Username is 3–64 lowercase ASCII letters/digits/underscore/hyphen, starting with a
+letter. This implements the Stage 5.3 username contract, refining DEC-009's earlier
+email-login proposal without introducing email delivery or account linkage to Woo.
+
+After migration, provision a protected password file outside the repository (later
+an externally managed Kubernetes Secret mount). Set only these non-secret pointers:
+`URUMI_DATABASE_URL_FILE`, `URUMI_BOOTSTRAP_PASSWORD_FILE` and
+`URUMI_BOOTSTRAP_USERNAME`. Run `python -m urumi_gateway.bootstrap_admin` with the
+source path configured as above. Never put the password itself in arguments,
+environment variables, documentation or logs. No default password exists.
+
+The command reads a bounded file, removes one terminal newline, and creates the
+first admin using a transactional `identity-admin-v1` receipt. Repeating for that
+existing enabled admin preserves its password; another identity/existing conflicting
+user fails safely. Concurrent calls converge without overwriting passwords. Startup
+does not invoke this command. Explicit identity downgrade destroys identity data and
+removes that receipt; it is not an automatic recovery mechanism.
+
+### Passwords and browser sessions
+
+Argon2id uses the pinned library defaults: 64 MiB, time cost 3, parallelism 4,
+16-byte independently generated salts and 32-byte hash. Passwords are 12–128
+characters when created; no trimming. Verification is centralized. Unknown usernames
+still perform one dummy Argon2 verification; unknown, disabled and wrong-password
+login failures return the same 401. This reduces enumeration differences, not a
+claim of identical network timing. Two concurrent hash operations per process bound
+hashing memory; this is not rate limiting or a request-queue bound.
+
+Sessions use 32 cryptographically random bytes encoded as an opaque token. Only its
+SHA-256 digest is persisted. Login returns a safe profile and sets `urumi_session`
+only as an HttpOnly, SameSite=Lax, Path=/, host-only cookie. Re-login rotates/revokes
+the previous valid browser session. Logout revokes the row and clears the cookie.
+Every request checks expiry, revocation and the current enabled user; browser IDs,
+roles and forwarding headers are not trusted. No token appears in `/api/me`.
+
+| Non-secret setting | Default / constraint |
+| --- | --- |
+| URUMI_ENVIRONMENT | Production by default in the production factory; explicit local for HTTP development |
+| URUMI_BROWSER_ORIGIN | Required by production factory; exact HTTP(S) origin, no path/query/userinfo |
+| URUMI_COOKIE_SECURE | true by default; false allowed only outside production; production requires HTTPS and true |
+| URUMI_SESSION_SECONDS | 28800 (8 hours), bounded 300–86400 |
+| URUMI_INVITATION_SECONDS | 86400 (24 hours), bounded 300–604800 |
+
+All state-changing `/api` requests, including login and invitation acceptance,
+require `Origin` exactly matching the configured origin; missing/null/different
+origins fail 403. If present, Sec-Fetch-Site must be same-origin or none. No Referer
+fallback or permissive CORS exists. Safe GETs require identity where applicable but
+not Origin. This is a small same-origin CSRF defense, not protection from XSS,
+compromised same-origin code or non-browser callers who can forge Origin. Authentication
+still provides access control. API responses use Cache-Control: no-store. Production
+factory rejects insecure production configuration; TLS termination/deployment remain
+untested. SDK `/mcp` Host/Origin protections remain unchanged and are separate.
+
+### Invitation and key lifecycle
+
+Admin invitations are member-only, bound to the intended username and shown once.
+The raw 256-bit token is manually shared; only its hash persists. Expired, revoked,
+used or invalid tokens fail. Acceptance conditionally claims the invitation and
+inserts the member in one transaction, so concurrent redemption yields one account.
+Clients cannot substitute a username or role. Listing never returns token/hash.
+
+API keys have format `urumi_key_<43 base64url characters>`, generated from 32 random
+bytes. The first 18 characters are a safe visible identification prefix; only the
+SHA-256 hash of the complete key and metadata are persisted. The raw key is returned
+once on creation. Passwords need costly salted Argon2 because humans choose them;
+random 256-bit tokens can use SHA-256 without enabling practical guessing. Indexed
+hash lookup is followed by constant-time digest comparison for API-key verification.
+The reusable verifier returns safe user/key identity, never hash/raw key. Every
+verification checks revocation and current enabled user with no identity cache.
+Admin revocation makes the same raw key fail on its next verification. Stage 5.4
+must connect this verifier to every MCP request, including already-connected clients.
+
+| Route | Authorization / behavior |
+| --- | --- |
+| POST /api/auth/login | Origin check; generic credential failure; cookie + safe profile |
+| POST /api/auth/logout | Session + Origin; revoke and clear cookie |
+| GET /api/me | Session; ID, username, role only |
+| All /api/servers routes | Admin session; Origin additionally on mutations |
+| POST /api/invitations | Admin; intended username; one-time token |
+| GET /api/invitations | Admin; metadata only |
+| DELETE /api/invitations/{id} | Admin; revoke |
+| POST /api/invitations/accept | Origin + token/password proof; member only; no automatic login |
+| POST /api/keys | Own authenticated user; label; raw key once |
+| GET /api/keys | Own key metadata, never hashes/full values |
+| DELETE /api/keys/{id} | Revoke own key; another owner's ID is not found |
+| GET /api/users and /api/users/{id} | Admin; safe user metadata |
+| GET /api/users/{id}/keys | Admin; target user's key metadata |
+| DELETE /api/users/{id}/keys/{key_id} | Admin; revoke target key, never recover its raw value |
+| POST /api/users/{id}/disable or /enable | Admin; member-only; no admin lockout action |
+
+Normal API responses, sanitized errors and application logs contain no password,
+session/token/key hash, raw key or invitation token. The only raw-token responses
+are their explicit one-time issuance endpoints; session issuance uses Set-Cookie.
+Do not enable request/body/header tracing, SQL row dumps or debug exception pages.
+Python immutable strings cannot be reliably zeroized; file and process permissions,
+TLS and operator logging hygiene still matter. Disabling a member blocks existing
+sessions/keys while disabled; re-enabling restores otherwise-valid, unrevoked tokens.
+Revoke tokens explicitly if permanent invalidation is needed.
+
+### Stage 5.3 evidence and remaining work
+
+130 tests pass, including all 80 prior gateway tests with management fixtures now
+using real admin login, plus identity/API/CSRF/privacy/concurrency checks. The 51
+Stage 5.1 protocol regressions remain unchanged. Disposable PostgreSQL 18.0 passed
+both migrations from empty, schema comparison, concurrent first-admin bootstrap,
+concurrent single-use acceptance, hash-only persistence, reconnect, session/key
+revocation and restrictive identity constraints; the fixture container was removed.
+No real users/credentials, Woo calls or Kubernetes actions were performed.
+
+External `/mcp` is still unauthenticated. Audits, rate limits/password recovery,
+MFA, dashboard/chat, public TLS/hosting, gateway-only upstream enforcement and broad
+SSRF containment are not implemented. Upstream credentials still have the approved
+Stage 5.2 recoverable PostgreSQL baseline without application encryption. Do not
+expose this backend publicly. Stage 5.4 should wire per-request key verification and
+mandatory attributed audit events around the existing gateway invocation path.
+
+Password reference: [argon2-cffi API and defaults](https://argon2-cffi.readthedocs.io/en/stable/api.html).

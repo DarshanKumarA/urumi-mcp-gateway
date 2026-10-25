@@ -16,6 +16,8 @@ from urumi_gateway.database import SQLRepository, make_engine, metadata, servers
 from urumi_gateway.models import Credential, Observation, Upstream
 from test_persistence import migrate
 from support import SYNTHETIC
+from urumi_gateway.identity import IdentityService, IdentityError, digest
+from urumi_gateway.identity_repository import IdentityRepository, users, sessions, invitations, api_keys
 
 
 async def exercise(engine):
@@ -83,6 +85,60 @@ async def exercise(engine):
     assert await repo.get_by_slug("woocommerce") is None
 
 
+async def identity_exercise(engine):
+    service = IdentityService(IdentityRepository(engine))
+    synthetic_password = "synthetic-postgres-fixture-only"
+    # Concurrent same-identity bootstrap must converge, never reset a password.
+    admins = await asyncio.gather(*(service.bootstrap_admin("fixture_admin", synthetic_password) for _ in range(2)))
+    assert admins[0]["id"] == admins[1]["id"]
+    admin = admins[0]
+    with engine.connect() as c:
+        before_hash = c.execute(sa.select(users.c.password_hash)).scalar_one()
+    assert before_hash.startswith("$argon2id$") and synthetic_password not in before_hash
+    await service.bootstrap_admin("fixture_admin", "synthetic-unused-replacement")
+    with engine.connect() as c:
+        assert c.execute(sa.select(users.c.password_hash)).scalar_one() == before_hash
+    _, session_token = await service.login("fixture_admin", synthetic_password)
+    invitation = await service.invite(admin, "fixture_member")
+    results = await asyncio.gather(*(service.accept(invitation["token"], synthetic_password) for _ in range(2)),
+                                   return_exceptions=True)
+    assert sum(isinstance(result, dict) for result in results) == 1
+    assert sum(isinstance(result, IdentityError) for result in results) == 1
+    member = next(result for result in results if isinstance(result, dict))
+    assert member["role"] == "member"
+    issued = await service.create_key(member, "PostgreSQL fixture")
+    with engine.connect() as c:
+        assert c.execute(sa.select(sessions.c.token_hash)).scalar_one() == digest(session_token)
+        assert c.execute(sa.select(invitations.c.token_hash)).scalar_one() == digest(invitation["token"])
+        assert c.execute(sa.select(api_keys.c.key_hash)).scalar_one() == digest(issued["raw_key"])
+        for table, raw in ((sessions, session_token), (invitations, invitation["token"]), (api_keys, issued["raw_key"])):
+            assert raw not in repr(list(c.execute(sa.select(table)).mappings()))
+    # Database-level immutable username and restrictive deletion, not only service assertions.
+    for operation in (users.update().where(users.c.id == member["id"]).values(username="changed_member"),
+                      users.delete().where(users.c.id == member["id"])):
+        try:
+            with engine.begin() as c:
+                c.execute(operation)
+        except sa.exc.DBAPIError:
+            pass
+        else:
+            raise AssertionError("Identity database constraint missing")
+    engine.dispose()
+    fresh = IdentityService(IdentityRepository(engine))
+    _, session_id = await fresh.authenticate_session(session_token)
+    assert (await fresh.verify_key(issued["raw_key"]))["user"]["id"] == member["id"]
+    await fresh.logout(session_id)
+    await fresh.revoke_key(admin, member["id"], issued["key"]["id"])
+    engine.dispose()
+    for operation in (fresh.authenticate_session(session_token), fresh.verify_key(issued["raw_key"])):
+        try:
+            await operation
+        except IdentityError:
+            pass
+        else:
+            raise AssertionError("Revoked identity accepted")
+
+
 def main():
     engine = None
     try:
@@ -95,9 +151,10 @@ def main():
             raise ValueError("Empty fixture required")
         migrate(engine)
         asyncio.run(exercise(engine))
+        asyncio.run(identity_exercise(engine))
         migrate(engine, "base", down=True)
         migrate(engine)
-        print("PASS: PostgreSQL migration/schema, immutable identity, CRUD, credential lifecycle, health/cache persistence, stale observation, concurrent seed and deletion cleanup")
+        print("PASS: PostgreSQL 0001 + 0002 empty migration/schema; registry regressions; Argon2 admin bootstrap; session/invitation/key hash persistence; concurrent single-use invitation; immediate revocation; reconnect persistence; restrictive identity constraints; downgrade/upgrade")
     except Exception:
         print("FAIL: PostgreSQL fixture validation; raw DB details suppressed")
         raise SystemExit(1) from None

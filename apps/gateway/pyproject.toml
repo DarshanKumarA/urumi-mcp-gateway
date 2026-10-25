@@ -1,8 +1,8 @@
 [project]
 name = "urumi-gateway"
 version = "0.0.1"
-description = "Unauthenticated offline gateway protocol core; not deployment-ready"
+description = "Gateway registry and REST identity; MCP authorization remains pending"
 requires-python = ">=3.13,<3.14"
-dependencies = ["mcp==2.3.0", "httpx2==2.16.0", "jsonschema==4.26.0", "referencing==0.37.0", "fastapi==0.162.0", "SQLAlchemy==2.0.55", "psycopg[binary]==3.3.6", "alembic==1.20.1", "pydantic==2.14.1"]
+dependencies = ["mcp==2.3.0", "httpx2==2.16.0", "jsonschema==4.26.0", "referencing==0.37.0", "fastapi==0.162.0", "SQLAlchemy==2.0.55", "psycopg[binary]==3.3.6", "alembic==1.20.1", "pydantic==2.14.1", "argon2-cffi==25.1.0"]
 
 # Run from source with PYTHONPATH=src, as in the existing Woo package.

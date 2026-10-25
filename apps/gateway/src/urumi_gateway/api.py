@@ -1,15 +1,19 @@
-"""Single REST/MCP backend. NOT YET AUTHORIZED: loopback development only."""
+"""Single REST/MCP backend. REST is protected; external MCP auth remains pending."""
 
 from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import UUID
+from urllib.parse import urlsplit
 import os
 
-from fastapi import FastAPI, Response
+from fastapi import FastAPI, Response, APIRouter, Depends
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .identity import IdentityService, AuthConfig, IdentityError
+from .identity_repository import IdentityRepository
+from .auth_api import identity_router, admin, same_origin
 from .core import Gateway
 from .database import SQLRepository, RepositoryUnavailable, make_engine
 from .errors import GatewayError
@@ -17,10 +21,11 @@ from .management import Management, CreateServer, EditServer, ServerView
 from .server import create_app as mcp_app
 
 
-def create_app(repository, *, upstream=None, seed=False):
+def create_app(repository, *, upstream=None, seed=False, auth_config=None, identity=None):
     gateway = Gateway(repository, upstream)
     service = Management(gateway)
     mcp = mcp_app(gateway)
+    identity = identity or IdentityService(IdentityRepository(repository.engine), auth_config)
 
     @asynccontextmanager
     async def lifespan(app):
@@ -30,11 +35,23 @@ def create_app(repository, *, upstream=None, seed=False):
         async with mcp.router.lifespan_context(mcp):
             yield
 
-    app = FastAPI(title="Urumi management (NOT YET AUTHORIZED)", lifespan=lifespan,
+    app = FastAPI(title="Urumi management", lifespan=lifespan,
                   docs_url=None, redoc_url=None, openapi_url=None)
+    app.state.identity = identity
     app.state.gateway = gateway
     app.state.management = service
-    app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "[::1]"])
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=[urlsplit(identity.config.origin).hostname])
+
+    @app.middleware("http")
+    async def private_responses(request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @app.exception_handler(IdentityError)
+    async def authentication_failed(request, error):
+        return JSONResponse({"error": error.code}, status_code=error.status)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_input(request, error):
@@ -59,38 +76,43 @@ def create_app(repository, *, upstream=None, seed=False):
     async def unsafe_metadata(request, error):
         return JSONResponse({"error": "UNSAFE_UPSTREAM_METADATA"}, status_code=502)
 
-    @app.get("/api/servers", response_model=list[ServerView])
+    management = APIRouter(dependencies=[Depends(admin), Depends(same_origin)])
+
+    @management.get("/api/servers", response_model=list[ServerView])
     async def listing():
         return await service.list()
 
-    @app.post("/api/servers", response_model=ServerView, status_code=201)
+    @management.post("/api/servers", response_model=ServerView, status_code=201)
     async def create(body: CreateServer):
         return await service.create(body)
 
-    @app.get("/api/servers/{server_id}", response_model=ServerView)
+    @management.get("/api/servers/{server_id}", response_model=ServerView)
     async def detail(server_id: UUID):
         return await service.detail(server_id)
 
-    @app.patch("/api/servers/{server_id}", response_model=ServerView)
+    @management.patch("/api/servers/{server_id}", response_model=ServerView)
     async def edit(server_id: UUID, body: EditServer):
         return await service.edit(server_id, body)
 
-    @app.delete("/api/servers/{server_id}", status_code=204)
+    @management.delete("/api/servers/{server_id}", status_code=204)
     async def remove(server_id: UUID):
         await service.remove(server_id)
         return Response(status_code=204)
 
-    @app.post("/api/servers/{server_id}/enable", response_model=ServerView)
+    @management.post("/api/servers/{server_id}/enable", response_model=ServerView)
     async def enable(server_id: UUID):
         return await service.edit(server_id, EditServer(enabled=True))
 
-    @app.post("/api/servers/{server_id}/disable", response_model=ServerView)
+    @management.post("/api/servers/{server_id}/disable", response_model=ServerView)
     async def disable(server_id: UUID):
         return await service.edit(server_id, EditServer(enabled=False))
 
-    @app.post("/api/servers/{server_id}/refresh", response_model=ServerView)
+    @management.post("/api/servers/{server_id}/refresh", response_model=ServerView)
     async def refresh(server_id: UUID):
         return await service.refresh(server_id)
+
+    app.include_router(identity_router(identity))
+    app.include_router(management)
 
     # Mount last at root: SDK retains its exact /mcp path and transport middleware.
     app.mount("/", mcp)
@@ -104,7 +126,21 @@ def create_production_app():
         engine = make_engine(url)
     except Exception:
         raise RuntimeError("DATABASE_CONFIGURATION_INVALID") from None
-    app = create_app(SQLRepository(engine), seed=True)
+    try:
+        environment = os.environ.get("URUMI_ENVIRONMENT", "production")
+        if environment not in {"local", "production"}:
+            raise ValueError("AUTH_CONFIGURATION_INVALID")
+        secure = os.environ.get("URUMI_COOKIE_SECURE", "true")
+        if secure not in {"true", "false"}:
+            raise ValueError("AUTH_CONFIGURATION_INVALID")
+        config = AuthConfig(origin=os.environ["URUMI_BROWSER_ORIGIN"],
+            secure_cookie=secure == "true", production=environment == "production",
+            session_seconds=int(os.environ.get("URUMI_SESSION_SECONDS", "28800")),
+            invitation_seconds=int(os.environ.get("URUMI_INVITATION_SECONDS", "86400")))
+        app = create_app(SQLRepository(engine), seed=True, auth_config=config)
+    except Exception:
+        engine.dispose()
+        raise RuntimeError("AUTH_CONFIGURATION_INVALID") from None
     original = app.router.lifespan_context
 
     @asynccontextmanager

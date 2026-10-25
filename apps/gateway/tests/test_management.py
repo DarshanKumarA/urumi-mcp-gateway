@@ -22,7 +22,12 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
         self.fixture = UpstreamFixture("server_a")
         upstream = UpstreamClient(transport_factory=lambda s: self.fixture.transport())
         self.app = create_app(self.db.repo, upstream=upstream)
+        await self.app.state.identity.bootstrap_admin("fixture_admin", "synthetic-admin-password-only")
         self.started, self.stopped = asyncio.Event(), asyncio.Event()
+
+        async def rest_origin(request):
+            if request.url.path.startswith("/api/") and "origin" not in request.headers:
+                request.headers["Origin"] = "http://127.0.0.1:8000"
 
         async def owner():
             # unittest setup/test/teardown use different tasks. SDK cancel scopes
@@ -31,11 +36,13 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
                 for app in (self.fixture.app, self.app):
                     await stack.enter_async_context(app.router.lifespan_context(app))
                 self.http = await stack.enter_async_context(httpx2.AsyncClient(
-                    base_url="http://127.0.0.1:8000", transport=httpx2.ASGITransport(app=self.app)))
+                    base_url="http://127.0.0.1:8000", event_hooks={"request": [rest_origin]}, transport=httpx2.ASGITransport(app=self.app)))
                 self.started.set()
                 await self.stopped.wait()
         self.owner = asyncio.create_task(owner())
         await asyncio.wait_for(self.started.wait(), 5)
+        login = await self.http.post("/api/auth/login", json={"username": "fixture_admin", "password": "synthetic-admin-password-only"})
+        self.assertEqual(login.status_code, 200)
         response = await self.http.post("/api/servers", json={"slug": "server_a", "display_name": "A",
             "url": "http://127.0.0.1:9001/mcp", "credential": {"kind": "bearer", "value": SYNTHETIC}})
         self.assertEqual(response.status_code, 201)
@@ -49,8 +56,8 @@ class ManagementTests(unittest.IsolatedAsyncioTestCase):
         finally:
             self.db.close()
 
-    async def test_create_list_detail_safe_dtos_and_temporary_no_auth(self):
-        # Intentionally unauthenticated until Stage 5.3; not a role-enforcement test.
+    async def test_admin_create_list_detail_safe_dtos(self):
+        # Real bootstrap/login session; member and anonymous denial covered in identity API tests.
         for path in ("/api/servers", self.path):
             response = await self.http.get(path)
             self.assertEqual(response.status_code, 200)

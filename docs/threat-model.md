@@ -155,11 +155,11 @@ Protocol fixtures cover secret reflection, safe errors/logs, original-name routi
 
 ## Stage 5.2 persistent management boundary
 
-The same backend now has unauthenticated /api management routes and /mcp. This is
+At the Stage 5.2 checkpoint the backend had unauthenticated /api routes and /mcp. This was
 NOT YET AUTHORIZED and must not be publicly deployed. Loopback Host checks do not
 replace login, admin/member checks, CSRF/session protection or key authorization.
-No fake user or hardcoded admin is used. Stage 5.3 must enforce identity/roles before
-real management exposure; audit, invitations and API-key behavior remain separate.
+No fake user or hardcoded admin was used. Stage 5.3 now enforces REST identity/roles
+as recorded below; external MCP authentication and audit remain separate.
 
 Per the explicit Stage 5.2 instruction, recoverable upstream values are stored in
 PostgreSQL without application-level encryption. DB readers/backups can recover
@@ -187,3 +187,42 @@ or model instructions. Failures retain stale management metadata but never enabl
 a disabled server or publish stale live MCP routes. Revision checks reject late
 observations. Removal deletes credential/cache state; future audits must preserve
 historical attribution independently. No audit table or retention policy is invented.
+
+
+## Stage 5.3 identity and REST enforcement
+
+Every server-management route requires an admin browser session. Anonymous receives
+401, member 403; browser IDs/roles/headers do not establish identity. Safe allowlists
+exclude password/token/key hashes from normal DTOs. Only explicit issuance returns
+raw invitation/API-key tokens; sessions use HttpOnly Set-Cookie. API responses use
+no-store. Submitted inputs, raw database errors and credentials are not logged;
+operator tracing/exporters remain a separate leakage risk.
+
+Argon2id uses independent salts and pinned defaults (64 MiB, 3 passes, 4 lanes).
+Unknown usernames perform dummy verification with the same public login failure.
+Two concurrent hash workers bound hashing memory, not request rate/queue capacity
+or all enumeration timing. Random 256-bit tokens use SHA-256; password and token
+threat models differ. Current expiry/revocation/user-enabled checks are server-side.
+API-key verification uses constant-time digest comparison after indexed lookup;
+admin revocation immediately invalidates that same raw key in tests. External MCP
+does not yet invoke the verifier; Stage 5.4 must check every request, not handshake alone.
+
+Cookies are host-only HttpOnly/Lax/Path=/; production requires Secure and HTTPS.
+Exact configured Origin is mandatory on unsafe REST including login/acceptance;
+missing/null/cross-origin and conflicting Sec-Fetch-Site are denied. No permissive
+CORS or Referer fallback. This protects browser CSRF within the same-origin design,
+not XSS or callers forging Origin. Local HTTP can explicitly disable Secure;
+production TLS deployment remains untested.
+
+Invites bind intended username/member role, default to 24 hours and claim atomically
+with account creation. Concurrent redemption yields one member. Admin bootstrap is
+an explicit protected-file command and durable receipt, never startup reset. Synthetic
+fixture passwords are not deployment defaults. Python strings cannot be reliably
+erased. User references restrict deletion for future audits. Disabling blocks tokens
+while disabled; explicitly revoke if permanent invalidation is needed before enable.
+
+130 tests plus real disposable PostgreSQL migration/concurrency/reconnect smoke pass.
+No cluster/Woo changes. Remaining: external MCP still open, audit absent, no rate
+limiting/recovery/MFA, broad SSRF absent, upstream PostgreSQL credentials recoverable
+without application encryption, runtime Secrets and gateway-only caller enforcement
+pending. REST identity does not make this backend production-ready.

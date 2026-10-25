@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-25 - Stage 5.3 identity and protected REST implemented for review.** Stage 5.2 is committed as 05509a7. Explicit 0002_identity adds users and hash-only sessions/invitations/API keys; Argon2id, deliberate bootstrap and same-origin admin/member guards protect REST. 130 tests and real PostgreSQL smoke pass. External /mcp authentication and audit remain Stage 5.4; no public deployment. Woo/Helm unchanged, k3d stopped, nothing staged/committed.
+
 **2026-10-25 - Stage 5.2 persistent registry and management API implemented for review.** Stage 5.1 was committed as 8245873. PostgreSQL repository, explicit migration, insert-only Woo seed and safe FastAPI REST DTOs now share the existing gateway core. 80 offline tests and a separate real PostgreSQL smoke pass. Identity/roles/audit and public deployment remain incomplete. Woo/Helm are unchanged; k3d stayed stopped. Nothing staged or committed.
 
 **2026-10-25 - Stage 5.1 gateway protocol core implemented for offline review.** Woo MCP runtime checkpoint fef1b8c remains frozen. A separate apps/gateway package provides SDK Streamable HTTP discovery/routing, immutable registration namespaces, bounded upstream clients, isolated failure/health and synthetic static credentials. PostgreSQL remains the selected future store; only an in-memory repository exists. There is no user authentication, audit persistence, management REST, chat or gateway deployment. Existing k3d containers remain stopped. No staging or commit.
@@ -22,7 +24,30 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 5.2 persistence, management contracts, migration/seed behavior, security limits and validation. Preserve earlier milestone history. Only gateway source/tests/dependencies and appropriate governance docs change; no Woo/Helm changes, staging or commit.
+Record Stage 5.3 identity, protected management, invitation/key lifecycle and validation while preserving earlier history. Only gateway source/tests/dependencies and appropriate governance docs change; no Woo/Helm changes, staging or commit.
+
+## Stage 5.3 identity and protected REST management
+
+| Area | Implementation/evidence |
+| --- | --- |
+| Schema | Explicit 0002_identity after unchanged 0001_registry; users/sessions/invitations/api_keys, restrictive user references; no startup DDL |
+| Passwords | Argon2id, independent salts, 64 MiB defaults; generic unknown/wrong/disabled login failure |
+| Sessions | Hash-only opaque tokens, 8-hour default, HttpOnly/Lax/Path=/; production Secure/HTTPS; expiry/logout/disabled checks |
+| Request protection | Shared admin guard on every server route; exact Origin on unsafe REST; no permissive CORS |
+| Bootstrap | Separate protected-file command; transactional receipt; idempotent, no password overwrite, conflict refusal |
+| Invitations | Admin member-only, intended username, 24-hour default, hash-only, atomic single use and revocation |
+| API keys | Own issuance once; safe prefix/metadata; SHA-256 of random 256-bit token; reusable verifier |
+| Team control | Admin identifies/revokes user B's key; same raw key immediately fails subsequent verification |
+| Regressions | 130 tests including all prior 80; REST fixtures now use real admin login; 51 Stage 5.1 protocol tests unchanged |
+| PostgreSQL | Empty migrations/schema, concurrent bootstrap/acceptance, hash persistence, reconnect and revocation pass; fixture removed |
+| Boundary | External /mcp still unauthenticated; audit/UI/chat/deployment/gateway-only upstream enforcement incomplete |
+
+Only synthetic fixtures used; no real users/credentials, Woo requests, cluster start
+or Kubernetes changes. Lock adds argon2-cffi 25.1.0/bindings 26.1.0, preserving existing
+pins. Username login refines the prior email-login wording under current instruction.
+Cookie/Origin controls do not prove XSS defense, rate limiting, public TLS or capacity.
+Upstream encryption and comprehensive SSRF remain absent. See the [identity contract](../apps/gateway/README.md#stage-53-identity-and-authorization)
+and [security boundary](threat-model.md#stage-53-identity-and-rest-enforcement).
 
 ## Stage 5.2 persistent registry and management API
 
@@ -1341,7 +1366,7 @@ Stage 2.3 documentation checks passed for all 58 local links/anchors across 9 Ma
 - Docker/Linux and the single-server K3s v1.35.5+k3s1 cluster remained healthy through Stage 3.6. API port 6550 and Ingress mappings 8080/8443 are established; observed node allocatable memory is about 5.78 GiB. Fresh host RAM passed the first-install gate, then dipped and recovered during startup. Recheck before additional runtime work/components and measure use; full-stack capacity remains unproven.
 - Vite and k3s for the production-like VPS remain proposed baseline selections.
 - Woo SDK/protocol/runtime pins and five tool contracts are implemented. Stage 4.3 proved signing-origin connectivity; mocked modern/legacy calls and real TCP/Docker discovery pass. Active-store date boundaries, full live tool acceptance and Kubernetes hosting still need validation. Gateway client refresh/lifecycle/health remain future work.
-- Authentication algorithms/formats, session/invitation protections, runtime Secret management, schema details, audit persistence/denial/redaction/retention, and bootstrap need focused design/validation.
+- Stage 5.3 implements REST identity/session/invitation/key algorithms and bootstrap with fixture evidence. External MCP enforcement, audit persistence/denial/redaction/retention, runtime Secrets and deployment remain future validation.
 - LLM/provider, auxiliary tool schemas, revenue-demo semantics, user A/B roles, and Claude Code versus Cursor need selection/validation. Woo contracts are implemented but full runtime acceptance remains incomplete; Inspector is selected for diagnostics.
 - Local store business-flow/persistence/dependency-loss acceptance and later recovery are complete at 96757e7. Production identity/TLS, non-store components, VPS compatibility, node/disk-loss protection, backup and full-stack capacity remain unproven.
 
@@ -1349,6 +1374,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-Stage 5.2 implementation and validation stop for review. Only apps/gateway and architecture/decisions/security/progress/journey documentation changed. Woo MCP and Helm are unchanged; k3d remains stopped. No staging or commit. Authentication, audit and runtime gateway deployment/integration remain future milestones.
+Stage 5.3 implementation and validation stop for review. Only apps/gateway and architecture/decisions/security/progress/journey documentation changed. Woo MCP and Helm unchanged; k3d stopped. Nothing staged/committed. External MCP authentication, audit and runtime integration remain future milestones.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.

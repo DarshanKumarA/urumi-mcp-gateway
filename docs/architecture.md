@@ -76,11 +76,11 @@ Connection/discovery and tool-call timeouts remain configurable defaults, not ar
 
 ## Identity credentials and persistence
 
-A6 requires server-side dashboard sessions and request-time external key validation, including revocation during an existing MCP session. Raw generated API keys are shown once and never recoverably stored. Key identifiers, generation format, hash/verifier algorithm, session/password details, and expiry defaults must be specified and validated before authentication implementation.
+A6 requires server-side dashboard sessions and request-time external key validation, including revocation during an existing MCP session. Raw generated API keys are shown once and never recoverably stored. Stage 5.3 now specifies and validates username/password, cookie sessions, invitations and key verification below; external MCP enforcement and audit remain Stage 5.4 work.
 
 A7 separates user credential verifiers from recoverable service credentials. PostgreSQL holds user/key verification data, metadata, and Secret references; actual service credentials live in Kubernetes Secrets. WooCommerce REST credentials belong only to WooCommerce MCP, LLM provider credentials only to backend chat orchestration, and upstream credentials to the gateway for the intended upstream. No upstream credential value is returned by a read API or sent to a browser/external client. Gateway client tokens are never forwarded as upstream credentials. Runtime Secret creation/update/access and injection remain unvalidated; no Kubernetes API permission model has been selected.
 
-A8 is an entity inventory, not a schema. No SQL, ORM models, migration tooling, or additional role/credential tables are authorized here.
+A8 originally defined an entity inventory. Stage 5.2 implemented the registry; Stage 5.3 explicitly authorizes identity tables below. Audit entities remain future work.
 
 | Entity | Responsibility | Details still to design |
 | --- | --- | --- |
@@ -507,8 +507,8 @@ Detailed modules, exact deadline/cap/error contracts and reproducible tests are 
 
 Implemented for review on 2026-10-25 after 8245873. One backend now composes FastAPI
 REST under /api with the existing official SDK /mcp app and explicitly owns both
-lifespans. No identity, authorization, audit, dashboard or chat is implemented.
-The endpoint is unauthenticated and must remain local development only.
+lifespans. At that checkpoint identity, authorization, audit, dashboard and chat were absent.
+At the Stage 5.2 checkpoint these endpoints were unauthenticated. Stage 5.3 now protects REST management; external /mcp remains unauthenticated and local-only.
 
 SQLAlchemy 2.0.55 Core + Psycopg 3.3.6 implement the same async repository interface
 using worker-thread transactions; FastAPI 0.162.0 and Alembic 1.20.1 provide REST and
@@ -554,4 +554,38 @@ DEC-030 records the boundary; encryption remains optional and unimplemented.
 and combined REST/MCP ASGI acceptance. A separate real PostgreSQL 18.0 migration and
 repository smoke passed using a disposable Docker fixture, then removed it. No k3d
 start, Woo change, live upstream call or Kubernetes deployment occurred. Public
-management authentication and final gateway-only enforcement remain incomplete.
+MCP authentication and final gateway-only enforcement remain incomplete; REST protection is implemented in Stage 5.3 below.
+
+
+## Stage 5.3 identity and protected management
+
+One backend retains PostgreSQL and the unchanged gateway protocol core. Explicit
+0002_identity follows frozen 0001_registry; no startup DDL. Users have immutable
+UUID/unique lowercase username, admin/member role, enabled state, Argon2id password
+hash and timestamps. Session, invitation and API-key rows store only SHA-256 digests
+of independent cryptographically random 256-bit tokens. Restrictive user foreign
+keys support future historical attribution; member disabling replaces deletion.
+
+The username contract refines the earlier email/password proposal (DEC-031).
+Argon2id library salts/64 MiB defaults protect human passwords; SHA-256 is appropriate
+for high-entropy generated tokens. Sessions are opaque HttpOnly, SameSite=Lax, Path=/
+cookies, 8 hours by default. Production requires Secure cookies and HTTPS configuration.
+Unsafe REST requires exact configured Origin; missing/cross-origin requests fail,
+with no permissive CORS. Browser IDs/roles never establish identity. Logout revokes;
+expired/revoked/disabled-user sessions fail.
+
+A separate file-based bootstrap command creates the first admin with a transactional
+receipt; never resets passwords or silently resolves conflicts. Admin member invites
+last 24 hours by default, bind the intended username, return a token once and redeem
+atomically. Own API keys are issued once, listed by safe prefix/metadata and revocable;
+admins can identify/revoke another member's key. The reusable verifier checks current
+revocation/enabled state each time and returns user/key identity only, not a hash.
+It is not yet attached to /mcp.
+
+Every /api/servers route shares an admin dependency: anonymous 401, member 403.
+See the [identity contract](../apps/gateway/README.md#stage-53-identity-and-authorization)
+for exact settings, routes and cookie/CSRF limits. REST and official MCP lifespan
+still share the existing core; Woo is unchanged. 130 tests plus disposable PostgreSQL
+migration/reconnect/revocation/concurrency smoke pass. This is fixture evidence, not
+public deployment. External MCP authentication, audit, UI/chat and gateway-only
+upstream enforcement remain pending; upstream encryption/advanced SSRF remain absent.

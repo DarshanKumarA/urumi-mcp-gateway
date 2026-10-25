@@ -4,6 +4,7 @@ from pathlib import Path
 
 from alembic import context
 from urumi_gateway.database import metadata, make_engine
+from urumi_gateway import identity_repository  # Register identity metadata for schema checks.
 
 config = context.config
 
