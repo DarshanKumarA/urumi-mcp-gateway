@@ -152,3 +152,38 @@ Offline implementation only, 2026-10-25. The [gateway core](../apps/gateway/READ
 - **THREAT-04/remaining:** Registry edit/disable/remove is rechecked before dispatch and stale observations cannot overwrite changed configuration. Already-sent calls cannot be revoked or rolled back. The in-memory repository has no authorization and is not a user-facing API. PostgreSQL persistence, management role checks, key revocation, durable per-user audit, shared chat enforcement and gateway-to-Woo credentials/NetworkPolicy remain required future work.
 
 Protocol fixtures cover secret reflection, safe errors/logs, original-name routing, caller-token non-forwarding, cross-server credential scope and failure/cancellation. They do not prove production containment, protection from arbitrary customer PII in third-party results, or the final malicious-server demo.
+
+## Stage 5.2 persistent management boundary
+
+The same backend now has unauthenticated /api management routes and /mcp. This is
+NOT YET AUTHORIZED and must not be publicly deployed. Loopback Host checks do not
+replace login, admin/member checks, CSRF/session protection or key authorization.
+No fake user or hardcoded admin is used. Stage 5.3 must enforce identity/roles before
+real management exposure; audit, invitations and API-key behavior remain separate.
+
+Per the explicit Stage 5.2 instruction, recoverable upstream values are stored in
+PostgreSQL without application-level encryption. DB readers/backups can recover
+them. This revises A7's implementation plan for this checkpoint only; it does not
+satisfy or erase the assignment's final Kubernetes Secret obligation. No real keys
+were entered. Optional encrypted-at-rest hardening is not implemented. The DB
+connection URL is read from an external protected file, never a tracked value.
+
+Management inputs accept only validated bearer/static-header credentials. PATCH
+omission preserves, explicit object replaces, null clears. Safe read DTOs never
+include credential values; rejected JSON/input and driver errors are sanitized.
+SQL parameters/results and SDK wire logging are suppressed. Tests check credential
+redaction, reflection refusal and malformed-input errors. Operator logging, tracing,
+backups and malicious encoded reflection remain risks; do not enable body/SQL dumps.
+
+URL validation rejects non-HTTP(S), missing hosts, userinfo, queries/fragments,
+invalid ports, control/whitespace and overlong URLs; canonicalization preserves path
+semantics. Internal DNS/private destinations must remain usable for the assignment.
+No general SSRF/DNS-rebinding/metadata-endpoint containment is claimed. Advanced
+network controls remain stand-out work; gateway-to-Woo authentication/targeted
+NetworkPolicy remain required future caller-boundary work.
+
+Last-good cached tool schemas/descriptions remain untrusted data, not trusted HTML
+or model instructions. Failures retain stale management metadata but never enable
+a disabled server or publish stale live MCP routes. Revision checks reject late
+observations. Removal deletes credential/cache state; future audits must preserve
+historical attribution independently. No audit table or retention policy is invented.

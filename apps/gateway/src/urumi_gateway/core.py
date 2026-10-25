@@ -120,7 +120,8 @@ class Gateway:
                                     output_schema=copy.deepcopy(tool.output_schema),
                                     annotations=copy.deepcopy(tool.annotations))
                 originals[name] = tool.name
-            if await self.repository.observe(server, Observation("connected")):
+            if await self.repository.observe(server, Observation("connected"),
+                                             tools=[t.model_dump(mode="json") for t in mapped.values()]):
                 self._catalogs[server.id] = Catalog(server, mapped, originals)
         except Exception as error:
             code = error.code if isinstance(error, GatewayError) else "UPSTREAM_INVALID_RESPONSE"

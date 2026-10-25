@@ -502,3 +502,56 @@ Implemented for offline review on 2026-10-25 after Woo runtime checkpoint fef1b8
 - **Acceptance and limits:** Official clients test gateway ASGI through actual SDK transports to two synthetic upstream ASGI apps, including current and legacy paths, same-name tools, schemas/structured results, disabled/dead/slow/failing peers and credential boundaries. No listening TCP, production PostgreSQL, real three-upstream aggregation, gateway user authentication, audit, dashboard/chat, deployment or gateway-only caller enforcement is complete. Client notification/refresh integration and later hosting remain separate work.
 
 Detailed modules, exact deadline/cap/error contracts and reproducible tests are in [the gateway README](../apps/gateway/README.md). This advances REQ-GW-01 through REQ-GW-05 at the offline core level only; their full management/authentication/deployment/demo obligations remain incomplete.
+
+## Stage 5.2 persistent registry and management API
+
+Implemented for review on 2026-10-25 after 8245873. One backend now composes FastAPI
+REST under /api with the existing official SDK /mcp app and explicitly owns both
+lifespans. No identity, authorization, audit, dashboard or chat is implemented.
+The endpoint is unauthenticated and must remain local development only.
+
+SQLAlchemy 2.0.55 Core + Psycopg 3.3.6 implement the same async repository interface
+using worker-thread transactions; FastAPI 0.162.0 and Alembic 1.20.1 provide REST and
+explicit migrations. Pydantic 2.14.1 is now a declared direct DTO dependency. The
+39-package hash lock preserves MCP 2.3.0 and existing SDK versions. PostgreSQL stays
+the production state store; SQLite is only the fast test fixture.
+
+mcp_servers stores immutable UUID/unique immutable slug, mutable configuration,
+server-side credential columns, UTC timestamps, revision-guarded observation and
+last-good JSON tool metadata. No tool results or future user/audit entities are
+stored. The migration enforces identity immutability with a database trigger.
+Registration deletion removes its credential/cache only; future audit history must
+use attribution snapshots or a nullable/non-cascading reference, never cascading
+server deletion into history. Production startup requires pre-applied migrations.
+
+A transactional registry_bootstrap receipt seeds woocommerce / WooCommerce at
+http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp once, without a credential.
+It preserves preexisting records, owns no mutable fields after creation and does
+not resurrect an administrator-deleted seed on restart. Woo REST credentials remain
+exclusive to Woo MCP; the future gateway-to-Woo credential remains separate.
+
+Management supports list/detail/create/edit/enable/disable/remove/refresh. Read DTOs
+allowlist URL/configuration, credential-present/type, observation/timestamps and
+safe cached metadata, never credential values. Credential omission in PATCH
+preserves, an object replaces, and null clears. API validation and DB failures are
+sanitized; no raw rejected input/SQL errors. See [exact REST and schema contracts](../apps/gateway/README.md#management-rest-contract).
+
+Refresh shares the gateway core: success updates connected/check time/cache; failure
+keeps enabled unchanged and last-good management metadata stale. Configuration edits
+invalidate observation/cache and late observations are revision-rejected. Live MCP
+still refreshes and excludes unavailable tools rather than trusting the DB cache.
+URL syntax/length/normalization intentionally allows internal Service DNS; advanced
+SSRF containment is future stand-out work, not a current guarantee.
+
+**Credential baseline refinement:** The Stage 5.2 user instruction authorizes
+server-side PostgreSQL values without application encryption for this checkpoint,
+rather than implementing the earlier A7 Secret-reference mechanism now. This is a
+recorded implementation limitation, not a rewrite of REQ-SEC-01 or proof that final
+Kubernetes credential requirements are fulfilled. No real credentials were used.
+DEC-030 records the boundary; encryption remains optional and unimplemented.
+
+80 tests pass, including all 51 Stage 5.1 regressions, SQLite repository/API checks
+and combined REST/MCP ASGI acceptance. A separate real PostgreSQL 18.0 migration and
+repository smoke passed using a disposable Docker fixture, then removed it. No k3d
+start, Woo change, live upstream call or Kubernetes deployment occurred. Public
+management authentication and final gateway-only enforcement remain incomplete.

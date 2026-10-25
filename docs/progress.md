@@ -2,6 +2,8 @@
 
 ## Current milestone
 
+**2026-10-25 - Stage 5.2 persistent registry and management API implemented for review.** Stage 5.1 was committed as 8245873. PostgreSQL repository, explicit migration, insert-only Woo seed and safe FastAPI REST DTOs now share the existing gateway core. 80 offline tests and a separate real PostgreSQL smoke pass. Identity/roles/audit and public deployment remain incomplete. Woo/Helm are unchanged; k3d stayed stopped. Nothing staged or committed.
+
 **2026-10-25 - Stage 5.1 gateway protocol core implemented for offline review.** Woo MCP runtime checkpoint fef1b8c remains frozen. A separate apps/gateway package provides SDK Streamable HTTP discovery/routing, immutable registration namespaces, bounded upstream clients, isolated failure/health and synthetic static credentials. PostgreSQL remains the selected future store; only an in-memory repository exists. There is no user authentication, audit persistence, management REST, chat or gateway deployment. Existing k3d containers remain stopped. No staging or commit.
 
 **2026-10-24 - Stage 4.9B PASS: controlled live writes complete Woo MCP business/runtime acceptance.** Stage 4.9A was approved and committed as 88e5cae. One create_product invocation created product 16 / URUMI-MCP-LIVE-20261024-01 / 599 INR. One guarded update_order_status invocation deliberately changed order 12 from processing to on-hold; its other operational fields stayed unchanged. Independent access-log counts confirm exactly one POST and one PUT, with zero automatic retries. The product and on-hold order are retained. Release remains revision 4/deployed; all workloads Ready, original storage unchanged, final available RAM 3.954 GiB. The temporary client is removed. All five tool contracts now have local live acceptance; gateway-only caller authentication/NetworkPolicy and the wider assignment remain incomplete. Nothing staged or committed.
@@ -20,7 +22,50 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Implement Stage 5.1 under apps/gateway and document concrete gateway contracts in architecture/threat-model/progress/journey. Preserve Stage 4.9A/4.9B history and the frozen Woo application. No runtime mutation, database, Helm change, staging or commit. Earlier milestone sections retain historical evidence.
+Record Stage 5.2 persistence, management contracts, migration/seed behavior, security limits and validation. Preserve earlier milestone history. Only gateway source/tests/dependencies and appropriate governance docs change; no Woo/Helm changes, staging or commit.
+
+## Stage 5.2 persistent registry and management API
+
+Started from clean main at 8245873. Adds SQLAlchemy/Psycopg PostgreSQL persistence
+behind the existing repository interface, explicit Alembic migration, one-time
+Woo pre-registration and FastAPI /api management in the same SDK /mcp backend.
+No live Woo call, store mutation, Kubernetes action, fake identity or application
+credential issuance. The validated Woo package is untouched.
+
+| Area | Evidence and boundary |
+| --- | --- |
+| Persistence | Immutable UUID/unique slug enforced in app and DB; timestamps/revision, configuration, health and JSON tool cache; no arbitrary results |
+| Seed | woocommerce / WooCommerce / internal Woo MCP URL, no credential; concurrent-safe receipt; preserves admin edits and intentional removal |
+| API | List/detail/create/edit/enable/disable/remove/refresh; strict input and safe read DTOs; no authentication yet |
+| Credential lifecycle | Omitted PATCH preserves; explicit object replaces; null clears; no read value; plaintext server-side DB baseline is a documented limitation |
+| Discovery | Shared core, bounded refresh, separate enabled/health; last-good metadata remains stale for management on failure, excluded from live MCP |
+| Tests | 80 tests including all 51 Stage 5.1 regressions; SQLite file persistence, REST/MCP ASGI, privacy and validation checks |
+| PostgreSQL | Separate real 18.0 smoke passed migration/schema, identity/uniqueness, CRUD/reconnect, credential lifecycle, health/cache, seed and deletion; not merely SQLite evidence |
+| Runtime boundary | Temporary official postgres:18.0-alpine Docker fixture only, loopback random port, synthetic data, 256Mi cap, approximately 80Mi observed; removed afterward; existing k3d containers stayed stopped |
+| Remaining | No login/roles/sessions/invitations/user keys/audit/dashboard/chat; no public deployment or final gateway-only enforcement |
+
+Dependencies are pinned and hash-locked: FastAPI 0.162.0, SQLAlchemy 2.0.55,
+Psycopg binary 3.3.6, Alembic 1.20.1, Pydantic 2.14.1; MCP remains 2.3.0.
+The runtime lock contains 39 packages. Compilation, dependency closure/pip check,
+hash-verified wheel resolution, migration SQL/schema, credential/contact scan,
+97 documentation links/anchors, 71 Markdown tables and git diff --check pass. SQLite does not establish PostgreSQL
+behavior; the separate smoke supplies that limited evidence. Neither test proves
+production capacity, backup, HA or Kubernetes hosting.
+
+Validation found a test-fixture lifecycle issue: unittest setup/teardown entered and
+exited SDK cancel scopes in different tasks. The fixture now uses a single lifespan
+owner task, matching ASGI. Review also tightened the SQL credential consistency
+constraint against SQL NULL semantics, and suppressed SQL result logging as well as
+bound parameters. No gateway routing redesign or Woo source change was needed. The failed first
+harness left disposable synthetic SQLite fixture directories in OS temporary
+storage; a later cleanup request was blocked by automatic policy review. Successful
+final fixtures clean themselves up, and the PostgreSQL container was removed.
+No diagnostic files or databases were added to the repository.
+
+The database bootstrap/migration lifecycle and [REST contract](../apps/gateway/README.md#management-rest-contract)
+are documented in the gateway README. DEC-030 records the explicit Stage 5.2
+credential-storage refinement and outstanding final Kubernetes Secret boundary.
+Next proposed Stage 5.3: identity/session/admin-member authorization before exposure.
 
 ## Stage 5.1 offline gateway protocol core
 
@@ -1304,6 +1349,6 @@ OPEN-01 through OPEN-07 in [architecture.md](architecture.md#unresolved-assignme
 
 ## Review boundary
 
-Stage 5.1 is implemented offline and awaits review. Only apps/gateway and the four appropriate architecture/security/progress/journey documents changed. Woo MCP and Helm are unchanged; k3d remains stopped. No staging or commit. Authentication, persistence, auditing and runtime gateway integration remain future milestones.
+Stage 5.2 implementation and validation stop for review. Only apps/gateway and architecture/decisions/security/progress/journey documentation changed. Woo MCP and Helm are unchanged; k3d remains stopped. No staging or commit. Authentication, audit and runtime gateway deployment/integration remain future milestones.
 
 The assignment gives a two-week window but no actual start/due date. No submission deadline has been inferred or scheduled.
