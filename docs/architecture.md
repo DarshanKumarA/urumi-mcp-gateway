@@ -692,3 +692,69 @@ cross-server prompt demonstration remain unproven until registered/runtime accep
 Internal-only Kubernetes topology is defined, not deployed; gateway-only caller
 isolation/NetworkPolicy and production registry configuration remain future work.
 See [Arithmetic](../apps/arithmetic-mcp/README.md) and [Store Policy](../apps/store-policy-mcp/README.md).
+
+## Stage 7.1 dashboard and authenticated chat
+
+The mandatory frontend now lives in `apps/dashboard`: React 19.3.1, TypeScript/Vite,
+same-origin relative API calls, HttpOnly browser sessions and role-specific surfaces.
+Admin: server CRUD/status/tools, invitations/member key revocation and audits.
+Member: usable live catalog, own API keys and chat. Both roles can use chat; backend
+authorization remains authoritative. One-time invitations/API keys exist only in
+dialog memory until dismissal/navigation; no browser storage or frontend provider key.
+
+The written design specification is authoritative: exact CSS neutral/teal/font/spacing
+tokens, compact tables, 224px navigation, slim bar and shared status components. No
+external design URL or proprietary font distribution. Inter/system and monospace
+fallbacks are used. Screens share one shell and native accessible dialogs. Visual
+review used the production build with a clearly synthetic loopback API fixture.
+
+```mermaid
+flowchart LR
+    UI[React dashboard] -->|HttpOnly session and same Origin| API[POST /api/chat]
+    API --> P[Session-derived principal]
+    P --> C[Fresh gateway catalog]
+    C --> L[Gemini function selection]
+    L --> I[Shared InvocationService]
+    I --> A[Commit audit START]
+    A --> G[Existing gateway route]
+    G --> U[Registered upstream]
+    U --> F[Finalize audit]
+    F --> L
+    L --> UI
+```
+
+Chat accepts only a bounded message, not caller identity. Every tool call uses the
+existing audited path with source=session, API-key ID null and server-derived user.
+No direct-upstream chat path or fake API key. Live enabled-tool discovery, exact names
+and existing schema/credential/error boundaries are retained. Tool failure stops the
+loop; no write retry/reconciliation. Audit finalization can still fail after a remote
+mutation; durable started means interrupted/unknown, never exactly-once.
+
+Official Google GenAI 2.33.0 supports the explicit manual function loop. The reviewed
+3.7 Flash candidate is now deprecated/auto-routed according to its official model
+page; verified stable 3.8 Flash is configurable default. Protected server-side key file
+is preferred, environment fallback supported; absent key yields a safe not-configured
+chat response. Default provider deadline 30s, five tool rounds, maximum ten calls and
+180s request bound. No real Gemini request/key was used. Provider evidence, limits and
+configuration are in the [gateway README](../apps/gateway/README.md#stage-71-session-chat-and-hosting).
+
+Tool metadata/results are untrusted provider data, not system policy. Trace DTOs contain
+only names, outcome, duration and fixed summary. Known contact/credential fields are
+removed from provider-bound results; generic malicious text can still evade filtering.
+No persistent chat history, optional tool permissions or complete prompt-injection
+prevention is claimed. The two cross-upstream prompts pass with deterministic mocked
+providers; live multi-server reasoning remains an acceptance obligation.
+
+Gateway and dashboard are separate Docker images. Gateway uses pinned Python slim,
+hash-locked dependencies, Uvicorn and explicit DB migrations. Dashboard uses pinned
+Node build and unprivileged nginx static runtime; `/api/` and `/mcp` are not served by
+the static container. Both run 10001:10001 with read-only root, no capabilities,
+no-new-privileges and seccomp; nginx requires only an ephemeral `/tmp` tmpfs. Docker
+smoke proves these flags and startup, not future Kubernetes policy. No chart change.
+
+Stage 8 integration remains: persistent PostgreSQL, migrations/admin bootstrap,
+gateway/dashboard workloads and Ingress routing, protected Secrets, production cookie
+and external MCP Host settings, probes/budgets, all three upstream registrations,
+caller authentication and targeted NetworkPolicies. Preserve the existing store and
+validated upstreams. Full-stack RAM capacity, live Gemini composition, external-client
+demo, VPS deployment and video are not complete.

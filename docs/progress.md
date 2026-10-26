@@ -2,6 +2,14 @@
 
 ## Current milestone
 
+**2026-10-26 - Stage 7.1 dashboard/chat/container implementation ready for review.**
+Stage 6.1 is committed as 72773a9. React role-specific management, one-time invitation/
+API-key dialogs and session chat now use the authenticated backend. Chat executes tools
+only through the existing audited gateway path. 188 backend tests (160 prior + 28 new)
+and 24 frontend tests pass; production builds and both Docker smokes pass. Visual review
+covered all seven screens with synthetic data. No live Gemini/store request or write,
+Helm change, Kubernetes start, staging or commit. Stage 8 integration remains pending.
+
 **2026-10-25 - Stage 6.1 auxiliary upstreams implemented for review.** Stage 5.4 is committed as 8437d84. Arithmetic sum_amounts and Store Policy get_policy now have independent SDK apps, 36 passing tests, listening-TCP acceptance, secured Docker images and shared Helm templates. Local/prod render 14 objects with all previous 10 unchanged. No Kubernetes deployment or actual gateway registration; k3d remains stopped. Woo/gateway code frozen; nothing staged or committed.
 
 **2026-10-25 - Stage 5.4 authenticated MCP and attributed audit implemented for review.** Stage 5.3 is committed as a3816e0. Every external MCP HTTP request now verifies its gateway key; request-local identity enters one shared audited invocation service. Explicit 0003_audit commits START before upstream dispatch and retains interrupted/unknown records. Admin-only audit listing is implemented. 160 tests, including all prior 130, and real PostgreSQL migration/history smoke pass. Woo/Helm unchanged, k3d stopped; no staging/commit or public deployment.
@@ -28,9 +36,60 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 6.1 contracts, two-server demo targets, deterministic dependency-free
-business logic, container evidence and static Helm boundaries. Preserve prior runtime
-history. No Woo/gateway implementation, store state, Helm release or cluster changes.
+Record Stage 7.1 role-specific dashboard, written design-system implementation,
+session/audited chat, mocked composition and separate container evidence. Preserve
+prior runtime history. Upstream apps, migrations, Helm and store state are unchanged.
+
+## Stage 7.1 dashboard chat and container acceptance
+
+| Area | Evidence / boundary |
+| --- | --- |
+| Baseline | Clean main at 72773a9; all three upstream apps frozen; k3d remains stopped |
+| UI | Login, Chat, Servers, Team, API Keys, Audit, invitation acceptance; admin/member controls plus backend authorization |
+| Design | Exact written neutral/teal/type/spacing/shadow tokens; compact tables; system-safe fonts; no external design URL, purple, gradients or UI framework |
+| Secrets | One-time dialog memory; no local/session storage; credential edit preserve/replace/clear; frontend receives no provider/upstream stored secret |
+| Browser boundary | Relative APIs, included HttpOnly session cookie, existing Origin/role enforcement; admin management remains admin-only |
+| Chat | Session principal, fresh catalog, exact namespaced calls through InvocationService; committed audits with source=session and API-key ID null |
+| Provider | google-genai 2.33.0; verified configurable gemini-3.8-flash default after official 3.7 deprecation finding; protected key file preferred |
+| Bounds/failure | Default five rounds/30s provider; max ten calls/180s request; no automatic retries; tool failure stops; unknown outcomes remain possible |
+| Composition | Mocked Woo orders -> Arithmetic and Woo COD orders -> Policy; mocked product creation once; no real business/provider request |
+| Backend | 188 tests pass, including all 160 existing current/legacy routing/identity/audit regressions; 28 chat/provider/session concurrency tests |
+| Frontend | 24 behavior tests; TypeScript check and Vite production build pass; package-lock installation works on Windows and Linux |
+| Manual review | Production build + synthetic fixture at 1242x764; seven screens, one-time dialogs, confirmations/focus; no horizontal page overflow; tool-table scroll stays contained |
+| Gateway image | urumi-gateway:stage7.1, 342824117 bytes (326.94 MiB); hash-locked Linux install, explicit Uvicorn 0.54.0, no frontend bundle |
+| Dashboard image | urumi-dashboard:stage7.1, 74106807 bytes (70.67 MiB); pinned Node build/unprivileged nginx; only static assets/config |
+| Runtime security | Both 10001:10001, read-only root, CapEff=0, NoNewPrivs=1, seccomp=2; nginx uses ephemeral tmpfs; clean exit 0/no OOM |
+| Docker/API | Disposable PostgreSQL applies unchanged 0001 -> 0002 -> 0003; real gateway listeners reject anonymous API/MCP with 401; no real provider key |
+| Docker/static | HTTP200 assets/index/SPA fallback, CSP and credential-pattern asset scan; API/MCP deliberately not served by static container |
+| Cleanup | Temporary browser fixture/process, Docker containers/DB volume/network/DB URL file removed; images retained; screenshots outside repository |
+
+Image bases are pinned in Dockerfiles: Python 3.13.17-slim-bookworm, Node
+22.22.0-bookworm-slim, nginx-unprivileged 1.28.0-alpine, each Linux/amd64 digest.
+Gemini model/release links and exact configuration are in the
+[gateway README](../apps/gateway/README.md#stage-71-session-chat-and-hosting).
+The [dashboard README](../apps/dashboard/README.md) distinguishes the fake visual API
+from real backend acceptance. No claim of a live provider/browser/full-stack chain.
+
+Final checks: Python compilation/pip consistency and exact 55-package Windows lock
+closure pass; Linux image installation verified package hashes. npm direct pins/lock,
+24 tests/build and Prettier pass. Credential/contact scanning covers all 32 changed/new
+files with no candidate values; 96 local documentation links/anchors and 79 Markdown
+tables pass. Complete diff reviewed, including new files; git diff --check passes.
+
+Limits: tool traces arrive with the completed HTTP response, not streaming; chat history
+is in browser memory only and each prompt starts a fresh backend context. Model output
+is escaped plain text. Known PII/credential filtering and fixed instructions do not
+prove complete prompt-injection prevention. Chat write retry/crash uncertainty stays
+explicit. Provider-incompatible arbitrary schemas, real Gemini quality, pagination
+reasoning, public MCP Host configuration and load/capacity remain unproven.
+
+Next proposed review is Stage 8.0: one coherent chart integration for persistent
+PostgreSQL, explicit migrations/admin bootstrap, gateway/dashboard, protected Secrets,
+same-origin Ingress/TLS-cookie/Host configuration, probes/resources, all upstream
+registrations and caller auth/targeted NetworkPolicies. Static review precedes a fresh
+RAM-gated live deployment. Then demonstrate real Gemini multi-server prompts, user B's
+revocable external MCP key and attributed audit, preserving store data. VPS/k3s and
+final demo/video remain outstanding. No Stage 8 work is implemented here.
 
 ## Stage 6.1 Arithmetic and Store Policy upstreams
 

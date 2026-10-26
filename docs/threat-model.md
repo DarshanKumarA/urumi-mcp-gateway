@@ -294,3 +294,44 @@ Gateway caller-boundary/targeted NetworkPolicy work remains pending; no new cred
 or optional policy system is introduced here. Bounded tool models do not impose a
 transport body-size/rate limit before SDK parsing; resource limits are starting budgets,
 not load/capacity proof. No customer data or live Woo request entered these tests.
+
+## Stage 7.1 dashboard and model boundary
+
+The React browser uses relative same-origin APIs with HttpOnly sessions. Management
+authorization stays server-side; member catalog access omits registration credentials
+and management DTOs. Unsafe cookie requests retain exact Origin checks. There is no
+permissive CORS, browser token storage or browser-to-upstream request. API keys/invite
+tokens appear once in modal state; dismissal/navigation clears them. Explicit copy
+can leave a token on the OS clipboard, and a compromised browser can still observe a
+displayed token. Native dialogs, confirmations and safe error text are UX controls,
+not replacements for backend authorization. React escapes text; no arbitrary HTML or
+model-generated links/scripts are executed. Static CSP restricts assets/connections to
+self and disallows framing; final same-origin Ingress remains pending.
+
+Session chat constructs a principal server-side and reuses InvocationService. Audit
+START commits before dispatch, with session attribution and no API-key identity. No
+arguments/results are added to audit rows. Concurrent users are regression-tested.
+The model can select enabled mutating tools; no optional permission/approval system
+is claimed. Identical writes within one request are blocked, errors stop the loop,
+and nothing retries automatically. A user manually resubmitting a message can still
+repeat a side effect. Crash/lost-response/finalization uncertainty remains unchanged.
+
+Prompts, necessary tool schemas and normalized results are sent to Google only when
+configured. The provider key stays server-side in a protected file or environment,
+never in frontend assets. Fixed system instructions separate untrusted metadata from
+policy. Names/arguments/rounds/results are bounded, known credential/contact fields
+are removed, and trace summaries are fixed. This does not prevent all prompt injection,
+encoded-secret reflection or arbitrary PII in prose; users must not submit secrets or
+unnecessary personal data. No universal redaction or financial-reasoning correctness
+claim. Provider failures are fixed codes; SDK automatic calls/retries are disabled.
+Pinned provider/HTTP wire loggers are filtered; external APM/body tracing remains an
+operator risk and must not be enabled without review.
+
+Both Docker artifacts exclude secrets and tests from runtime, run non-root 10001 and
+passed read-only/capability/no-new-privileges/seccomp inspection. Gateway needs no
+writable root; nginx uses ephemeral `/tmp`. Fixture PostgreSQL used isolated disposable
+trust auth with no published DB port; it is never a deployment configuration. Public
+TLS, exact external MCP Host allowlisting, runtime Secret provisioning, gateway-only
+upstream caller auth/NetworkPolicy, comprehensive SSRF, upstream credential encryption,
+rate limiting and full-stack resource/capacity validation remain incomplete. No cluster
+or live model/store call was made during Stage 7.1.

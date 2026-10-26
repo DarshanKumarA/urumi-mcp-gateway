@@ -17,6 +17,7 @@ from .auth_api import identity_router, admin, same_origin
 from .audit_repository import AuditRepository, AuditUnavailable
 from .audit_api import audit_router
 from .invocation import InvocationService
+from .chat import ChatService, chat_router
 from .core import Gateway
 from .database import SQLRepository, RepositoryUnavailable, make_engine
 from .errors import GatewayError
@@ -24,7 +25,7 @@ from .management import Management, CreateServer, EditServer, ServerView
 from .server import create_app as mcp_app
 
 
-def create_app(repository, *, upstream=None, seed=False, auth_config=None, identity=None):
+def create_app(repository, *, upstream=None, seed=False, auth_config=None, identity=None, provider=None, max_tool_rounds=5):
     gateway = Gateway(repository, upstream)
     service = Management(gateway)
     identity = identity or IdentityService(IdentityRepository(repository.engine), auth_config)
@@ -122,6 +123,8 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
     async def refresh(server_id: UUID):
         return await service.refresh(server_id)
 
+    app.state.chat = ChatService(gateway, invocations, provider, max_tool_rounds)
+    app.include_router(chat_router(app.state.chat, gateway))
     app.include_router(audit_router(audits))
     app.include_router(identity_router(identity))
     app.include_router(management)
@@ -149,7 +152,10 @@ def create_production_app():
             secure_cookie=secure == "true", production=environment == "production",
             session_seconds=int(os.environ.get("URUMI_SESSION_SECONDS", "28800")),
             invitation_seconds=int(os.environ.get("URUMI_INVITATION_SECONDS", "86400")))
-        app = create_app(SQLRepository(engine), seed=True, auth_config=config)
+        from .provider import from_environment
+        provider = from_environment()
+        app = create_app(SQLRepository(engine), seed=True, auth_config=config, provider=provider,
+                         max_tool_rounds=int(os.environ.get("URUMI_MAX_TOOL_ROUNDS", "5")))
     except Exception:
         engine.dispose()
         raise RuntimeError("AUTH_CONFIGURATION_INVALID") from None
@@ -161,6 +167,10 @@ def create_production_app():
             async with original(application):
                 yield
         finally:
-            engine.dispose()
+            try:
+                if provider is not None:
+                    await provider.close()
+            finally:
+                engine.dispose()
     app.router.lifespan_context = lifespan
     return app

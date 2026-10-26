@@ -2,7 +2,8 @@
 
 Stage 5.4 adds per-request external MCP Bearer authentication and durable attributed
 audits to the existing identity, registry and admin/member REST backend.
-**No public deployment, dashboard or chat acceptance yet.** Both SDK application
+**No public/Kubernetes deployment or live Gemini acceptance yet.** Stage 7.1 adds
+the dashboard-facing session chat and container acceptance described below. Both SDK application
 factories now require identity/invocation dependencies; there is no unauthenticated
 default MCP factory. `api.create_production_app` requires PostgreSQL.
 
@@ -48,9 +49,11 @@ PostgreSQL; Alembic owns migrations; Pydantic validates management DTOs. Synchro
 DB operations run with `asyncio.to_thread` so Windows does not need Psycopg's async
 selector-loop policy. Database pool/connect/statement waits are bounded at 5s.
 Stage 5.3 adds `argon2-cffi==25.1.0` (bindings locked at `26.1.0`).
-The 41-package hash lock retains existing SDK pins and adds their exact dependency
-closure. Windows-only pywin32/tzdata use markers. Tests use stdlib unittest/SQLite;
-no separate test framework or OAuth signer is added. Uvicorn remains SDK-transitive.
+The hash lock retains existing MCP pins and includes the exact dependency closure.
+Windows-only pywin32/tzdata use markers. Tests use stdlib unittest/SQLite;
+no separate test framework or OAuth signer is added. Stage 7.1 declares Uvicorn
+0.54.0 directly and adds Google GenAI 2.33.0; HTTPX 0.28.1 is its separate transitive
+dependency, while the proven MCP transport continues using HTTPX2 2.16.0.
 Future lock updates must check extras/platform closure and verify wheel hashes.
 
 ## Flow and lifecycle
@@ -511,3 +514,104 @@ application encryption of recoverable upstream credentials, public TLS/hosting,
 additional real upstreams, dashboard/chat and gateway-to-Woo authentication/NetworkPolicy
 remain incomplete. Do not enable access/body/header/SQL-result logging or unreviewed
 telemetry; auth rejection is not permission to log a submitted key URL or header.
+
+## Stage 7.1 session chat and hosting
+
+`chat.py` adds POST `/api/chat` (strict message only, maximum 4000 characters) and
+GET `/api/catalog` (safe live tool information for authenticated members). Both use
+the existing session boundary; unsafe requests require the configured exact Origin.
+All server-management routes stay admin-only. The browser cannot supply identity.
+
+```text
+HttpOnly session -> server-derived Principal(source=session, api_key_id=null)
+ -> fresh enabled/live gateway catalog -> Gemini function selection
+ -> exact gateway name -> existing InvocationService.invoke_tool
+ -> committed audit START -> original upstream -> audit finalization
+ -> bounded sanitized result to Gemini -> answer + safe visible trace
+```
+
+There is no direct upstream client in chat and no fake user API key. Concurrent
+session users retain separate audit attribution. The same START-failure rule prevents
+dispatch, and an attempted write's uncertainty is unchanged. Tool failures stop the
+request without inviting replay; repeated identical mutating calls within one request
+are blocked. Annotations guide this extra guard, not authorization. Members can
+request enabled write tools. No persistent conversation or automatic retry exists.
+
+Provider: official `google-genai==2.33.0`, explicit async `models.generate_content`,
+manual function loop, SDK automatic function execution disabled, provider attempts=1.
+Model Content/thought signatures are retained when returning function results.
+The reviewed `gemini-3.7-flash` candidate's official page now marks it deprecated and
+automatically routed to 3.8; `gemini-3.8-flash` is the verified stable function-calling
+default. The model remains configurable. Sources checked on 26 October 2026:
+[SDK release](https://github.com/googleapis/python-genai/releases),
+[package 2.33.0](https://pypi.org/project/google-genai/2.33.0/),
+[3.7 status](https://ai.google.dev/gemini-api/docs/models/gemini-3.7-flash),
+[3.8 model](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash),
+[function calling](https://ai.google.dev/gemini-api/docs/function-calling).
+
+| Setting | Behavior |
+| --- | --- |
+| URUMI_GEMINI_API_KEY_FILE | Preferred protected mounted key file; never print its contents |
+| GEMINI_API_KEY | Server-process environment fallback; not a frontend variable or command argument |
+| URUMI_GEMINI_MODEL | Default gemini-3.8-flash |
+| URUMI_PROVIDER_TIMEOUT_SECONDS | Default 30, bounded 1–60 seconds |
+| URUMI_MAX_TOOL_ROUNDS | Default 5, allowed 1–6 |
+
+Missing key starts the backend normally and returns CHAT_NOT_CONFIGURED for chat.
+No real key was supplied or searched for during acceptance. Existing database/auth
+configuration and explicit migrations remain required. Provider failures have fixed
+safe auth/rate-limit/timeout/invalid/unavailable codes. Wire logging from the pinned
+GenAI/HTTP libraries is filtered; do not enable external request/body tracing.
+Truncated/non-STOP provider results are rejected instead of labelled successful.
+
+Limits: 180 seconds per chat request, 100 catalog tools, 4 calls per model round,
+10 calls total, 16k argument/schema/text bounds and 64k normalized tool result.
+Descriptions are capped at 500 characters. Tool metadata/results are untrusted
+data, never inserted into privileged system instructions. Known contact/credential
+fields and recognizable credential/contact text are filtered before provider use;
+this is not comprehensive PII detection or prompt-injection prevention. Prompts and
+selected tool output leave the backend for Google when configured. The final
+assistant text is untrusted plain text, not executable HTML or authority to act.
+Provider-incompatible arbitrary upstream schemas fail safely; all possible third-party
+schemas/models have not been runtime proven. Large-day pagination/currency handling
+is instructed, not a deterministic financial aggregation guarantee.
+
+188 gateway tests pass (160 prior + 28 chat/provider tests). Mocked composition covers
+Woo list_orders -> arithmetic sum_amounts and Woo list_orders -> policy get_policy,
+plus one product-create call, failure/no-replay, session audit attribution, concurrent
+users, no-key behavior and SDK configuration/error handling. Existing current/legacy
+MCP regression tests remain green. No live Gemini or Woo request was performed.
+
+The new Dockerfile uses Python 3.13.17-slim-bookworm at the reviewed Linux/amd64
+digest, a fresh hash-locked runtime dependency install and explicit Uvicorn 0.54.0.
+It serves API and SDK MCP on :8000; no dashboard files, tests or credentials are
+copied. One worker owns the SDK lifespan/provider; shutdown closes provider and DB.
+Migrations 0001–0003 are unchanged and remain explicit operator commands.
+
+From repository root:
+
+```powershell
+docker build --platform linux/amd64 -t urumi-gateway:stage7.1 apps/gateway
+docker build --platform linux/amd64 -t urumi-dashboard:stage7.1 apps/dashboard
+apps/gateway/.venv/Scripts/python apps/gateway/tests/container_smoke.py
+```
+
+The smoke creates only disposable Docker fixtures: an unpublished PostgreSQL 18.0
+on a dedicated bridge with fixture-only trust authentication, a protected temporary
+DB URL file, and loopback-published application containers. It applies all migrations,
+verifies real listeners and unauthenticated API/MCP 401 responses, checks non-root
+10001:10001/read-only/capabilities/no-new-privileges/seccomp, static assets/SPA/CSP and
+clean shutdown. It removes its containers/DB volume/network/file. It does not perform
+authenticated container MCP calls or a full browser-to-real-provider chain.
+
+For an optional later manual provider smoke, provision the key file securely, set
+only its path plus the model setting, and use a logged-in dashboard with the matching
+same-origin backend. Start with a no-tool prompt, then explicitly approved read-only
+composition. Never paste the key into a URL, CLI argument, chat or repository. Without
+a protected key, skip; Stage 7.1 deliberately did. Real writes require their own review.
+
+Stage 8 must supply PostgreSQL persistence/migration/bootstrap operations, same-origin
+API/MCP/static Ingress, protected Secrets, TLS/cookie settings, exact external MCP Host
+allowlist, probes/resources and targeted upstream caller authentication/NetworkPolicy.
+The current SDK Host allowlist is still loopback-only; public external-client hosting
+has not been enabled. No Helm change, Kubernetes start or deployment occurred here.
