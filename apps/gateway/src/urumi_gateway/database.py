@@ -171,16 +171,19 @@ class SQLRepository:
         return await self._run(read)
 
     async def seed_woocommerce(self):
+        await self.seed_registration(Upstream("woocommerce", "WooCommerce",
+            "http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp",
+            id=uuid5(NAMESPACE_URL, "urumi:upstream:woocommerce")))
+
+    async def seed_registration(self, server):
+        """Receipt owns first creation only, never later edits or deliberate removal."""
         def seed(c):
             from sqlalchemy.dialects.postgresql import insert as pg_insert
             from sqlalchemy.dialects.sqlite import insert as sqlite_insert
             insert = pg_insert if c.dialect.name == "postgresql" else sqlite_insert
-            first = c.execute(insert(bootstrap).values(name="woocommerce-v1")
+            first = c.execute(insert(bootstrap).values(name=server.slug + "-v1")
                               .on_conflict_do_nothing().returning(bootstrap.c.name)).first()
             if first:
-                server = Upstream("woocommerce", "WooCommerce",
-                    "http://urumi-woo-mcp.urumi.svc.cluster.local:8000/mcp",
-                    id=uuid5(NAMESPACE_URL, "urumi:upstream:woocommerce"))
                 c.execute(insert(servers).values(**values(server), observed_status="unknown", tools=[])
                           .on_conflict_do_nothing())
         await self._run(seed)

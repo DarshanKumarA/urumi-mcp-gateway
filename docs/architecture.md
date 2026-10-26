@@ -2,6 +2,59 @@
 
 Status: **The local Stage 3 store foundation is complete: business-flow acceptance was committed as af7bb37, and Stage 3.8 verified controlled Pod-replacement persistence, retained scale-down and database-loss probe behavior on revision 3 on 2026-10-21.** The 22 October review encountered API EOF errors and empty store responses. A controlled stop/start of the existing k3d cluster restored API/system health and anonymous storefront access; read-only checks reconfirmed release revision 3, product 11, order 12, marker 3 and the original Bound claims/PVs. The startup failure was traced to K3s network-policy initialization being unable to find its configured node-IP interface; the trigger for that condition is unproven. Implementation sections below preserve their historical milestone evidence; the availability gap and [controlled recovery](progress.md#stage-38-recovery-of-the-existing-local-environment) remain recorded. Production/full-system behavior, node-loss protection, backup/restore and full-stack memory capacity are not established. The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval and static checks alone do not prove a runtime requirement works.
 
+## Stage 8.0 full-stack static integration
+
+Stage 7.1 checkpoint f793e62 is preserved. Both overlays render 27 objects: eight
+Services, six Deployments, two StatefulSets, three Jobs, two Ingresses, four
+NetworkPolicies, one store ConfigMap and one explicit WordPress PVC. StatefulSets
+create MariaDB/PostgreSQL claims. No Secret/Namespace/PV renders. Historical
+revision-4 source 88e5cae compares identically for all eight store objects after only
+r4→r5 bootstrap asset/Job name substitution; four auxiliary resources are unchanged.
+Woo changes only image and caller-token mount/configuration, not business behavior.
+
+Application host gateway.urumi.test:8080 routes /api and /mcp to gateway :8000, / to
+dashboard :8080. Store remains on store.urumi.test:8080. Production substitutes
+HTTPS Origin, Secure cookies, TLS host/Secret, registry and storage class via the same
+templates. SDK Host allowance derives the exact canonical Origin authority; MCP browser
+Origins stay rejected. Dashboard chat uses REST/session identity.
+
+PostgreSQL 18.6-bookworm Linux/amd64 is pinned to
+`sha256:6b38fe68f2c02cafffbbce7496f76d110d8a947c039bd22c067e9a43c2250240`.
+It runs 999:999 with retained 2-GiB claim data-urumi-postgres-0 at /var/lib/postgresql,
+PGDATA /var/lib/postgresql/18/docker, ephemeral socket/tmp, pg_isready probes and no
+API token. Initial gateway/migration account is the image's owner/superuser; finer
+DB-role separation is not claimed.
+
+Normal revisioned Jobs use bounded waits: migration waits for DB and explicitly applies
+Alembic head; bootstrap waits for schema, invokes first-admin-safe logic and seeds
+three peers. Gateway init/readiness require exact schema plus four bootstrap receipts.
+No DDL/admin/seed at application startup. Readiness never probes upstreams/Gemini.
+Partial bootstrap resumes per operation; passwords, managed registrations and deliberate
+removals survive. Jobs have deadlines/backoff zero, not blind retry/rollback. URLs derive
+release/namespace Service DNS for woocommerce, arithmetic, store_policy. Woo alone
+receives the service token in its accepted server-side credential column. Existing
+records are never overwritten to force a token and can require explicit operator review.
+
+Woo checks a separate Bearer token on every HTTP request, constant-time, rejects
+missing/invalid/duplicate headers with 401 and removes it before SDK handling. REST
+signing/business behavior is unchanged. TCP probes need no token. Token loads once per
+process; rotation requires coordinated registration/Secret/rollout review. Three ingress
+policies admit same-release gateway-labelled Pods to MCP :8000; PG admits gateway and
+migration/bootstrap on :5432. Egress stays open. K3s enforcement is Stage 8.1 evidence,
+not assumption. Labels do not defend against privileged Pod creators.
+
+The [root README](../README.md#external-secret-contracts) defines nine Secrets and safe
+provisioning boundaries. Gemini mounts only in gateway, admin only in bootstrap, Woo
+REST only in Woo. DB URL/password represent one external account. Store Secrets remain
+unchanged. Gateway/Woo use stage8.0; dashboard stage7.1 and auxiliary stage6.1 are reused.
+Custom apps remain 10001/read-only/drop ALL/no escalation/RuntimeDefault; dashboard needs
+only ephemeral /tmp. Resource budgets are hypotheses. No revision 5, full-stack capacity,
+production TLS, live Gemini or Definition-of-Done claim. PVC persistence is not backup;
+PV reclaim remains Delete on PVC deletion. Helm rollback cannot rewind DB/files.
+
+Earlier stage sections below retain historical boundaries; this section records the
+current source integration, whose Kubernetes acceptance remains pending.
+
 ## Assignment constraints
 
 The assignment requires one WordPress + WooCommerce store, our own WooCommerce MCP server with all five required product/order tools, a React dashboard with a gateway/backend, and a dashboard chat agent. The backend is an MCP client to upstreams and an MCP server at one endpoint. Both chat and external clients reach upstreams through the gateway only.

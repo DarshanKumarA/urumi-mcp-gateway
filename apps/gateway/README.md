@@ -1,5 +1,32 @@
 # Gateway protocol core and persistent management
 
+## Stage 8.0 deployment contract
+
+Supersedes earlier Stage 7.1 loopback-only/Helm-pending notes. Image: urumi-gateway:stage8.0.
+No dependency/migration changes. Production factory no longer seeds at startup.
+From /app, `python -m urumi_gateway.deployment migrate` waits for DB and invokes
+Alembic upgrade head; `bootstrap` waits for schema and uses existing first-admin-safe
+logic plus three insert-once registrations; `wait-ready` reads schema/receipts only.
+Errors are fixed codes/nonzero exits. Commands never call provider/Woo business endpoints.
+
+Files: URUMI_DATABASE_URL_FILE; bootstrap also URUMI_BOOTSTRAP_USERNAME_FILE,
+URUMI_BOOTSTRAP_PASSWORD_FILE, URUMI_WOO_MCP_TOKEN_FILE. Non-secret URLs:
+URUMI_WOO_MCP_URL, URUMI_ARITHMETIC_MCP_URL, URUMI_STORE_POLICY_MCP_URL.
+Receipts preserve managed edits/removal/credential changes. An old uncredentialed Woo
+record requires operator review; it is not silently patched.
+
+URUMI_BROWSER_ORIGIN supplies REST Origin policy and exact SDK MCP Host authority.
+/health/ready returns only ready/not_ready with 200/503 from DB/schema/bootstrap checks,
+never a peer/provider probe. TCP liveness is independent. Local Origin is
+http://gateway.urumi.test:8080; production HTTPS requires Secure cookies. Existing
+session chat/external-key audit paths and provider settings remain unchanged.
+
+From repository root, `apps/gateway/.venv/Scripts/python tests/integration/docker_stage8.py`
+creates disposable synthetic Docker fixtures. It tests PG18.6/migrations, bootstrap
+twice, readiness, authenticated current/legacy discovery across three peers, security
+and log exclusion. Seven tools, zero tool calls, no real provider/store. See
+[root setup](../../README.md) for exact Secret/Job/resource contracts and future steps.
+
 Stage 5.4 adds per-request external MCP Bearer authentication and durable attributed
 audits to the existing identity, registry and admin/member REST backend.
 **No public/Kubernetes deployment or live Gemini acceptance yet.** Stage 7.1 adds

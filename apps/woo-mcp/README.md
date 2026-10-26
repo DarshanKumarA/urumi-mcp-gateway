@@ -1,5 +1,21 @@
 # WooCommerce MCP: five product and order tools
 
+## Stage 8.0 gateway caller boundary
+
+Image urumi-woo-mcp:stage8.0 supersedes stage4.8 for integrated hosting. Business tools,
+REST transport and OAuth stay unchanged. ASGI factory requires WOO_MCP_AUTH_TOKEN_FILE
+(chart: /run/secrets/woo-mcp-auth/token), external urumi-woo-mcp-auth/token. Provision
+at least 256 random bits as base64url. Every HTTP request requires one matching Bearer
+header; missing/invalid/duplicate values return safe 401. Constant-time compare;
+header stripped before SDK; no token output. TCP probes, Host and Origin protections stay.
+
+Token loads once per process. Gateway bootstrap stores the matching value in its
+existing static-credential model; rotation requires coordinated review. Woo REST
+files remain separate and only Woo consumes them. NetworkPolicy permits gateway-labelled
+Pods only; actual enforcement is Stage 8.1 work. Existing smoke uses synthetic caller
+auth. All prior 116 plus four auth tests pass (120), including authenticated current/
+legacy discovery and invalid headers. No live Woo business request occurred.
+
 All five required business contracts exist with offline tests. Stage 4.8 adds real
 TCP hosting, a Docker image and rendered internal Helm workload definitions without
 changing those contracts. Stage 4.3's credential loading/OAuth transport remain.

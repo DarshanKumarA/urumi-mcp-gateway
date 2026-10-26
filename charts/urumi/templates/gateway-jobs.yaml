@@ -1,0 +1,65 @@
+{{- if .Values.platform.enabled }}
+{{- range $mode := list "migrate" "bootstrap" }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "urumi.fullname" $ }}-gateway-{{ $mode }}-r{{ $.Release.Revision }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.platformLabels" (dict "root" $ "component" (printf "gateway-%s" $mode)) | nindent 8 }}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
+      securityContext:
+        {{- include "urumi.platformSecurity" $ | nindent 8 }}
+      containers:
+        - name: {{ $mode }}
+          image: {{ include "urumi.platformImage" $.Values.platform.gateway.image | quote }}
+          imagePullPolicy: {{ $.Values.platform.gateway.image.pullPolicy }}
+          command: [python, -m, urumi_gateway.deployment, {{ $mode }}]
+          securityContext:
+            {{- include "urumi.platformContainerSecurity" $ | nindent 12 }}
+          env:
+            {{- include "urumi.databaseEnv" $ | nindent 12 }}
+            {{- if eq $mode "bootstrap" }}
+            - {name: URUMI_BOOTSTRAP_USERNAME_FILE, value: /run/secrets/admin/username}
+            - {name: URUMI_BOOTSTRAP_PASSWORD_FILE, value: /run/secrets/admin/password}
+            - {name: URUMI_WOO_MCP_TOKEN_FILE, value: /run/secrets/woo-mcp-auth/token}
+            - name: URUMI_WOO_MCP_URL
+              value: {{ printf "http://%s-woo-mcp.%s.svc.cluster.local:8000/mcp" (include "urumi.fullname" $) $.Release.Namespace | quote }}
+            - name: URUMI_ARITHMETIC_MCP_URL
+              value: {{ printf "http://%s-arithmetic-mcp.%s.svc.cluster.local:8000/mcp" (include "urumi.fullname" $) $.Release.Namespace | quote }}
+            - name: URUMI_STORE_POLICY_MCP_URL
+              value: {{ printf "http://%s-store-policy-mcp.%s.svc.cluster.local:8000/mcp" (include "urumi.fullname" $) $.Release.Namespace | quote }}
+            {{- end }}
+          volumeMounts:
+            {{- include "urumi.databaseMount" $ | nindent 12 }}
+            {{- if eq $mode "bootstrap" }}
+            - {name: admin, mountPath: /run/secrets/admin, readOnly: true}
+            - {name: woo-auth, mountPath: /run/secrets/woo-mcp-auth, readOnly: true}
+            {{- end }}
+          resources:
+            {{- toYaml $.Values.platform.jobResources | nindent 12 }}
+      volumes:
+        {{- include "urumi.databaseVolume" $ | nindent 8 }}
+        {{- if eq $mode "bootstrap" }}
+        - name: admin
+          secret:
+            secretName: {{ $.Values.platform.adminSecretName | quote }}
+            defaultMode: 0440
+            items: [{key: username, path: username}, {key: password, path: password}]
+        - name: woo-auth
+          secret:
+            secretName: {{ $.Values.wooMcp.callerAuthSecretName | quote }}
+            defaultMode: 0440
+            items: [{key: token, path: token}]
+        {{- end }}
+{{- end }}
+{{- end }}

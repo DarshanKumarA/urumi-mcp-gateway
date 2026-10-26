@@ -1,5 +1,36 @@
 # Threat model draft
 
+## Stage 8.0 implemented packaging boundaries
+
+Woo's service-auth addition checks every HTTP request with constant-time Bearer
+comparison, rejects missing/invalid/duplicate headers and strips it before SDK handling.
+REST OAuth/tool code is unchanged. User gateway keys are distinct and never forwarded.
+Only bootstrap reads the service-token Secret; steady gateway uses its PostgreSQL
+registration credential. DTO/audit privacy remains regression-tested. Rotation is not
+automatic; Python managed secret strings cannot be reliably erased.
+
+Four ingress policies select only three MCP listeners and PostgreSQL. Same-release
+gateway-labelled Pods alone reach MCP :8000; PG :5432 also admits migration/bootstrap.
+No public upstream/database route. This is static evidence; Stage 8.1 must prove
+allowed/denied flows on actual K3s. Pod-create/label privileges can bypass label
+segmentation; policies do not replace RBAC or Woo service auth. Egress, comprehensive
+SSRF and application-level upstream encryption remain incomplete by accepted scope.
+
+PG uses file password, non-root 999, read-only root plus explicit data/socket/tmp.
+Custom apps use 10001, no API token, no escalation, ALL capabilities dropped and
+RuntimeDefault. Dashboard receives no Secrets. Gemini mounts only in gateway; admin
+only in bootstrap. PG's initial account is owner/superuser and upstream values remain
+plaintext in DB under the accepted baseline, not least-privilege DB authorization.
+DB/Secret administrators remain trusted. Real provisioning is future operator work,
+not a new helper; no real values are rendered or entered in this stage.
+
+Schema/bootstrap readiness prevents an unmigrated fresh stack being ready; upstream
+outages do not affect it. Jobs have bounded waits/deadlines/backoff zero. Failure retains
+state for inspection. Helm rollback cannot undo schema/data; audit START can mean
+interrupted/unknown. PVC retention is not backup and Delete reclaim still applies on
+PVC deletion. Production TLS, policy enforcement, capacity and final demonstrations
+remain pending. Earlier stage sections below retain their historical scope.
+
 Status: analysis aligned with approved Architecture v1 and accepted Stage 4 Woo MCP design. Store runtime evidence is scoped in [progress](progress.md); historical Stage 3 sections below retain their milestone limits. Stage 4.2 adds only an offline REST Secret helper, not deployed MCP credential/isolation evidence. This update awaits review. The [original assignment](source/urumi-mcp-gateway-assignment.docx) and [assignment.md](assignment.md) define scope. This document supports REQ-DEL-05 and the mandatory security-posture video coverage (VID-04). Discussing a risk does not commit the project to every possible mitigation.
 
 ## Assets actors and trust boundaries

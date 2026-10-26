@@ -35,6 +35,8 @@ spec:
             - name: http
               containerPort: 8000
           env:
+            - name: WOO_MCP_AUTH_TOKEN_FILE
+              value: /run/secrets/woo-mcp-auth/token
             - name: WOO_CONNECTION_ORIGIN
               value: {{ default (printf "http://%s.%s.svc.cluster.local" (include "urumi.wordpressName" .) .Release.Namespace) .Values.wooMcp.config.connection_origin | quote }}
             - name: WOO_CANONICAL_ORIGIN
@@ -52,6 +54,9 @@ spec:
             - name: PYTHONDONTWRITEBYTECODE
               value: "1"
           volumeMounts:
+            - name: caller-auth
+              mountPath: /run/secrets/woo-mcp-auth
+              readOnly: true
             - name: woo-rest
               mountPath: {{ .Values.wooMcp.config.secret_directory | quote }}
               readOnly: true
@@ -77,6 +82,13 @@ spec:
           resources:
             {{- toYaml .Values.wooMcp.resources | nindent 12 }}
       volumes:
+        - name: caller-auth
+          secret:
+            secretName: {{ .Values.wooMcp.callerAuthSecretName | quote }}
+            defaultMode: 0440
+            items:
+              - key: token
+                path: token
         - name: woo-rest
           secret:
             secretName: {{ .Values.wooMcp.restSecretName | quote }}

@@ -82,14 +82,15 @@ bootstrap:
       cpu: 500m
       memory: 512Mi
 
-# Stage 4.8 hosting only. Local/prod opt in explicitly; no caller-auth Secret yet.
+# Stage 8 caller authentication is required; external token matches the gateway seed.
 wooMcp:
   enabled: false
   image:
     repository: urumi-woo-mcp
-    tag: stage4.8
+    tag: stage8.0
     pullPolicy: IfNotPresent
   restSecretName: urumi-woocommerce-rest
+  callerAuthSecretName: urumi-woo-mcp-auth
   config:
     # Empty derives the WordPress Service DNS from release/namespace.
     connection_origin: ""
@@ -148,3 +149,47 @@ auxiliaryMcp:
       limits:
         cpu: 250m
         memory: 128Mi
+
+# Stage 8 full-stack packaging; external Secrets must exist before deployment.
+platform:
+  enabled: false
+  origin: http://gateway.urumi.test:8080
+  adminSecretName: urumi-admin-bootstrap
+  postgres:
+    image:
+      repository: postgres
+      tag: 18.6-bookworm
+      digest: sha256:6b38fe68f2c02cafffbbce7496f76d110d8a947c039bd22c067e9a43c2250240
+    secretName: urumi-postgres-auth
+    user: urumi_gateway
+    database: urumi_gateway
+    storageClass: ""
+    storageSize: 2Gi
+    resources:
+      requests: {cpu: 100m, memory: 256Mi}
+      limits: {cpu: 500m, memory: 512Mi}
+  gateway:
+    image: {repository: urumi-gateway, tag: stage8.0, pullPolicy: Never}
+    environment: local
+    secureCookie: false
+    sessionSeconds: 28800
+    invitationSeconds: 86400
+    model: gemini-3.8-flash
+    providerTimeoutSeconds: 30
+    maxToolRounds: 5
+    geminiSecretName: urumi-gemini
+    resources:
+      requests: {cpu: 100m, memory: 192Mi}
+      limits: {cpu: 1000m, memory: 512Mi}
+  dashboard:
+    image: {repository: urumi-dashboard, tag: stage7.1, pullPolicy: Never}
+    resources:
+      requests: {cpu: 25m, memory: 32Mi}
+      limits: {cpu: 250m, memory: 128Mi}
+  jobResources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  ingress:
+    className: traefik
+    host: gateway.urumi.test
+    tls: {enabled: false, secretName: ""}

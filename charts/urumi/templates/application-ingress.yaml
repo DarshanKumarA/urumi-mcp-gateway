@@ -1,0 +1,46 @@
+{{- if .Values.platform.enabled }}
+{{- $origin := urlParse .Values.platform.origin }}
+{{- if ne $origin.hostname .Values.platform.ingress.host }}
+{{- fail "Application Origin hostname must match application Ingress host" }}
+{{- end }}
+{{- if and (eq .Values.platform.gateway.environment "production") (or (not .Values.platform.gateway.secureCookie) (ne $origin.scheme "https")) }}
+{{- fail "Production requires HTTPS Origin and Secure cookies" }}
+{{- end }}
+{{- if and .Values.platform.gateway.secureCookie (not .Values.platform.ingress.tls.enabled) }}
+{{- fail "Secure cookies require application TLS configuration" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "urumi.fullname" . }}-application
+  namespace: {{ .Release.Namespace }}
+spec:
+  ingressClassName: {{ .Values.platform.ingress.className | quote }}
+  {{- if .Values.platform.ingress.tls.enabled }}
+  tls:
+    - hosts: [{{ .Values.platform.ingress.host | quote }}]
+      secretName: {{ .Values.platform.ingress.tls.secretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.platform.ingress.host | quote }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "urumi.fullname" . }}-gateway
+                port: {number: 8000}
+          - path: /mcp
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "urumi.fullname" . }}-gateway
+                port: {number: 8000}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "urumi.fullname" . }}-dashboard
+                port: {number: 8080}
+{{- end }}

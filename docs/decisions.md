@@ -1,5 +1,14 @@
 # Decision register
 
+### DEC-034 Stage 8 explicit ordering and caller isolation
+
+- **Status:** Implemented for static review, 26 October 2026; no cluster start/deployment.
+- **Choice:** Normal revisioned migration and admin/three-peer bootstrap Jobs with bounded dependency waits; gateway init/readiness require exact schema plus durable receipts. This supports fresh PostgreSQL in one release without pre-install hooks or startup DDL. Existing migrations are unchanged.
+- **Persistence:** Official PostgreSQL 18.6-bookworm pinned amd64; retained 2-GiB StatefulSet claim independent of store storage. Insert-once receipts preserve edits/removal and admin passwords. Backup/node-loss durability remains distinct.
+- **Isolation:** External Woo service token checked every MCP request and carried by existing gateway credential/routing model. Three targeted MCP ingress policies permit gateway only; PG permits gateway and DB jobs. No broad egress lockdown or business redesign.
+- **Configuration:** Separate same-origin application Ingress; exact Origin-derived SDK Host allowance; production HTTPS/Secure cookies via values. Only Woo/gateway images change to stage8.0. Exact nine-Secret contract is in root README.
+- **Limits:** Upstream values remain unencrypted at application level; initial PG account is owner/superuser. Rotation requires coordinated operator review. NetworkPolicy depends on enforcing CNI and trustworthy Pod-label permissions. Full-stack RAM, TLS and Kubernetes isolation remain unproven.
+
 This register explains project decisions; it does not override the [original assignment](source/urumi-mcp-gateway-assignment.docx) or [assignment.md](assignment.md). Assignment obligations are constraints, not choices attributed to us. “Accepted” means explicitly agreed, not implemented or verified. Architecture v1 approval is not authorization to begin application work.
 
 ## DEC-001 Governance before application implementation

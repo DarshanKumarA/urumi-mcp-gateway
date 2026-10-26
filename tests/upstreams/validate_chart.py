@@ -43,6 +43,7 @@ def render(chart, values=None, release="urumi", namespace="urumi"):
     args = ["helm", "template", release, str(chart), "--namespace", namespace]
     if values:
         args += ["-f", str(chart / values)]
+    args += ["--set", "platform.enabled=false"]
     result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", check=True)
     return [o for o in yaml.load_all(result.stdout, Loader=UniqueLoader) if o]
 

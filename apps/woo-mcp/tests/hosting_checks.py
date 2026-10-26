@@ -15,10 +15,11 @@ TOOL_INPUTS = {
 }
 
 
-async def discover(url):
+async def discover(url, token=None):
     """Never call a tool: inspect SDK metadata only, using real HTTP sockets."""
     async with asyncio.timeout(20):
-        async with httpx2.AsyncClient(trust_env=False, timeout=5) as http:
+        async with httpx2.AsyncClient(trust_env=False, timeout=5,
+                headers={"Authorization": "Bearer " + token} if token else {}) as http:
             async with Client(streamable_http_client(url, http_client=http), cache=None) as client:
                 tools = (await client.list_tools()).tools
                 assert [tool.name for tool in tools] == list(TOOL_INPUTS)

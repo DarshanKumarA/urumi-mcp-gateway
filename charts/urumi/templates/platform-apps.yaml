@@ -1,0 +1,118 @@
+{{- if .Values.platform.enabled }}
+{{- range $component := list "gateway" "dashboard" }}
+{{- $settings := index $.Values.platform $component }}
+{{- $port := ternary 8000 8080 (eq $component "gateway") }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "urumi.fullname" $ }}-{{ $component }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "urumi.platformLabels" (dict "root" $ "component" $component) | nindent 4 }}
+  ports: [{name: http, port: {{ $port }}, targetPort: http}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "urumi.fullname" $ }}-{{ $component }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      {{- include "urumi.platformLabels" (dict "root" $ "component" $component) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "urumi.platformLabels" (dict "root" $ "component" $component) | nindent 8 }}
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
+      securityContext:
+        {{- include "urumi.platformSecurity" $ | nindent 8 }}
+      {{- if eq $component "gateway" }}
+      initContainers:
+        - name: wait-schema-bootstrap
+          image: {{ include "urumi.platformImage" $settings.image | quote }}
+          imagePullPolicy: {{ $settings.image.pullPolicy }}
+          command: [python, -m, urumi_gateway.deployment, wait-ready]
+          securityContext:
+            {{- include "urumi.platformContainerSecurity" $ | nindent 12 }}
+          env:
+            {{- include "urumi.databaseEnv" $ | nindent 12 }}
+          volumeMounts:
+            {{- include "urumi.databaseMount" $ | nindent 12 }}
+          resources:
+            {{- toYaml $.Values.platform.jobResources | nindent 12 }}
+      {{- end }}
+      containers:
+        - name: {{ $component }}
+          image: {{ include "urumi.platformImage" $settings.image | quote }}
+          imagePullPolicy: {{ $settings.image.pullPolicy }}
+          securityContext:
+            {{- include "urumi.platformContainerSecurity" $ | nindent 12 }}
+          ports: [{name: http, containerPort: {{ $port }}}]
+          {{- if eq $component "gateway" }}
+          env:
+            {{- include "urumi.databaseEnv" $ | nindent 12 }}
+            - {name: URUMI_ENVIRONMENT, value: {{ $settings.environment | quote }}}
+            - {name: URUMI_BROWSER_ORIGIN, value: {{ $.Values.platform.origin | quote }}}
+            - {name: URUMI_COOKIE_SECURE, value: {{ $settings.secureCookie | quote }}}
+            - {name: URUMI_SESSION_SECONDS, value: {{ $settings.sessionSeconds | quote }}}
+            - {name: URUMI_INVITATION_SECONDS, value: {{ $settings.invitationSeconds | quote }}}
+            - {name: URUMI_GEMINI_API_KEY_FILE, value: /run/secrets/gemini/api-key}
+            - {name: URUMI_GEMINI_MODEL, value: {{ $settings.model | quote }}}
+            - {name: URUMI_PROVIDER_TIMEOUT_SECONDS, value: {{ $settings.providerTimeoutSeconds | quote }}}
+            - {name: URUMI_MAX_TOOL_ROUNDS, value: {{ $settings.maxToolRounds | quote }}}
+          volumeMounts:
+            {{- include "urumi.databaseMount" $ | nindent 12 }}
+            - {name: gemini, mountPath: /run/secrets/gemini, readOnly: true}
+          {{- else }}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+          {{- end }}
+          startupProbe:
+            tcpSocket: {port: http}
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 60
+          livenessProbe:
+            {{- if eq $component "gateway" }}
+            tcpSocket: {port: http}
+            {{- else }}
+            httpGet: {path: /, port: http}
+            {{- end }}
+            periodSeconds: 20
+            timeoutSeconds: 2
+          readinessProbe:
+            {{- if eq $component "gateway" }}
+            httpGet:
+              path: /health/ready
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ (urlParse $.Values.platform.origin).host | quote }}
+            {{- else }}
+            httpGet: {path: /, port: http}
+            {{- end }}
+            periodSeconds: 10
+            timeoutSeconds: 6
+          resources:
+            {{- toYaml $settings.resources | nindent 12 }}
+      volumes:
+        {{- if eq $component "gateway" }}
+        {{- include "urumi.databaseVolume" $ | nindent 8 }}
+        - name: gemini
+          secret:
+            secretName: {{ $settings.geminiSecretName | quote }}
+            defaultMode: 0440
+            items: [{key: api-key, path: api-key}]
+        {{- else }}
+        - {name: tmp, emptyDir: {sizeLimit: 32Mi}}
+        {{- end }}
+{{- end }}
+{{- end }}

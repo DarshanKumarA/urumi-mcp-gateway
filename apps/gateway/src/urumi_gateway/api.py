@@ -31,7 +31,8 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
     identity = identity or IdentityService(IdentityRepository(repository.engine), auth_config)
     audits = AuditRepository(repository.engine)
     invocations = InvocationService(gateway, audits)
-    mcp = mcp_app(gateway, identity=identity, invocations=invocations)
+    mcp = mcp_app(gateway, identity=identity, invocations=invocations,
+                  allowed_hosts=[urlsplit(identity.config.origin).netloc])
 
     @asynccontextmanager
     async def lifespan(app):
@@ -129,6 +130,14 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
     app.include_router(identity_router(identity))
     app.include_router(management)
 
+    @app.get("/health/ready")
+    async def ready():
+        from .deployment import database_ready
+        import asyncio
+        healthy = await asyncio.to_thread(database_ready, repository.engine, "ready")
+        return JSONResponse({"status": "ready" if healthy else "not_ready"},
+                            status_code=200 if healthy else 503)
+
     # Mount last at root: SDK retains its exact /mcp path and transport middleware.
     app.mount("/", mcp)
     return app
@@ -154,7 +163,7 @@ def create_production_app():
             invitation_seconds=int(os.environ.get("URUMI_INVITATION_SECONDS", "86400")))
         from .provider import from_environment
         provider = from_environment()
-        app = create_app(SQLRepository(engine), seed=True, auth_config=config, provider=provider,
+        app = create_app(SQLRepository(engine), seed=False, auth_config=config, provider=provider,
                          max_tool_rounds=int(os.environ.get("URUMI_MAX_TOOL_ROUNDS", "5")))
     except Exception:
         engine.dispose()

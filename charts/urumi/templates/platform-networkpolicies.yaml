@@ -1,0 +1,31 @@
+{{- if .Values.platform.enabled }}
+{{- range $component := list "woo-mcp" "arithmetic-mcp" "store-policy-mcp" "postgres" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "urumi.fullname" $ }}-{{ $component }}-ingress
+  namespace: {{ $.Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "urumi.platformLabels" (dict "root" $ "component" $component) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "urumi.selectorLabels" $ | nindent 14 }}
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                {{- if eq $component "postgres" }}
+                values: [gateway, gateway-migrate, gateway-bootstrap]
+                {{- else }}
+                values: [gateway]
+                {{- end }}
+      ports:
+        - protocol: TCP
+          port: {{ ternary 5432 8000 (eq $component "postgres") }}
+{{- end }}
+{{- end }}

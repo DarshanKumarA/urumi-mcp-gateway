@@ -122,10 +122,11 @@ class HostingConfigTests(unittest.TestCase):
         port = sock.getsockname()[1]
         try:
             with tempfile.TemporaryDirectory(prefix="urumi-tcp-") as directory:
-                for name, dummy in (("consumer-key", "TEST-ONLY-KEY"), ("consumer-secret", "TEST-ONLY-SECRET")):
+                for name, dummy in (("consumer-key", "TEST-ONLY-KEY"), ("consumer-secret", "TEST-ONLY-SECRET"), ("token", "SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32)):
                     (Path(directory) / name).write_text(dummy, encoding="utf-8")
                 log_path = str(Path(directory) / "server.log")
                 environment = {"WOO_SECRET_DIRECTORY": directory,
+                    "WOO_MCP_AUTH_TOKEN_FILE": str(Path(directory) / "token"),
                     "WOO_CONNECTION_ORIGIN": f"http://127.0.0.1:{trap.server_port}",
                     "WOO_CANONICAL_ORIGIN": "http://discovery.invalid",
                     "WOO_MCP_ALLOWED_HOSTS": f"127.0.0.1:{port}", "PYTHONDONTWRITEBYTECODE": "1"}
@@ -141,10 +142,10 @@ class HostingConfigTests(unittest.TestCase):
                         if not process.is_alive() or time.monotonic() >= deadline:
                             self.fail("Uvicorn did not start")
                         time.sleep(0.05)
-                self.assertEqual(len(asyncio.run(discover(f"http://127.0.0.1:{port}/mcp"))), 5)
+                self.assertEqual(len(asyncio.run(discover(f"http://127.0.0.1:{port}/mcp", "SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32))), 5)
                 with httpx.Client(trust_env=False, timeout=3) as http:
-                    self.assertEqual(http.get(f"http://127.0.0.1:{port}/mcp", headers={"Host": "evil.invalid"}).status_code, 421)
-                    response = http.get(f"http://127.0.0.1:{port}/mcp", headers={"Origin": "http://browser.invalid"})
+                    self.assertEqual(http.get(f"http://127.0.0.1:{port}/mcp", headers={"Host": "evil.invalid", "Authorization": "Bearer SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32}).status_code, 421)
+                    response = http.get(f"http://127.0.0.1:{port}/mcp", headers={"Origin": "http://browser.invalid", "Authorization": "Bearer SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32})
                     self.assertEqual(response.status_code, 403)
                     self.assertNotIn("access-control-allow-origin", response.headers)
                 stop.set()
@@ -153,7 +154,7 @@ class HostingConfigTests(unittest.TestCase):
                 self.assertEqual(process.exitcode, 0)
                 logs = Path(log_path).read_text(encoding="utf-8")
                 self.assertIn("Application shutdown complete", logs)
-                for forbidden in ("TEST-ONLY-KEY", "TEST-ONLY-SECRET", "Authorization", "oauth_signature"):
+                for forbidden in ("TEST-ONLY-KEY", "TEST-ONLY-SECRET", "SYNTHETIC-GATEWAY-TOKEN-", "Authorization", "oauth_signature"):
                     self.assertNotIn(forbidden, logs)
                 self.assertEqual(requests, [])
         finally:

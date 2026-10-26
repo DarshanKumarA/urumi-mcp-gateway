@@ -118,8 +118,11 @@ def create_server(config=None, *, client_factory=None):
 def create_app():
     """ASGI factory; reads credentials only when application lifespan starts."""
     config = Config.from_environment()
-    return create_server(config).streamable_http_app(
+    app = create_server(config).streamable_http_app(
         streamable_http_path="/mcp", json_response=True, stateless_http=True,
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=True,
                                                      allowed_hosts=list(config.allowed_hosts),
                                                      allowed_origins=[]))
+    from .caller_auth import CallerAuthentication
+    app.add_middleware(CallerAuthentication)
+    return app

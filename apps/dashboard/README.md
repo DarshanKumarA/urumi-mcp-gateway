@@ -1,5 +1,15 @@
 # Urumi Gateway dashboard
 
+## Stage 8.0 Helm integration
+
+Reuses validated urumi-dashboard:stage7.1 without source/image changes. ClusterIP :8080,
+10001:10001/read-only/drop ALL/no escalation/RuntimeDefault, no API token/Secrets,
+ephemeral 32-MiB /tmp. Requests 25m/32Mi, limits 250m/128Mi are hypotheses. Startup is
+TCP; readiness/liveness are static HTTP. Ingress sends /api and /mcp to gateway and
+/ to SPA fallback. Local URL http://gateway.urumi.test:8080; production host/TLS via
+values. All 24 tests and TypeScript/Vite build rerun; actual Ingress/browser acceptance
+remains Stage 8.1.
+
 Stage 7.1 implements the React/TypeScript dashboard and packages its production
 assets separately from the gateway. This is offline/mock/container acceptance,
 not Kubernetes or live Gemini acceptance. See [progress](../../docs/progress.md).

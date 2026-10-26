@@ -28,7 +28,7 @@ def main(image):
         sock.bind(("127.0.0.1", 0))
         port = sock.getsockname()[1]
     with tempfile.TemporaryDirectory(prefix="urumi-docker-") as directory:
-        for filename, value in (("consumer-key", "TEST-ONLY-KEY"), ("consumer-secret", "TEST-ONLY-SECRET")):
+        for filename, value in (("consumer-key", "TEST-ONLY-KEY"), ("consumer-secret", "TEST-ONLY-SECRET"), ("token", "SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32)):
             path = Path(directory) / filename
             path.write_text(value, encoding="utf-8")
             path.chmod(0o444)
@@ -39,6 +39,7 @@ def main(image):
                    "--mount", f"type=bind,source={directory},target=/run/secrets/woocommerce-rest,readonly",
                    "--env", "WOO_CONNECTION_ORIGIN=http://127.0.0.1:9",
                    "--env", "WOO_CANONICAL_ORIGIN=http://discovery.invalid",
+                   "--env", "WOO_MCP_AUTH_TOKEN_FILE=/run/secrets/woocommerce-rest/token",
                    "--env", f"WOO_MCP_ALLOWED_HOSTS=127.0.0.1:{port}", image)
             started = True
             deadline = time.monotonic() + 30
@@ -55,7 +56,7 @@ def main(image):
                 if not state["Running"]:
                     raise RuntimeError("Container exited before startup")
                 time.sleep(0.2)
-            tools = asyncio.run(discover(f"http://127.0.0.1:{port}/mcp"))
+            tools = asyncio.run(discover(f"http://127.0.0.1:{port}/mcp", "SYNTHETIC-GATEWAY-TOKEN-" + "x" * 32))
             details = json.loads(docker("inspect", name))[0]
             host = details["HostConfig"]
             assert details["Config"]["User"] == "10001:10001"
@@ -90,7 +91,7 @@ print(json.dumps({'uid': os.getuid(), 'gid': os.getgid(), 'read_only_write_rejec
             log_result = subprocess.run(["docker", "logs", name], capture_output=True, text=True, timeout=5)
             logs = log_result.stdout + log_result.stderr
             assert "Application shutdown complete" in logs
-            for forbidden in ("TEST-ONLY-KEY", "TEST-ONLY-SECRET", "Authorization", "oauth_signature"):
+            for forbidden in ("TEST-ONLY-KEY", "TEST-ONLY-SECRET", "SYNTHETIC-GATEWAY-TOKEN-", "Authorization", "oauth_signature"):
                 assert forbidden not in logs
             image_info = json.loads(docker("image", "inspect", image))[0]
             evidence = {"result": "PASS", "image": image, "image_id": image_info["Id"],
@@ -109,4 +110,4 @@ print(json.dumps({'uid': os.getuid(), 'gid': os.getgid(), 'read_only_write_rejec
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) == 2 else "urumi-woo-mcp:stage4.8")
+    main(sys.argv[1] if len(sys.argv) == 2 else "urumi-woo-mcp:stage8.0")

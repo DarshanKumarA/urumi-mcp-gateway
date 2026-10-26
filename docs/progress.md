@@ -2,6 +2,54 @@
 
 ## Current milestone
 
+**2026-10-26 — Stage 8.0 full-stack static packaging, runtime deployment pending.**
+Stage 7.1 is committed as f793e62. PostgreSQL, migration/bootstrap ordering, gateway/
+dashboard hosting, three built-in seeds, same-origin routing and targeted policies
+are implemented for review. Woo's only intentional application change is caller auth.
+Kubernetes remains stopped; no revision 5, live store/provider request, real Secret
+creation, staging or commit. Earlier milestone entries below retain their history.
+
+## Stage 8.0 validation and review boundary
+
+| Area | Observed evidence / limit |
+| --- | --- |
+| Helm | Local/prod lint; 27 rendered objects each; v1.35.5 schema, YAML keys/names, selectors/ports, probes, budgets, security, Secret references, policy selectors and Ingress paths checked |
+| Store preservation | Historical revision-4 source 88e5cae: eight store objects identical except r4→r5 bootstrap ConfigMap/Job names; store files/values/PVC names unchanged; no live query in this stage |
+| Auxiliary preservation | Four Stage 6 resources unchanged; apps/image tags unchanged |
+| PostgreSQL | Official 18.6-bookworm Linux/amd64 digest resolved; disposable non-root/read-only Docker fixture migrated empty DB through 0003, bootstrapped twice and passed schema/receipt readiness |
+| Ordering | Explicit migration Job → schema-gated admin/seed Job → gateway init/readiness; no startup schema/seed/reset; finite Jobs backoff zero |
+| Woo caller auth | Missing/invalid/duplicate Bearer rejected on each HTTP request; header stripped; current/legacy discovery passes; five business tools unchanged; token is separate from user and Woo REST keys |
+| Seeds | woocommerce, arithmetic, store_policy; deterministic UUID/insert-once receipts preserve managed edits/deletion/credential state |
+| Application regressions | Gateway 195 (188 prior + 7 deployment checks); Woo 120 (116 prior + 4 caller-auth checks); Arithmetic 21; Policy 15; dashboard 24; TypeScript and Vite production build pass |
+| Repository validation | Python compilation; unchanged dependency pins/hash-lock consistency and pip check; npm lock/integrity metadata; documentation links/anchors/tables; source/built-asset/rendered-manifest pattern scans; git diff --check |
+| Docker discovery | Real gateway TCP with API key discovers seven tools over three internal Docker peers under current/legacy SDK; zero tool calls and zero real Woo/Gemini requests |
+| Isolation | Static gateway-only MCP ingress and gateway/job-only PG ingress; no upstream/DB public route; actual K3s enforcement remains Stage 8.1 |
+| Secret boundaries | Nine exact external contracts in README; no Secret object/value rendered; dashboard has none; Gemini gateway-only; Woo REST Woo-only; admin bootstrap-only |
+| Storage | New data-urumi-postgres-0 2Gi retained claim; original WordPress/MariaDB claims unchanged; no backup/node-loss/HA claim; Delete reclaim still applies to PVC deletion |
+| Remaining | Real Secret provisioning, revision-5 live dry-run/deployment, memory gates/capacity, policy allow/deny, browser/external-client/live-provider demos, production/VPS evidence and final video |
+
+Rebuilt images: Woo `urumi-woo-mcp:stage8.0`, ID
+`sha256:2f6524ba59fcb47e1df2993b1bbdc5872cee75001e32779359d0509d88332000`,
+229,004,751 bytes; gateway `urumi-gateway:stage8.0`, ID
+`sha256:7d3e26e6efa109c57f412964104d0a7436cdd2e9a8dd2807014d0e7cd24d2af2`,
+342,829,636 bytes. Dashboard stage7.1 and auxiliary stage6.1 images are reused.
+PostgreSQL manifest:
+`sha256:6b38fe68f2c02cafffbbce7496f76d110d8a947c039bd22c067e9a43c2250240`.
+
+Validation entrypoints: `tests/integration/validate_chart.py` takes the official
+Kubernetes v1.35.5 swagger file outside the repository; numeric revision substitution
+occurs only in temporary chart copies because Helm template fixes Revision=1.
+This is a historical-source comparison, not a server-side preview of the stopped
+cluster. `docker_stage8.py` uses synthetic disposable fixtures only;
+`repository_checks.py` checks dependency locks, documentation and heuristic patterns.
+The unchanged store r5 Job validates completed v3 configuration and repeats its
+idempotent hard rewrite flush/fresh verification; it does not create another product
+or reset users/orders. It is not described as a strictly read-only shell execution.
+No real credential entered these tests. Managed strings and heuristic scans are not
+a universal secret-erasure/detection guarantee.
+
+## Prior milestone snapshots
+
 **2026-10-26 - Stage 7.1 dashboard/chat/container implementation ready for review.**
 Stage 6.1 is committed as 72773a9. React role-specific management, one-time invitation/
 API-key dialogs and session chat now use the authenticated backend. Chat executes tools
@@ -36,9 +84,9 @@ During the completed local acceptance run, the committed store chart operated wi
 
 ## Current documentation change
 
-Record Stage 7.1 role-specific dashboard, written design-system implementation,
-session/audited chat, mocked composition and separate container evidence. Preserve
-prior runtime history. Upstream apps, migrations, Helm and store state are unchanged.
+Record Stage 8.0 static topology, explicit ordering, caller authentication, policies,
+Secret inventory and offline evidence. Preserve prior runtime history and Stage 7.1
+checkpoint. Store/bootstrap code, all migrations and auxiliary business apps remain unchanged.
 
 ## Stage 7.1 dashboard chat and container acceptance
 

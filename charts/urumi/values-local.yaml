@@ -23,7 +23,7 @@ wooMcp:
   enabled: true
   image:
     repository: urumi-woo-mcp
-    tag: stage4.8
+    tag: stage8.0
     # Later import this exact local build into k3d before the authorized upgrade.
     pullPolicy: Never
   config:
@@ -47,3 +47,18 @@ auxiliaryMcp:
       repository: urumi-store-policy-mcp
       tag: stage6.1
       pullPolicy: Never
+
+platform:
+  enabled: true
+  origin: http://gateway.urumi.test:8080
+  postgres:
+    storageClass: local-path
+  gateway:
+    image: {repository: urumi-gateway, tag: stage8.0, pullPolicy: Never}
+    environment: local
+    secureCookie: false
+  dashboard:
+    image: {repository: urumi-dashboard, tag: stage7.1, pullPolicy: Never}
+  ingress:
+    host: gateway.urumi.test
+    tls: {enabled: false, secretName: ""}
