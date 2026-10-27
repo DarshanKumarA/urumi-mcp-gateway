@@ -529,4 +529,15 @@ Validated on 2026-10-21 from clean main at af7bb37; release urumi stayed revisio
   avoided arithmetic on an empty list, so this run does not prove two-upstream
   composition. No writes/retries were requested or executed during this replacement.
 
+### 27 October 2026 — README replication checkpoint
+
+- Corrected stale pre-deployment README statements to revision 7/OpenRouter, documented
+  the exact selected model and environment/Secret flow, current image tags, fresh-store
+  REST-key bootstrap dependency, build/import/preview/deploy steps and read-only checks.
+- Kept paid-provider prerequisites, production Gemini difference, missing general
+  Stage 8 Secret helper and incomplete final demo/VPS acceptance explicit. No runtime,
+  credentials, application behavior or storage changed for this documentation checkpoint.
+- Dependency/lock consistency, documentation links/anchors/tables, credential/contact
+  and built-asset scans, and whitespace validation passed. Commit/push authorized by user.
+
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
