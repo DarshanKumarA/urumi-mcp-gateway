@@ -1,5 +1,18 @@
 # Threat model draft
 
+## OpenRouter provider boundary — 27 October 2026
+
+The user selected z-ai/glm-5.3-flash and authorized bounded paid acceptance calls.
+Local prompts, schemas and sanitized operational tool results now go to OpenRouter
+and its selected serving provider rather than directly to Google. Account/provider
+retention controls remain an operator responsibility. The new external Opaque Secret
+urumi-openrouter contains only api-key and is mounted read-only only by gateway.
+No provider key is exposed to the browser, upstreams or audit records. The fixed
+HTTPS endpoint rejects redirects; responses are capped at 256 KiB, timeout remains
+30 seconds, automatic retries and provider fallbacks are disabled. Errors expose
+fixed codes, not response bodies. Existing audit-before-dispatch and no-write-retry
+semantics remain unchanged; this is not a claim of universal PII/prompt-injection defense.
+
 ## Stage 8.0 implemented packaging boundaries
 
 Woo's service-auth addition checks every HTTP request with constant-time Bearer

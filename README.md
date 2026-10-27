@@ -67,6 +67,14 @@ No upstream MCP or database has a public route.
 
 ## External Secret contracts
 
+Local runtime update (27 October 2026): Helm revision 7 uses OpenRouter model
+`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.1-openrouter`.
+Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using the
+same masked-input/in-memory submission process below. Only the local gateway
+mounts it; the existing Gemini Secret is retained but not mounted locally.
+Production retains its Gemini default. Direct provider smoke and two read-only
+dashboard queries passed; full Definition-of-Done acceptance remains incomplete.
+
 All are pre-created `Opaque` Secrets in namespace `urumi`; Helm creates none.
 Check only name/type/exact key names, never dump data or decode values.
 

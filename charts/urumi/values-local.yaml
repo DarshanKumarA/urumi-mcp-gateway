@@ -54,7 +54,9 @@ platform:
   postgres:
     storageClass: local-path
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.0, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.1-openrouter, pullPolicy: Never}
+    provider: openrouter
+    model: z-ai/glm-5.3-flash
     environment: local
     secureCookie: false
   dashboard:

@@ -642,3 +642,23 @@ API/MCP/static Ingress, protected Secrets, TLS/cookie settings, exact external M
 allowlist, probes/resources and targeted upstream caller authentication/NetworkPolicy.
 The current SDK Host allowlist is still loopback-only; public external-client hosting
 has not been enabled. No Helm change, Kubernetes start or deployment occurred here.
+
+## OpenRouter provider option
+
+Set `URUMI_CHAT_PROVIDER=openrouter`, `URUMI_OPENROUTER_MODEL` to an explicitly
+selected tool-capable model ID, and `URUMI_OPENROUTER_API_KEY_FILE` to the mounted
+key file. The separate external Secret is `urumi-openrouter`, type Opaque, exact
+key `api-key`; only the gateway mounts it. Never put its value into Helm values.
+
+The existing pinned HTTP client calls only HTTPS OpenRouter chat/completions.
+Responses are bounded to 256 KiB and requests to the configured timeout (30 seconds
+by default). Redirects, application retries and provider fallbacks are disabled.
+Exact names and call IDs survive each exchange. Only the existing ChatService and
+InvocationService execute tools, with audit START before dispatch. Provider error
+bodies and headers are not returned. Gemini remains the default unless explicitly
+overridden; no database schema, upstream or audit behavior changes.
+
+Prompts, tool schemas and sanitized operational results go to OpenRouter and its
+selected serving provider. This changes the external data processor; account
+retention/provider controls require operator review. See
+[OpenRouter client tools](https://openrouter.ai/docs/guides/features/tool-calling).

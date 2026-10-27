@@ -15,7 +15,7 @@ class _DiscardWireLog(logging.Filter):
 def suppress_provider_wire_logs():
     # The pinned SDK/HTTP libraries may log request details or provider messages.
     # Keep application error codes, never their wire-level bodies or headers.
-    prefixes = ("google_genai", "httpx", "httpcore")
+    prefixes = ("google_genai", "httpx", "httpcore", "httpx2")
     for name in set(logging.Logger.manager.loggerDict) | set(prefixes):
         if any(name == p or name.startswith(p + ".") for p in prefixes):
             logger = logging.getLogger(name)
@@ -77,6 +77,17 @@ class GeminiProvider:
 
 
 def from_environment():
+    provider = os.environ.get("URUMI_CHAT_PROVIDER", "gemini")
+    if provider == "openrouter":
+        from .openrouter import OpenRouterProvider
+        file = os.environ.get("URUMI_OPENROUTER_API_KEY_FILE")
+        if not file:
+            return None
+        key = Path(file).read_text(encoding="utf-8").strip()
+        return OpenRouterProvider(key, os.environ.get("URUMI_OPENROUTER_MODEL", ""),
+                                  int(os.environ.get("URUMI_PROVIDER_TIMEOUT_SECONDS", "30")))
+    if provider != "gemini":
+        raise ValueError("CHAT_CONFIGURATION_INVALID")
     file=os.environ.get("URUMI_GEMINI_API_KEY_FILE")
     key=Path(file).read_text(encoding="utf-8").strip() if file else os.environ.get("GEMINI_API_KEY")
     if not key: return None

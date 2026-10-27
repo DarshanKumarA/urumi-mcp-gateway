@@ -2,12 +2,72 @@
 
 ## Current milestone
 
-**2026-10-26 — Stage 8.0 full-stack static packaging, runtime deployment pending.**
-Stage 7.1 is committed as f793e62. PostgreSQL, migration/bootstrap ordering, gateway/
-dashboard hosting, three built-in seeds, same-origin routing and targeted policies
-are implemented for review. Woo's only intentional application change is caller auth.
-Kubernetes remains stopped; no revision 5, live store/provider request, real Secret
-creation, staging or commit. Earlier milestone entries below retain their history.
+**2026-10-27 — Stage 8.1 deployed at revision 7 with OpenRouter; final Definition-of-Done acceptance in progress.**
+Stage 8.0 is committed as bd13a4c. One authorized Helm upgrade completed; all eight
+workloads are Ready and migration/admin/store bootstrap Jobs completed. Final live
+chat, checkout, two-user external-client and audit acceptance remain pending.
+Earlier milestone entries below retain their history.
+
+## Stage 8.1 deployment evidence — acceptance not yet complete
+
+- User-authorized OpenRouter adapter uses z-ai/glm-5.3-flash. Separate mounted
+  urumi-openrouter/api-key contract passed without revealing values. Production
+  retains Gemini defaults; local gateway image stage8.1-openrouter was built/imported.
+  202 gateway tests passed (195 prior plus 7 adapter tests), compilation, locks,
+  documentation/credential scans and local/prod 27-object schema checks passed.
+  Initial RAM 1.047 GiB stopped upgrade; recovered 3.940 GiB passed. Server preview
+  changed only gateway and its Job images, plus revision names. One upgrade deployed
+  revision 7; direct mounted-key OpenRouter smoke returned exactly OK. No business
+  mutation was made for this provider change. All eight workloads Ready; gateway
+  has zero restarts, retained workloads each show one restart predating this rollout.
+  Dashboard orders query under urumiadmin succeeded with woocommerce__list_orders;
+  no orders exist for 2026-10-27 in the store's Asia/Kolkata date window.
+  The second totals/average prompt also succeeded but called only list_orders:
+  empty orders mean no average, so arithmetic composition was not exercised.
+  Audit page verified both calls as urumiadmin/succeeded at 06:37:14 and 06:37:43
+  on 27 October (1288 ms and 129 ms). No mutation or automatic tool retry.
+- Targeted provider configuration correction: user reported Gemini 3.8 capacity
+  failure (503 high demand). Local inherited platform.gateway.model from shared
+  values.yaml; added only model: gemini-3.6-flash to values-local.yaml. Production
+  render remains gemini-3.8-flash. Local render and server preview passed; only
+  gateway Deployment changed after normalizing revision-specific resource names.
+  One requested upgrade deployed revision 6; all r6 Jobs completed, gateway Ready,
+  live URUMI_GEMINI_MODEL verified as gemini-3.6-flash. Single direct provider smoke
+  from gateway using the mounted key returned exactly OK. No key output or business
+  mutation. Dashboard read-only chat/composition and attribution checks remain
+  pending authenticated browser access; no success is inferred from the smoke.
+- Initial host-memory stop at 3.110 GiB; resumed at 4.190 GiB. A later 1.375-GiB
+  dip blocked expansion while credentials were being prepared; final pre-upgrade
+  gate passed at 4.638 GiB. No resource budgets were reduced.
+- Nine external Secret name/type/exact-key contracts passed. Four missing Stage 8
+  Secrets were created through local masked inputs/in-memory stdin; no values were
+  displayed or written to credential files. Admin input validation stopped setup
+  before creation until corrected; existing store Secrets were preserved.
+- Country IN, marker 3, WooCommerce 11.2.1, Live options, permalinks, products 11/16
+  and order 12 (on-hold, INR 499, COD) passed preflight. Original store PVC/PV bindings
+  remained Bound. Anonymous shop/product pages returned HTTP 200 with real content.
+- Five exact reviewed custom images imported. Server-side revision-5 preview had
+  27 objects, unchanged WordPress/MariaDB/store Services/PVC/Ingress, expected r5
+  bootstrap names, and no Secret/Namespace/PV objects.
+- Executed once: `helm upgrade urumi charts/urumi --namespace urumi --kube-context k3d-urumi-local --values charts/urumi/values-local.yaml --wait=watcher --wait-for-jobs --timeout 15m`.
+  Revision 5 deployed. Store bootstrap completed in 11 seconds, migration in 65
+  seconds and admin/bootstrap in 67 seconds. PostgreSQL registry pull encountered
+  EOF; importing the same reviewed pinned digest from Docker resolved it without
+  another upgrade, image rebuild or chart change.
+- Eight workloads Ready with zero restarts; all Service EndpointSlices ready.
+  PostgreSQL claim data-urumi-postgres-0 Bound to
+  pvc-1ae6049c-9b0e-4545-9b8a-39b9e7a7f76d (2 GiB). Initial post-rollout node memory
+  1749 MiB; host available 3.493 GiB; MemoryPressure=False. This is a snapshot, not
+  a full-stack peak-capacity claim.
+- Gateway hostname added to Windows hosts with administrator assistance. Dashboard
+  HTTP 200 and anonymous /api/me HTTP 401 through Ingress. Woo missing/invalid
+  service credentials both returned 401 from the gateway Pod. A non-gateway
+  diagnostic Pod resolved Service DNS but TCP 8000 was refused; its timeout-only
+  harness exited nonzero on that refusal. The actual denied connection, together
+  with allowed gateway connectivity, is the observed isolation evidence. Diagnostic
+  Pod removed. All Services ClusterIP; only store/application Ingress routes exist.
+- No final acceptance commit yet. VPS/TLS, live provider composition and final demo
+  acceptance must not be inferred from successful rollout.
 
 ## Stage 8.0 validation and review boundary
 

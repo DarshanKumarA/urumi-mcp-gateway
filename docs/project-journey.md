@@ -475,4 +475,58 @@ Validated on 2026-10-21 from clean main at af7bb37; release urumi stayed revisio
 - **Learning/limits:** A Service being internal is not caller authorization. The service token plus targeted policies implement two boundaries, but actual K3s allowed/denied traffic is not proven offline. Bootstrap receipts must preserve deliberate admin changes, not reset state each startup. Token rotation requires coordinated review. PG owner privileges, unencrypted upstream DB values, open egress, no backup/node-loss proof and full-stack memory uncertainty remain explicit.
 - **Next:** Review static packaging; Stage 8.1 needs fresh RAM/store/Secret/image gates and a live revision-5 preview before one authorized upgrade, then ordered rollout, routing, policy and preservation acceptance. No revision 5 applied, no Definition-of-Done completion, nothing staged or committed.
 
+### 26 October 2026 — Stage 8.1 deployment; final acceptance in progress
+
+- Resumed from committed bd13a4c. Memory gates stopped expansion when available RAM
+  was insufficient; the final pre-upgrade gate passed at 4.638 GiB. Store baseline,
+  country IN, original PVC/PV identities and nine Secret contracts passed. Four new
+  Secrets used local masked input/in-memory submission; existing credentials stayed intact.
+- Imported the five reviewed custom images, verified a clean server-side revision-5
+  preview, and performed exactly one non-atomic Helm upgrade. WordPress/MariaDB/store
+  definitions remained unchanged apart from revision-named bootstrap assets/Job.
+- PostgreSQL image pull hit registry EOF. Importing its exact already-reviewed
+  digest from the local Docker cache resolved the blocker without rebuilding or
+  repeating Helm. Migration completed in 65 seconds, admin bootstrap in 67 seconds,
+  store bootstrap in 11 seconds. Revision 5 deployed; all eight workloads Ready,
+  zero restarts, original store claims and new 2-GiB PostgreSQL claim Bound.
+- Dashboard HTTP 200 and anonymous API 401 verified. Windows gateway hostname was
+  added with administrator assistance. Woo rejects absent/invalid service tokens;
+  gateway connectivity succeeds while a non-gateway Pod's TCP connection is refused.
+  That diagnostic expected a timeout and exited nonzero on refusal; no stronger
+  packet-level claim is made. Temporary Pod removed. No public upstream/database route.
+- Final chat/checkout/two-user/revocation/composition/audit demonstration remains
+  pending. Rollout is not the completed Definition of Done; no final evidence commit yet.
+
+### 26 October 2026 — Local Gemini capacity workaround
+
+- User reported 503 high demand from gemini-3.8-flash and authorized a targeted
+  switch. Traced shared platform.gateway.model through platform-apps.yaml into
+  URUMI_GEMINI_MODEL. Added a local-only gemini-3.6-flash override; production and
+  provider code/SDK remain unchanged.
+- Local/prod renders and revision-6 preview passed. Only gateway Deployment changed
+  beyond existing revision-named Jobs/ConfigMap. One upgrade completed; gateway Ready,
+  r6 Jobs Complete, original storage retained. Live environment shows gemini-3.6-flash.
+  One direct mounted-key provider request returned exactly OK without exposing the key.
+- Read-only dashboard prompts and logged-in audit attribution remain pending; no
+  product-creation retry or other business mutation was performed for this correction.
+
+### 27 October 2026 — OpenRouter provider replacement
+
+- User requested OpenRouter, selected z-ai/glm-5.3-flash and authorized bounded paid
+  tests. Kept the audited chat/tool loop unchanged; added a bounded HTTP adapter
+  with exact tool-call ID exchange, fixed errors, no redirects/retries/provider fallbacks.
+  Existing dependency lock unchanged. New key entered only through local masked
+  prompts into separate urumi-openrouter Secret; no credentials committed or printed.
+- 202 gateway tests pass including all 195 prior cases; new image
+  urumi-gateway:stage8.1-openrouter built/imported. Local/prod Helm schema/security
+  validation passes; production remains Gemini. RAM gate stopped at 1.047 GiB and
+  passed after recovery to 3.940 GiB. One upgrade deployed revision 7; existing store,
+  storage, Woo implementation and database schema preserved. Direct provider smoke
+  returned exactly OK. Dashboard read-only orders query succeeded under urumiadmin;
+  today's Asia/Kolkata window contains no orders. Final demo remains incomplete.
+- Both authorized read-only dashboard prompts succeeded; audit rows at 06:37:14
+  and 06:37:43 attribute list_orders to urumiadmin. The empty result correctly
+  avoided arithmetic on an empty list, so this run does not prove two-upstream
+  composition. No writes/retries were requested or executed during this replacement.
+
 The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.

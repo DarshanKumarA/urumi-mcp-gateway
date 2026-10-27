@@ -64,13 +64,21 @@ spec:
             - {name: URUMI_COOKIE_SECURE, value: {{ $settings.secureCookie | quote }}}
             - {name: URUMI_SESSION_SECONDS, value: {{ $settings.sessionSeconds | quote }}}
             - {name: URUMI_INVITATION_SECONDS, value: {{ $settings.invitationSeconds | quote }}}
+            - {name: URUMI_CHAT_PROVIDER, value: {{ $settings.provider | quote }}}
+            {{- if eq $settings.provider "openrouter" }}
+            - {name: URUMI_OPENROUTER_API_KEY_FILE, value: /run/secrets/openrouter/api-key}
+            - {name: URUMI_OPENROUTER_MODEL, value: {{ $settings.model | quote }}}
+            {{- else if eq $settings.provider "gemini" }}
             - {name: URUMI_GEMINI_API_KEY_FILE, value: /run/secrets/gemini/api-key}
             - {name: URUMI_GEMINI_MODEL, value: {{ $settings.model | quote }}}
+            {{- else }}
+            {{- fail "Unsupported platform.gateway.provider" }}
+            {{- end }}
             - {name: URUMI_PROVIDER_TIMEOUT_SECONDS, value: {{ $settings.providerTimeoutSeconds | quote }}}
             - {name: URUMI_MAX_TOOL_ROUNDS, value: {{ $settings.maxToolRounds | quote }}}
           volumeMounts:
             {{- include "urumi.databaseMount" $ | nindent 12 }}
-            - {name: gemini, mountPath: /run/secrets/gemini, readOnly: true}
+            - {name: provider-key, mountPath: {{ printf "/run/secrets/%s" $settings.provider | quote }}, readOnly: true}
           {{- else }}
           volumeMounts:
             - {name: tmp, mountPath: /tmp}
@@ -106,9 +114,9 @@ spec:
       volumes:
         {{- if eq $component "gateway" }}
         {{- include "urumi.databaseVolume" $ | nindent 8 }}
-        - name: gemini
+        - name: provider-key
           secret:
-            secretName: {{ $settings.geminiSecretName | quote }}
+            secretName: {{ ternary $settings.openrouterSecretName $settings.geminiSecretName (eq $settings.provider "openrouter") | quote }}
             defaultMode: 0440
             items: [{key: api-key, path: api-key}]
         {{- else }}

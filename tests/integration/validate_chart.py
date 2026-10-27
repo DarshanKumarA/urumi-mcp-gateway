@@ -106,7 +106,8 @@ def validate(schema):
                     for probe in ("startupProbe", "readinessProbe", "livenessProbe"):
                         assert probe in ps["containers"][0]
             assert refs["urumi-dashboard"] == {}
-            assert refs["urumi-gateway"] == {"urumi-postgres-auth": {"database-url"}, "urumi-gemini": {"api-key"}}
+            provider_secret = "urumi-openrouter" if env == "local" else "urumi-gemini"
+            assert refs["urumi-gateway"] == {"urumi-postgres-auth": {"database-url"}, provider_secret: {"api-key"}}
             assert refs["urumi-gateway-migrate-r5"] == {"urumi-postgres-auth": {"database-url"}}
             assert refs["urumi-gateway-bootstrap-r5"] == {"urumi-postgres-auth": {"database-url"},
                 "urumi-admin-bootstrap": {"username", "password"}, "urumi-woo-mcp-auth": {"token"}}
@@ -142,6 +143,10 @@ def validate(schema):
             assert container["readinessProbe"]["httpGet"]["path"] == "/health/ready"
             assert container["livenessProbe"]["tcpSocket"]["port"] == "http"
             envs = {e["name"]: e["value"] for e in container["env"]}
+            assert envs["URUMI_CHAT_PROVIDER"] == ("openrouter" if env == "local" else "gemini")
+            if env == "local":
+                assert envs["URUMI_OPENROUTER_MODEL"] == "z-ai/glm-5.3-flash"
+                assert "URUMI_GEMINI_API_KEY_FILE" not in envs
             assert envs["URUMI_COOKIE_SECURE"] == ("true" if env == "prod" else "false")
             assert "AUTHORIZATION" not in json.dumps(objects).upper()
             print("PASS", env, "27 objects; v1.35.5 schema/unique keys/names/selectors/ports/probes/security/Secret contracts/NetworkPolicies/Ingress/storage")

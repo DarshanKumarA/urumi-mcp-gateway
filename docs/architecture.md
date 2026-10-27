@@ -1,5 +1,15 @@
 # Architecture v1 and assignment boundaries
 
+## 27 October provider selection update
+
+Local gateway now selects OpenRouter through the existing Provider interface,
+using z-ai/glm-5.3-flash and the pinned HTTP client. ChatService and the shared
+audited InvocationService remain authoritative for all tool execution. Provider
+responses only request tools; they never execute them. Gemini remains the shared
+production default. Local gateway image is urumi-gateway:stage8.1-openrouter.
+Only gateway mounts external urumi-openrouter/api-key; Gemini is not mounted in
+the local gateway. No schema, Woo MCP or dashboard implementation change.
+
 Status: **The local Stage 3 store foundation is complete: business-flow acceptance was committed as af7bb37, and Stage 3.8 verified controlled Pod-replacement persistence, retained scale-down and database-loss probe behavior on revision 3 on 2026-10-21.** The 22 October review encountered API EOF errors and empty store responses. A controlled stop/start of the existing k3d cluster restored API/system health and anonymous storefront access; read-only checks reconfirmed release revision 3, product 11, order 12, marker 3 and the original Bound claims/PVs. The startup failure was traced to K3s network-policy initialization being unable to find its configured node-IP interface; the trigger for that condition is unproven. Implementation sections below preserve their historical milestone evidence; the availability gap and [controlled recovery](progress.md#stage-38-recovery-of-the-existing-local-environment) remain recorded. Production/full-system behavior, node-loss protection, backup/restore and full-stack memory capacity are not established. The [original assignment](source/urumi-mcp-gateway-assignment.docx), transcribed in [assignment.md](assignment.md), controls scope. [requirements.md](requirements.md) maps obligations to verification. Design approval and static checks alone do not prove a runtime requirement works.
 
 ## Stage 8.0 full-stack static integration

@@ -175,6 +175,8 @@ platform:
     sessionSeconds: 28800
     invitationSeconds: 86400
     model: gemini-3.8-flash
+    provider: gemini
+    openrouterSecretName: urumi-openrouter
     providerTimeoutSeconds: 30
     maxToolRounds: 5
     geminiSecretName: urumi-gemini
