@@ -1,0 +1,2210 @@
+[
+  {
+    "time": "2026-11-14T03:51:34.784Z",
+    "step": "admin_api_login",
+    "status": 200
+  },
+  {
+    "time": "2026-11-14T03:51:34.842Z",
+    "step": "existing_users",
+    "status": 200,
+    "users": [
+      {
+        "id": "b1a293e0-a9aa-451a-a8fd-fc727f55b09a",
+        "username": "urumiadmin",
+        "role": "admin",
+        "enabled": true
+      }
+    ]
+  },
+  {
+    "time": "2026-11-14T03:51:34.867Z",
+    "step": "registry_baseline",
+    "servers": [
+      {
+        "id": "891b65d8-5179-51e2-97cb-45b717679499",
+        "slug": "arithmetic",
+        "enabled": true,
+        "observed_status": "connected",
+        "has_credential": false
+      },
+      {
+        "id": "4a7a25c2-6cc1-5877-9866-abf3a132fb2e",
+        "slug": "store_policy",
+        "enabled": true,
+        "observed_status": "connected",
+        "has_credential": false
+      },
+      {
+        "id": "c4fe9441-a420-52bf-912d-ba72f4b93567",
+        "slug": "woocommerce",
+        "enabled": true,
+        "observed_status": "connected",
+        "has_credential": true
+      }
+    ]
+  },
+  {
+    "time": "2026-11-14T03:52:35.963Z",
+    "step": "member_invitation_login_own_key",
+    "username": "acceptance_b",
+    "role": "member",
+    "invitation": 201,
+    "acceptance": 201,
+    "login": 200,
+    "key_created": 201,
+    "key_id": "348e2c8d-a697-4334-ab54-468f297cf8bb"
+  },
+  {
+    "time": "2026-11-14T03:52:35.979Z",
+    "step": "member_role_denials",
+    "servers": 403,
+    "users": 403,
+    "audit": 403,
+    "create_server": 403
+  },
+  {
+    "time": "2026-11-14T03:52:48.550Z",
+    "step": "inspector_discovery",
+    "code": 0,
+    "data": {
+      "result": {
+        "tools": [
+          {
+            "name": "arithmetic__sum_amounts",
+            "description": "Aggregate 1-100 amounts; exact sum/min/max, mean rounded half-even to 6 decimals.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "amounts": {
+                  "items": {
+                    "maxLength": 26,
+                    "minLength": 1,
+                    "pattern": "^-?(?:0|[1-9][0-9]{0,17})(?:\\.[0-9]{1,6})?$",
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "minItems": 1,
+                  "title": "Amounts",
+                  "type": "array"
+                },
+                "currency": {
+                  "anyOf": [
+                    {
+                      "maxLength": 3,
+                      "minLength": 3,
+                      "pattern": "^[A-Z]{3}$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Currency"
+                }
+              },
+              "required": [
+                "amounts"
+              ],
+              "additionalProperties": false,
+              "title": "Input"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "count": {
+                  "maximum": 100,
+                  "minimum": 1,
+                  "title": "Count",
+                  "type": "integer"
+                },
+                "total": {
+                  "title": "Total",
+                  "type": "string"
+                },
+                "average": {
+                  "title": "Average",
+                  "type": "string"
+                },
+                "minimum": {
+                  "title": "Minimum",
+                  "type": "string"
+                },
+                "maximum": {
+                  "title": "Maximum",
+                  "type": "string"
+                },
+                "currency": {
+                  "anyOf": [
+                    {
+                      "maxLength": 3,
+                      "minLength": 3,
+                      "pattern": "^[A-Z]{3}$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Currency"
+                }
+              },
+              "required": [
+                "count",
+                "total",
+                "average",
+                "minimum",
+                "maximum"
+              ],
+              "additionalProperties": false,
+              "title": "Result"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "store_policy__get_policy",
+            "description": "Get deterministic operational demo guidance for cod, dispatch or cancellation.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "enum": [
+                    "cod",
+                    "dispatch",
+                    "cancellation"
+                  ],
+                  "title": "Key",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key"
+              ],
+              "additionalProperties": false,
+              "title": "Input"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "enum": [
+                    "cod",
+                    "dispatch",
+                    "cancellation"
+                  ],
+                  "title": "Key",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "title": "Title",
+                  "type": "string"
+                },
+                "guidance": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "title": "Guidance",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "key",
+                "title",
+                "guidance"
+              ],
+              "additionalProperties": false,
+              "title": "Result"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true,
+              "openWorldHint": false
+            }
+          },
+          {
+            "name": "woocommerce__create_product",
+            "description": "Create one simple product. Never automatically retry an unknown write outcome.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "title": "Name",
+                  "type": "string"
+                },
+                "price": {
+                  "description": "Nonnegative decimal string, at most two fractional digits; maximum 999999999.99.",
+                  "pattern": "^[0-9]+(?:\\.[0-9]{1,2})?$",
+                  "title": "Price",
+                  "type": "string"
+                },
+                "sku": {
+                  "anyOf": [
+                    {
+                      "maxLength": 64,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Sku"
+                },
+                "status": {
+                  "default": "publish",
+                  "enum": [
+                    "publish",
+                    "draft"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "stock_status": {
+                  "default": "instock",
+                  "enum": [
+                    "instock",
+                    "outofstock"
+                  ],
+                  "title": "Stock Status",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "price"
+              ],
+              "additionalProperties": false,
+              "title": "CreateProductInput"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "product": {
+                  "$ref": "#/$defs/Product"
+                },
+                "created": {
+                  "const": true,
+                  "default": true,
+                  "title": "Created",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "product"
+              ],
+              "$defs": {
+                "Product": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "exclusiveMinimum": 0,
+                      "title": "Id",
+                      "type": "integer"
+                    },
+                    "name": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "title": "Name",
+                      "type": "string"
+                    },
+                    "sku": {
+                      "maxLength": 256,
+                      "title": "Sku",
+                      "type": "string"
+                    },
+                    "type": {
+                      "enum": [
+                        "simple",
+                        "grouped",
+                        "external",
+                        "variable"
+                      ],
+                      "title": "Type",
+                      "type": "string"
+                    },
+                    "price": {
+                      "maxLength": 24,
+                      "pattern": "^(?:[0-9]+(?:\\.[0-9]+)?)?$",
+                      "title": "Price",
+                      "type": "string"
+                    },
+                    "regular_price": {
+                      "maxLength": 24,
+                      "pattern": "^(?:[0-9]+(?:\\.[0-9]+)?)?$",
+                      "title": "Regular Price",
+                      "type": "string"
+                    },
+                    "currency": {
+                      "pattern": "^[A-Z]{3}$",
+                      "title": "Currency",
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "publish",
+                        "draft",
+                        "pending",
+                        "private"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    },
+                    "stock_status": {
+                      "enum": [
+                        "instock",
+                        "outofstock",
+                        "onbackorder"
+                      ],
+                      "title": "Stock Status",
+                      "type": "string"
+                    },
+                    "permalink": {
+                      "maxLength": 2048,
+                      "title": "Permalink",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "sku",
+                    "type",
+                    "price",
+                    "regular_price",
+                    "currency",
+                    "status",
+                    "stock_status",
+                    "permalink"
+                  ],
+                  "title": "Product",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "title": "CreatedProduct"
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": true,
+              "idempotentHint": false
+            }
+          },
+          {
+            "name": "woocommerce__get_order",
+            "description": "Get operational order details without customer contact or address fields.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "exclusiveMinimum": 0,
+                  "title": "Order Id",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "order_id"
+              ],
+              "additionalProperties": false,
+              "title": "GetOrderInput"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "exclusiveMinimum": 0,
+                  "title": "Id",
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "on-hold",
+                    "completed",
+                    "cancelled",
+                    "refunded",
+                    "failed"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "title": "Created At",
+                  "type": "string"
+                },
+                "currency": {
+                  "pattern": "^[A-Z]{3}$",
+                  "title": "Currency",
+                  "type": "string"
+                },
+                "total": {
+                  "maxLength": 40,
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "title": "Total",
+                  "type": "string"
+                },
+                "payment_method": {
+                  "maxLength": 100,
+                  "title": "Payment Method",
+                  "type": "string"
+                },
+                "line_items": {
+                  "items": {
+                    "$ref": "#/$defs/OrderLine"
+                  },
+                  "title": "Line Items",
+                  "type": "array"
+                },
+                "shipping_lines": {
+                  "items": {
+                    "$ref": "#/$defs/ShippingLine"
+                  },
+                  "title": "Shipping Lines",
+                  "type": "array"
+                },
+                "shipping_total": {
+                  "maxLength": 40,
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "title": "Shipping Total",
+                  "type": "string"
+                },
+                "tax_total": {
+                  "maxLength": 40,
+                  "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                  "title": "Tax Total",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "status",
+                "created_at",
+                "currency",
+                "total",
+                "payment_method",
+                "line_items",
+                "shipping_lines",
+                "shipping_total",
+                "tax_total"
+              ],
+              "$defs": {
+                "OrderLine": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "product_id": {
+                      "minimum": 0,
+                      "title": "Product Id",
+                      "type": "integer"
+                    },
+                    "variation_id": {
+                      "anyOf": [
+                        {
+                          "exclusiveMinimum": 0,
+                          "type": "integer"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Variation Id"
+                    },
+                    "name": {
+                      "maxLength": 200,
+                      "title": "Name",
+                      "type": "string"
+                    },
+                    "sku": {
+                      "anyOf": [
+                        {
+                          "maxLength": 256,
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Sku"
+                    },
+                    "quantity": {
+                      "exclusiveMinimum": 0,
+                      "title": "Quantity",
+                      "type": "integer"
+                    },
+                    "unit_price": {
+                      "maxLength": 40,
+                      "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                      "title": "Unit Price",
+                      "type": "string"
+                    },
+                    "subtotal": {
+                      "maxLength": 40,
+                      "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                      "title": "Subtotal",
+                      "type": "string"
+                    },
+                    "total": {
+                      "maxLength": 40,
+                      "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                      "title": "Total",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "product_id",
+                    "variation_id",
+                    "name",
+                    "sku",
+                    "quantity",
+                    "unit_price",
+                    "subtotal",
+                    "total"
+                  ],
+                  "title": "OrderLine",
+                  "type": "object"
+                },
+                "ShippingLine": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "method_id": {
+                      "maxLength": 100,
+                      "title": "Method Id",
+                      "type": "string"
+                    },
+                    "method_title": {
+                      "maxLength": 200,
+                      "title": "Method Title",
+                      "type": "string"
+                    },
+                    "total": {
+                      "maxLength": 40,
+                      "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                      "title": "Total",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "method_id",
+                    "method_title",
+                    "total"
+                  ],
+                  "title": "ShippingLine",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "title": "OrderDetail"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true
+            }
+          },
+          {
+            "name": "woocommerce__list_orders",
+            "description": "List one page of orders; today uses the store timezone. Reuse the returned date for later pages.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "page": {
+                  "default": 1,
+                  "minimum": 1,
+                  "title": "Page",
+                  "type": "integer"
+                },
+                "per_page": {
+                  "default": 20,
+                  "maximum": 50,
+                  "minimum": 1,
+                  "title": "Per Page",
+                  "type": "integer"
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "pending",
+                        "processing",
+                        "on-hold",
+                        "completed",
+                        "cancelled",
+                        "refunded",
+                        "failed"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Status"
+                },
+                "date": {
+                  "anyOf": [
+                    {
+                      "pattern": "^(today|[0-9]{4}-[0-9]{2}-[0-9]{2})$",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Date"
+                }
+              },
+              "additionalProperties": false,
+              "title": "ListOrdersInput"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "items": {
+                    "$ref": "#/$defs/OrderSummary"
+                  },
+                  "title": "Items",
+                  "type": "array"
+                },
+                "page": {
+                  "minimum": 1,
+                  "title": "Page",
+                  "type": "integer"
+                },
+                "per_page": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "title": "Per Page",
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "title": "Total",
+                  "type": "integer"
+                },
+                "total_pages": {
+                  "minimum": 0,
+                  "title": "Total Pages",
+                  "type": "integer"
+                },
+                "has_more": {
+                  "title": "Has More",
+                  "type": "boolean"
+                },
+                "date_window": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/OrderDateWindow"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "items",
+                "page",
+                "per_page",
+                "total",
+                "total_pages",
+                "has_more",
+                "date_window"
+              ],
+              "$defs": {
+                "OrderDateWindow": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "date": {
+                      "title": "Date",
+                      "type": "string"
+                    },
+                    "timezone": {
+                      "title": "Timezone",
+                      "type": "string"
+                    },
+                    "start_inclusive": {
+                      "format": "date-time",
+                      "title": "Start Inclusive",
+                      "type": "string"
+                    },
+                    "end_exclusive": {
+                      "format": "date-time",
+                      "title": "End Exclusive",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "date",
+                    "timezone",
+                    "start_inclusive",
+                    "end_exclusive"
+                  ],
+                  "title": "OrderDateWindow",
+                  "type": "object"
+                },
+                "OrderSummary": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "exclusiveMinimum": 0,
+                      "title": "Id",
+                      "type": "integer"
+                    },
+                    "status": {
+                      "enum": [
+                        "pending",
+                        "processing",
+                        "on-hold",
+                        "completed",
+                        "cancelled",
+                        "refunded",
+                        "failed"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "format": "date-time",
+                      "title": "Created At",
+                      "type": "string"
+                    },
+                    "currency": {
+                      "pattern": "^[A-Z]{3}$",
+                      "title": "Currency",
+                      "type": "string"
+                    },
+                    "total": {
+                      "maxLength": 40,
+                      "pattern": "^[0-9]+(?:\\.[0-9]+)?$",
+                      "title": "Total",
+                      "type": "string"
+                    },
+                    "payment_method": {
+                      "maxLength": 100,
+                      "title": "Payment Method",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "status",
+                    "created_at",
+                    "currency",
+                    "total",
+                    "payment_method"
+                  ],
+                  "title": "OrderSummary",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "title": "OrderCollection"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true
+            }
+          },
+          {
+            "name": "woocommerce__list_products",
+            "description": "List one page of store products. Use search or SKU, not both.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "page": {
+                  "default": 1,
+                  "minimum": 1,
+                  "title": "Page",
+                  "type": "integer"
+                },
+                "per_page": {
+                  "default": 20,
+                  "maximum": 50,
+                  "minimum": 1,
+                  "title": "Per Page",
+                  "type": "integer"
+                },
+                "search": {
+                  "anyOf": [
+                    {
+                      "maxLength": 100,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Search"
+                },
+                "sku": {
+                  "anyOf": [
+                    {
+                      "maxLength": 64,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Sku"
+                },
+                "status": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "publish",
+                        "draft",
+                        "pending",
+                        "private"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Status"
+                }
+              },
+              "additionalProperties": false,
+              "title": "ListProductsInput"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "items": {
+                  "items": {
+                    "$ref": "#/$defs/Product"
+                  },
+                  "title": "Items",
+                  "type": "array"
+                },
+                "page": {
+                  "minimum": 1,
+                  "title": "Page",
+                  "type": "integer"
+                },
+                "per_page": {
+                  "maximum": 50,
+                  "minimum": 1,
+                  "title": "Per Page",
+                  "type": "integer"
+                },
+                "total": {
+                  "minimum": 0,
+                  "title": "Total",
+                  "type": "integer"
+                },
+                "total_pages": {
+                  "minimum": 0,
+                  "title": "Total Pages",
+                  "type": "integer"
+                },
+                "has_more": {
+                  "title": "Has More",
+                  "type": "boolean"
+                },
+                "currency": {
+                  "pattern": "^[A-Z]{3}$",
+                  "title": "Currency",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "items",
+                "page",
+                "per_page",
+                "total",
+                "total_pages",
+                "has_more",
+                "currency"
+              ],
+              "$defs": {
+                "Product": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "exclusiveMinimum": 0,
+                      "title": "Id",
+                      "type": "integer"
+                    },
+                    "name": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "title": "Name",
+                      "type": "string"
+                    },
+                    "sku": {
+                      "maxLength": 256,
+                      "title": "Sku",
+                      "type": "string"
+                    },
+                    "type": {
+                      "enum": [
+                        "simple",
+                        "grouped",
+                        "external",
+                        "variable"
+                      ],
+                      "title": "Type",
+                      "type": "string"
+                    },
+                    "price": {
+                      "maxLength": 24,
+                      "pattern": "^(?:[0-9]+(?:\\.[0-9]+)?)?$",
+                      "title": "Price",
+                      "type": "string"
+                    },
+                    "regular_price": {
+                      "maxLength": 24,
+                      "pattern": "^(?:[0-9]+(?:\\.[0-9]+)?)?$",
+                      "title": "Regular Price",
+                      "type": "string"
+                    },
+                    "currency": {
+                      "pattern": "^[A-Z]{3}$",
+                      "title": "Currency",
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "publish",
+                        "draft",
+                        "pending",
+                        "private"
+                      ],
+                      "title": "Status",
+                      "type": "string"
+                    },
+                    "stock_status": {
+                      "enum": [
+                        "instock",
+                        "outofstock",
+                        "onbackorder"
+                      ],
+                      "title": "Stock Status",
+                      "type": "string"
+                    },
+                    "permalink": {
+                      "maxLength": 2048,
+                      "title": "Permalink",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "sku",
+                    "type",
+                    "price",
+                    "regular_price",
+                    "currency",
+                    "status",
+                    "stock_status",
+                    "permalink"
+                  ],
+                  "title": "Product",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "title": "ProductCollection"
+            },
+            "annotations": {
+              "readOnlyHint": true,
+              "destructiveHint": false,
+              "idempotentHint": true
+            }
+          },
+          {
+            "name": "woocommerce__update_order_status",
+            "description": "Guard observed status, then at most one PUT. Not atomic; hooks may run. Never retry unknown writes.",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "exclusiveMinimum": 0,
+                  "title": "Order Id",
+                  "type": "integer"
+                },
+                "status": {
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "on-hold",
+                    "completed",
+                    "cancelled",
+                    "failed"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "expected_status": {
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "on-hold",
+                    "completed",
+                    "cancelled",
+                    "refunded",
+                    "failed"
+                  ],
+                  "title": "Expected Status",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "order_id",
+                "status",
+                "expected_status"
+              ],
+              "additionalProperties": false,
+              "title": "UpdateOrderStatusInput"
+            },
+            "outputSchema": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "exclusiveMinimum": 0,
+                  "title": "Order Id",
+                  "type": "integer"
+                },
+                "observed_before_status": {
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "on-hold",
+                    "completed",
+                    "cancelled",
+                    "refunded",
+                    "failed"
+                  ],
+                  "title": "Observed Before Status",
+                  "type": "string"
+                },
+                "after_status": {
+                  "enum": [
+                    "pending",
+                    "processing",
+                    "on-hold",
+                    "completed",
+                    "cancelled",
+                    "failed"
+                  ],
+                  "title": "After Status",
+                  "type": "string"
+                },
+                "changed": {
+                  "title": "Changed",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "order_id",
+                "observed_before_status",
+                "after_status",
+                "changed"
+              ],
+              "additionalProperties": false,
+              "title": "UpdatedOrderStatus"
+            },
+            "annotations": {
+              "readOnlyHint": false,
+              "destructiveHint": true,
+              "idempotentHint": false
+            }
+          }
+        ]
+      }
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:53:24.309Z",
+    "step": "wordpress_credential_contract",
+    "fields": [
+      "admin-password"
+    ]
+  },
+  {
+    "time": "2026-11-14T03:55:56.938Z",
+    "step": "inspector_supported_runtime",
+    "version": "2.15.0",
+    "node": "22.23.4",
+    "code": 0,
+    "tools": [
+      "arithmetic__sum_amounts",
+      "store_policy__get_policy",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ]
+  },
+  {
+    "time": "2026-11-14T03:55:57.778Z",
+    "step": "user_b_today_orders",
+    "code": 0,
+    "data": {
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\n  \"items\": [\n    {\n      \"id\": 31,\n      \"status\": \"processing\",\n      \"created_at\": \"2026-11-14T03:50:07Z\",\n      \"currency\": \"INR\",\n      \"total\": \"499.00\",\n      \"payment_method\": \"cod\"\n    }\n  ],\n  \"page\": 1,\n  \"per_page\": 20,\n  \"total\": 1,\n  \"total_pages\": 1,\n  \"has_more\": false,\n  \"date_window\": {\n    \"date\": \"2026-11-14\",\n    \"timezone\": \"Asia/Kolkata\",\n    \"start_inclusive\": \"2026-11-13T18:30:00Z\",\n    \"end_exclusive\": \"2026-11-14T18:30:00Z\"\n  }\n}"
+          }
+        ],
+        "structuredContent": {
+          "items": [
+            {
+              "id": 31,
+              "status": "processing",
+              "created_at": "2026-11-14T03:50:07Z",
+              "currency": "INR",
+              "total": "499.00",
+              "payment_method": "cod"
+            }
+          ],
+          "page": 1,
+          "per_page": 20,
+          "total": 1,
+          "total_pages": 1,
+          "has_more": false,
+          "date_window": {
+            "date": "2026-11-14",
+            "timezone": "Asia/Kolkata",
+            "start_inclusive": "2026-11-13T18:30:00Z",
+            "end_exclusive": "2026-11-14T18:30:00Z"
+          }
+        },
+        "isError": false
+      }
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:56:12.608Z",
+    "step": "user_b_woo_arithmetic_composition",
+    "prompt": "What orders came in today, and what are their total and average order values?",
+    "order_ids": [
+      31
+    ],
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "count": 1,
+      "total": "499",
+      "average": "499",
+      "minimum": "499",
+      "maximum": "499",
+      "currency": "INR"
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:56:13.452Z",
+    "step": "user_b_get_order",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "id": 31,
+      "status": "processing",
+      "created_at": "2026-11-14T03:50:07Z",
+      "currency": "INR",
+      "total": "499.00",
+      "payment_method": "cod",
+      "line_items": [
+        {
+          "product_id": 30,
+          "variation_id": null,
+          "name": "Urumi Acceptance Bottle 2026-11-14",
+          "sku": "URUMI-ACCEPT-20261114",
+          "quantity": 1,
+          "unit_price": "499",
+          "subtotal": "499.00",
+          "total": "499.00"
+        }
+      ],
+      "shipping_lines": [
+        {
+          "method_id": "free_shipping",
+          "method_title": "Free shipping",
+          "total": "0.00"
+        }
+      ],
+      "shipping_total": "0.00",
+      "tax_total": "0.00"
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:56:14.262Z",
+    "step": "disabled_policy_both_catalogs",
+    "disable_status": 200,
+    "external_tools": [
+      "arithmetic__sum_amounts",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ],
+    "chat_tools": [
+      "arithmetic__sum_amounts",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ]
+  },
+  {
+    "time": "2026-11-14T03:56:14.957Z",
+    "step": "disabled_stale_call",
+    "exit_code": 1,
+    "is_error": null,
+    "result": null,
+    "error": "{\"error\":\"INSPECTOR_FAILED\",\"code\":5,\"message\":\"Tool 'store_policy__get_policy' not found on server.\"}\n"
+  },
+  {
+    "time": "2026-11-14T03:56:50.969Z",
+    "step": "disabled_server_direct_transport_rejection",
+    "status": 200,
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"content\":[{\"text\":\"UPSTREAM_DISABLED\",\"type\":\"text\"}],\"isError\":true}}"
+  },
+  {
+    "time": "2026-11-14T03:56:52.369Z",
+    "step": "policy_restored",
+    "tools": [
+      "arithmetic__sum_amounts",
+      "store_policy__get_policy",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ]
+  },
+  {
+    "time": "2026-11-14T03:56:52.721Z",
+    "step": "storage_baseline",
+    "claims": [
+      {
+        "name": "data-urumi-mariadb-0",
+        "uid": "d3e6142a-b6b9-4e67-8880-a564f41ba331",
+        "volume": "pvc-d3e6142a-b6b9-4e67-8880-a564f41ba331",
+        "phase": "Bound"
+      },
+      {
+        "name": "data-urumi-postgres-0",
+        "uid": "1ae6049c-9b0e-4545-9b8a-39b9e7a7f76d",
+        "volume": "pvc-1ae6049c-9b0e-4545-9b8a-39b9e7a7f76d",
+        "phase": "Bound"
+      },
+      {
+        "name": "urumi-wordpress",
+        "uid": "864a302a-0a39-4880-b522-558a4c830845",
+        "volume": "pvc-864a302a-0a39-4880-b522-558a4c830845",
+        "phase": "Bound"
+      }
+    ]
+  },
+  {
+    "time": "2026-11-14T03:56:52.823Z",
+    "step": "upstream_before_deletion",
+    "name": "urumi-store-policy-mcp-79854cd895-tqnxc",
+    "uid": "6349cb4d-72ce-4c72-8899-eb4b71c19a29"
+  },
+  {
+    "time": "2026-11-14T03:56:53.677Z",
+    "step": "pod_deletion_discovery",
+    "tools": [
+      "arithmetic__sum_amounts",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ],
+    "status": "unreachable"
+  },
+  {
+    "time": "2026-11-14T03:57:30.505Z",
+    "step": "sustained_outage_catalog",
+    "elapsed_ms": 781,
+    "tools": [
+      "arithmetic__sum_amounts",
+      "woocommerce__create_product",
+      "woocommerce__get_order",
+      "woocommerce__list_orders",
+      "woocommerce__list_products",
+      "woocommerce__update_order_status"
+    ]
+  },
+  {
+    "time": "2026-11-14T03:57:31.335Z",
+    "step": "healthy_woo_during_policy_outage",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "items": [
+        {
+          "id": 31,
+          "status": "processing",
+          "created_at": "2026-11-14T03:50:07Z",
+          "currency": "INR",
+          "total": "499.00",
+          "payment_method": "cod"
+        }
+      ],
+      "page": 1,
+      "per_page": 20,
+      "total": 1,
+      "total_pages": 1,
+      "has_more": false,
+      "date_window": {
+        "date": "2026-11-14",
+        "timezone": "Asia/Kolkata",
+        "start_inclusive": "2026-11-13T18:30:00Z",
+        "end_exclusive": "2026-11-14T18:30:00Z"
+      }
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:57:32.142Z",
+    "step": "healthy_arithmetic_during_policy_outage",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "count": 1,
+      "total": "499",
+      "average": "499",
+      "minimum": "499",
+      "maximum": "499",
+      "currency": "INR"
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:57:32.169Z",
+    "step": "dead_upstream_error",
+    "http": 200,
+    "body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"content\":[{\"text\":\"UPSTREAM_UNAVAILABLE\",\"type\":\"text\"}],\"isError\":true}}",
+    "dashboard_status": "unreachable"
+  },
+  {
+    "time": "2026-11-14T03:57:39.134Z",
+    "step": "recovered_policy_call",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "key": "cod",
+      "title": "Cash on Delivery",
+      "guidance": "Collect payment on delivery. A COD order is not prepaid; its order status alone does not prove payment was collected."
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:57:39.313Z",
+    "step": "policy_pod_recovered",
+    "old_uid": "6349cb4d-72ce-4c72-8899-eb4b71c19a29",
+    "new_uid": "dc86889e-0775-48b8-b4ff-a5b83efeda19",
+    "replicas": 1,
+    "status": "connected"
+  },
+  {
+    "time": "2026-11-14T03:57:59.988Z",
+    "step": "live_workload_contracts",
+    "workloads": [
+      {
+        "name": "urumi-arithmetic-mcp",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "arithmetic-mcp",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "25m",
+              "memory": "64Mi"
+            },
+            "limits": {
+              "cpu": "250m",
+              "memory": "128Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-dashboard",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "dashboard",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "25m",
+              "memory": "32Mi"
+            },
+            "limits": {
+              "cpu": "250m",
+              "memory": "128Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-gateway",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "gateway",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "100m",
+              "memory": "192Mi"
+            },
+            "limits": {
+              "cpu": "1",
+              "memory": "512Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-store-policy-mcp",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "store-policy-mcp",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "25m",
+              "memory": "64Mi"
+            },
+            "limits": {
+              "cpu": "250m",
+              "memory": "128Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-woo-mcp",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "woo-mcp",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "50m",
+              "memory": "128Mi"
+            },
+            "limits": {
+              "cpu": "500m",
+              "memory": "256Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-wordpress",
+        "kind": "Deployment",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "wordpress",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "250m",
+              "memory": "512Mi"
+            },
+            "limits": {
+              "cpu": "1",
+              "memory": "1Gi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-mariadb",
+        "kind": "StatefulSet",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "mariadb",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "limits": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            }
+          }
+        ]
+      },
+      {
+        "name": "urumi-postgres",
+        "kind": "StatefulSet",
+        "replicas": 1,
+        "ready": 1,
+        "containers": [
+          {
+            "name": "postgres",
+            "readiness": true,
+            "liveness": true,
+            "requests": {
+              "cpu": "100m",
+              "memory": "256Mi"
+            },
+            "limits": {
+              "cpu": "500m",
+              "memory": "512Mi"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "time": "2026-11-14T03:58:00.333Z",
+    "step": "gateway_allowed_network",
+    "results": {
+      "urumi-woo-mcp": "allowed",
+      "urumi-arithmetic-mcp": "allowed",
+      "urumi-store-policy-mcp": "allowed",
+      "urumi-postgres": "allowed"
+    }
+  },
+  {
+    "time": "2026-11-14T03:58:00.772Z",
+    "step": "non_gateway_denied_network",
+    "results": {
+      "urumi-woo-mcp": "denied",
+      "urumi-arithmetic-mcp": "allowed",
+      "urumi-store-policy-mcp": "denied",
+      "urumi-postgres": "denied"
+    }
+  },
+  {
+    "time": "2026-11-14T03:59:07.768Z",
+    "step": "external_model_selected_inspector_composition",
+    "username": "acceptance_b",
+    "client": "MCP Inspector 2.15.0 CLI with bounded OpenRouter prompt driver",
+    "model": "z-ai/glm-5.3-flash",
+    "prompt": "What orders came in today, and what are their total and average order values? Use the available WooCommerce and Arithmetic tools, include order IDs, currency and store timezone, and verify pagination.",
+    "trace": [
+      {
+        "tool": "woocommerce__list_orders",
+        "arguments": {
+          "date": "today",
+          "page": 1,
+          "per_page": 50
+        },
+        "result": {
+          "items": [
+            {
+              "id": 31,
+              "status": "processing",
+              "created_at": "2026-11-14T03:50:07Z",
+              "currency": "INR",
+              "total": "499.00",
+              "payment_method": "cod"
+            }
+          ],
+          "page": 1,
+          "per_page": 50,
+          "total": 1,
+          "total_pages": 1,
+          "has_more": false,
+          "date_window": {
+            "date": "2026-11-14",
+            "timezone": "Asia/Kolkata",
+            "start_inclusive": "2026-11-13T18:30:00Z",
+            "end_exclusive": "2026-11-14T18:30:00Z"
+          }
+        }
+      },
+      {
+        "tool": "arithmetic__sum_amounts",
+        "arguments": {
+          "amounts": [
+            "499.00"
+          ],
+          "currency": "INR"
+        },
+        "result": {
+          "count": 1,
+          "total": "499",
+          "average": "499",
+          "minimum": "499",
+          "maximum": "499",
+          "currency": "INR"
+        }
+      }
+    ],
+    "answer": "Here's the complete summary of today's orders:\n\n## Today's Orders — 2026-11-14 (Store Timezone: **Asia/Kolkata**, IST)\n\n**Date window used:** 2026-11-14 local day (13 Nov 2026 18:30 UTC → 14 Nov 2026 18:30 UTC)\n\n**Pagination verification:** ✅ `total: 1`, `total_pages: 1`, `has_more: false` — single page, all orders captured.\n\n### Orders\n\n| Order ID | Status | Created (UTC) | Currency | Total |\n|----------|--------|---------------|----------|-------|\n| 31 | processing | 2026-11-14 03:50:07 (09:20:07 IST) | INR | 499.00 |\n\nPayment method: Cash on Delivery (COD)\n\n### Totals\n- **Total order value:** ₹499.00 (INR)\n- **Average order value:** ₹499.00 (INR)\n- With only one order today, the total and average are identical."
+  },
+  {
+    "time": "2026-11-14T03:59:36.285Z",
+    "step": "order_status_to_hold",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "order_id": 31,
+      "observed_before_status": "processing",
+      "after_status": "on-hold",
+      "changed": true
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:59:37.388Z",
+    "step": "order_status_restored",
+    "exit_code": 0,
+    "is_error": false,
+    "result": {
+      "order_id": 31,
+      "observed_before_status": "on-hold",
+      "after_status": "processing",
+      "changed": true
+    },
+    "error": ""
+  },
+  {
+    "time": "2026-11-14T03:59:37.403Z",
+    "step": "revocation_next_request",
+    "revoke_status": 204,
+    "next_http_status": 401,
+    "body": "{\"error\":\"UNAUTHENTICATED\"}"
+  },
+  {
+    "time": "2026-11-14T03:59:37.928Z",
+    "step": "revoked_inspector_discovery",
+    "exit_code": 1,
+    "error": "{\"error\":\"INSPECTOR_FAILED\",\"code\":3,\"message\":\"Error POSTing to endpoint: {\\\"error\\\":\\\"UNAUTHENTICATED\\\"}\"}\n"
+  },
+  {
+    "time": "2026-11-14T03:59:37.937Z",
+    "step": "audit_attribution",
+    "events": [
+      {
+        "id": "1e63f290-7228-4948-97a8-3b2c1bb396bb",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__update_order_status",
+        "started_at": "2026-11-14T03:59:36.962454+00:00",
+        "duration_ms": 393,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "c23b42bc-e70b-4a8c-aa28-be41cd2ab89e",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__update_order_status",
+        "started_at": "2026-11-14T03:59:35.874261+00:00",
+        "duration_ms": 380,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "058d4ca0-b4ff-42c7-89b2-fd85913daf00",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "arithmetic",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "started_at": "2026-11-14T03:59:02.840537+00:00",
+        "duration_ms": 48,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "50555d41-e42d-49db-880f-41fabd7cea8c",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-14T03:59:00.335676+00:00",
+        "duration_ms": 132,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "244cfb66-3c11-4f89-83d3-fcc76947a7e1",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "store_policy",
+        "gateway_tool": "store_policy__get_policy",
+        "started_at": "2026-11-14T03:57:39.053045+00:00",
+        "duration_ms": 45,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "5222df3e-63d9-46c5-a554-705b2fadb784",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "store_policy",
+        "gateway_tool": "store_policy__get_policy",
+        "started_at": "2026-11-14T03:57:32.151983+00:00",
+        "duration_ms": 5,
+        "outcome": "failed",
+        "error_code": "UPSTREAM_UNAVAILABLE"
+      },
+      {
+        "id": "7c814e9f-6e1d-4b86-8500-741c0634da06",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "arithmetic",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "started_at": "2026-11-14T03:57:32.053582+00:00",
+        "duration_ms": 51,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "f6441782-d014-4072-8ea5-57498b02872a",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-14T03:57:31.164887+00:00",
+        "duration_ms": 130,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "ac5e5541-279e-4dba-8663-3e847db005ff",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "store_policy",
+        "gateway_tool": "store_policy__get_policy",
+        "started_at": "2026-11-14T03:56:50.961446+00:00",
+        "duration_ms": 6,
+        "outcome": "failed",
+        "error_code": "UPSTREAM_DISABLED"
+      },
+      {
+        "id": "e41ddfc4-ec56-4e15-bda9-05b8ecec4f88",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__get_order",
+        "started_at": "2026-11-14T03:56:13.293628+00:00",
+        "duration_ms": 115,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "ca491a9f-361b-43b8-a5ec-58e6f6e97454",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "arithmetic",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "started_at": "2026-11-14T03:56:12.517425+00:00",
+        "duration_ms": 49,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "8bf51465-829b-4c49-8bc9-2f598e0fdc6b",
+        "username": "acceptance_b",
+        "auth_source": "api_key",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-14T03:55:57.629480+00:00",
+        "duration_ms": 108,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "722d4f8e-a3ea-4eac-a83b-02b526edcbab",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "arithmetic",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "started_at": "2026-11-14T03:50:56.121323+00:00",
+        "duration_ms": 59,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "7c705afd-e434-4056-8395-f959426f8e12",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-14T03:50:53.790110+00:00",
+        "duration_ms": 179,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "739d1749-1f43-46b3-877b-8bf62f421f37",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__create_product",
+        "started_at": "2026-11-14T03:48:56.695180+00:00",
+        "duration_ms": 511,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "2ff8b80d-4387-486e-a77a-007b0fbb769d",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_products",
+        "started_at": "2026-11-14T03:48:54.927292+00:00",
+        "duration_ms": 140,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "69ab18c0-f9b4-499a-9624-d443c2f2772e",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "woocommerce",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-14T03:48:27.543651+00:00",
+        "duration_ms": 966,
+        "outcome": "succeeded",
+        "error_code": null
+      },
+      {
+        "id": "278e6a19-8c61-41e7-b680-4a766f8b5074",
+        "username": "urumiadmin",
+        "auth_source": "session",
+        "server_slug": "store_policy",
+        "gateway_tool": "store_policy__get_policy",
+        "started_at": "2026-11-14T03:48:27.483639+00:00",
+        "duration_ms": 57,
+        "outcome": "succeeded",
+        "error_code": null
+      }
+    ]
+  },
+  {
+    "time": "2026-11-14T04:00:03.504Z",
+    "step": "database_security_baseline",
+    "checks": {
+      "key_count": 1,
+      "all_key_hashes_sha256": true,
+      "revoked_key_count": 1,
+      "all_passwords_argon2id": true,
+      "audit_rows": 39,
+      "schema": "0003_audit"
+    }
+  },
+  {
+    "time": "2026-11-14T04:00:04.034Z",
+    "step": "woo_service_auth",
+    "checks": {
+      "missing": 401,
+      "invalid": 401
+    }
+  },
+  {
+    "time": "2026-11-14T04:00:17.994Z",
+    "step": "postgres_replacement",
+    "old_uid": "d5891c54-b89d-4003-bb8f-34a9e560727d",
+    "new_uid": "6f3c6669-8b23-4ff0-8089-827a92c6a4ba",
+    "checks": {
+      "key_count": 1,
+      "all_key_hashes_sha256": true,
+      "revoked_key_count": 1,
+      "all_passwords_argon2id": true,
+      "audit_rows": 39,
+      "schema": "0003_audit"
+    }
+  },
+  {
+    "time": "2026-11-14T04:00:24.196Z",
+    "step": "gateway_replacement",
+    "old_uid": "04c84f4f-d4fa-4aa8-93a1-a5ebaf2a9eb5",
+    "new_uid": "acd323f4-5e0f-4199-aef7-3f366b45f4a8",
+    "session_status": 200,
+    "catalog_count": 7,
+    "audit_total": 39,
+    "checks": {
+      "key_count": 1,
+      "all_key_hashes_sha256": true,
+      "revoked_key_count": 1,
+      "all_passwords_argon2id": true,
+      "audit_rows": 39,
+      "schema": "0003_audit"
+    }
+  },
+  {
+    "time": "2026-11-15T06:05:43.019Z",
+    "step": "member_ui_test_enrollment",
+    "username": "acceptance_ui_b",
+    "role": "member",
+    "status": 201
+  },
+  {
+    "time": "2026-11-15T06:08:12.534Z",
+    "step": "repository_helper_live_validation",
+    "username": "acceptance_ui_b",
+    "exit_code": 0,
+    "output": "{\"client\": \"MCP Inspector 2.15.0\", \"endpoint\": \"http://gateway.urumi.test:8080/mcp\", \"tools\": [\"arithmetic__sum_amounts\", \"store_policy__get_policy\", \"woocommerce__create_product\", \"woocommerce__get_order\", \"woocommerce__list_orders\", \"woocommerce__list_products\", \"woocommerce__update_order_status\"]}\r\n{\"tool\": \"woocommerce__list_orders\", \"arguments\": {\"date\": \"2026-11-14\", \"page\": 1, \"per_page\": 50}, \"result\": {\"items\": [{\"id\": 31, \"status\": \"processing\", \"created_at\": \"2026-11-14T03:50:07Z\", \"currency\": \"INR\", \"total\": \"499.00\", \"payment_method\": \"cod\"}], \"page\": 1, \"per_page\": 50, \"total\": 1, \"total_pages\": 1, \"has_more\": false, \"date_window\": {\"date\": \"2026-11-14\", \"timezone\": \"Asia/Kolkata\", \"start_inclusive\": \"2026-11-13T18:30:00Z\", \"end_exclusive\": \"2026-11-14T18:30:00Z\"}}}\r\n{\"tool\": \"arithmetic__sum_amounts\", \"arguments\": {\"amounts\": [\"499.00\"], \"currency\": \"INR\"}, \"result\": {\"count\": 1, \"total\": \"499\", \"average\": \"499\", \"minimum\": \"499\", \"maximum\": \"499\", \"currency\": \"INR\"}}\r\n{\"answer\": \"Here's the summary for **2026-11-14**:\\n\\n## Orders on 2026-11-14\\n\\n| Order ID | Status | Payment | Total |\\n|---|---|---|---|\\n| 31 | Processing | COD | \\u20b9499.00 |\\n\\n## Totals\\n- **Order count:** 1\\n- **Total order value:** \\u20b9499.00 (INR)\\n- **Average order value:** \\u20b9499.00 (INR)\\n\\n## Scope & verification\\n- **Pagination verified:** Page 1 of 1 (total: 1, total_pages: 1, has_more: false) \\u2014 all orders for the date are included.\\n- **Store timezone:** **Asia/Kolkata**. The date window used was `2026-11-13T18:30:00Z` (inclusive) to `2026-11-14T18:30:00Z` (exclusive), i.e., midnight-to-midnight IST for 2026-11-14.\\n- **Currency:** All amounts are homogeneous (INR), so the total and average are valid as computed.\\n\\nNote: This is a single order (ID 31, cash-on-delivery, still processing), so the average equals the total.\"}\r\n",
+    "error": ""
+  },
+  {
+    "time": "2026-11-15T06:09:36.151Z",
+    "step": "member_ui_key_created_used_and_revoked",
+    "username": "acceptance_ui_b",
+    "created_in_dashboard": true,
+    "used_by_inspector_helper": true,
+    "revoked_in_dashboard": true,
+    "next_http_status": 401,
+    "body": "{\"error\":\"UNAUTHENTICATED\"}"
+  },
+  {
+    "time": "2026-11-15T06:09:36.456Z",
+    "step": "admin_registry_crud_and_collision",
+    "create_status": 201,
+    "initial_connected": "connected",
+    "edit_status": 200,
+    "credential_kind": "header",
+    "credential_reflected": false,
+    "header_connected": "connected",
+    "namespaced_duplicate_names": [
+      "acceptance_registry__sum_amounts",
+      "arithmetic__sum_amounts"
+    ]
+  },
+  {
+    "time": "2026-11-15T06:09:36.464Z",
+    "step": "temporary_registry_removed",
+    "status": 204
+  },
+  {
+    "time": "2026-11-15T06:09:36.473Z",
+    "step": "audit_ui_member_attribution",
+    "total": 41,
+    "events": [
+      {
+        "id": "9b83608c-7385-4286-8377-e92d0a0b6f51",
+        "username": "acceptance_ui_b",
+        "auth_source": "api_key",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "started_at": "2026-11-15T06:08:09.353974+00:00",
+        "duration_ms": 55,
+        "outcome": "succeeded"
+      },
+      {
+        "id": "29dab4d1-d0ba-45ad-a2b0-2e4bf462d8d1",
+        "username": "acceptance_ui_b",
+        "auth_source": "api_key",
+        "gateway_tool": "woocommerce__list_orders",
+        "started_at": "2026-11-15T06:08:05.974824+00:00",
+        "duration_ms": 295,
+        "outcome": "succeeded"
+      }
+    ]
+  },
+  {
+    "time": "2026-11-15T06:19:32.868Z",
+    "step": "test_account_cleanup",
+    "users": [
+      {
+        "username": "acceptance_b",
+        "status": 200
+      },
+      {
+        "username": "acceptance_ui_b",
+        "status": 200
+      }
+    ]
+  },
+  {
+    "time": "2026-11-15T06:19:33.878Z",
+    "step": "original_secret_and_storage_preservation",
+    "all_existing_secrets_unchanged": true,
+    "all_claims_unchanged": true
+  },
+  {
+    "time": "2026-11-15T06:19:34.368Z",
+    "step": "preserved_store_records",
+    "products": [
+      {
+        "id": 11,
+        "name": "Urumi Demo Mug",
+        "price": "499",
+        "status": "publish"
+      },
+      {
+        "id": 16,
+        "name": "Urumi MCP Live Test Product",
+        "price": "599",
+        "status": "publish"
+      },
+      {
+        "id": 30,
+        "name": "Urumi Acceptance Bottle 2026-11-14",
+        "price": "499.00",
+        "status": "publish"
+      }
+    ],
+    "orders": [
+      {
+        "id": 12,
+        "status": "on-hold",
+        "total": "499.00",
+        "payment": "cod"
+      },
+      {
+        "id": 31,
+        "status": "processing",
+        "total": "499.00",
+        "payment": "cod"
+      }
+    ]
+  },
+  {
+    "time": "2026-11-15T06:19:34.835Z",
+    "step": "peer_to_arithmetic_denial",
+    "results": {
+      "urumi-woo-mcp": "denied",
+      "urumi-arithmetic-mcp": "denied",
+      "urumi-store-policy-mcp": "allowed",
+      "urumi-postgres": "denied"
+    }
+  },
+  {
+    "time": "2026-11-15T06:19:35.632Z",
+    "step": "final_database_check",
+    "checks": {
+      "key_count": 2,
+      "all_key_hashes_sha256": true,
+      "revoked_key_count": 2,
+      "all_passwords_argon2id": true,
+      "audit_rows": 46,
+      "schema": "0003_audit"
+    }
+  },
+  {
+    "time": "2026-11-15T06:19:35.651Z",
+    "step": "final_registrations",
+    "servers": [
+      {
+        "slug": "arithmetic",
+        "enabled": true,
+        "status": "connected"
+      },
+      {
+        "slug": "store_policy",
+        "enabled": true,
+        "status": "connected"
+      },
+      {
+        "slug": "woocommerce",
+        "enabled": true,
+        "status": "connected"
+      }
+    ]
+  },
+  {
+    "time": "2026-11-15T06:24:28.094Z",
+    "step": "final_audit_snapshot",
+    "total": 46,
+    "events": [
+      {
+        "id": "ba57d805-f6ef-4008-8f3c-386c860b81bd",
+        "username": "acceptance_ui_b",
+        "auth_source": "session",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "9765c785-4a49-4da4-9995-662d268962de",
+        "username": "acceptance_ui_b",
+        "auth_source": "session",
+        "gateway_tool": "woocommerce__get_order",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "e4196f55-aa53-47d2-abd0-ae8f9b795831",
+        "username": "acceptance_ui_b",
+        "auth_source": "session",
+        "gateway_tool": "woocommerce__list_orders",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "decfd3a9-97da-461d-878e-ebcbc624605f",
+        "username": "acceptance_ui_b",
+        "auth_source": "session",
+        "gateway_tool": "woocommerce__list_orders",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "ec7c6f3b-7754-4169-899c-5c8d083ded9e",
+        "username": "acceptance_ui_b",
+        "auth_source": "session",
+        "gateway_tool": "store_policy__get_policy",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "9b83608c-7385-4286-8377-e92d0a0b6f51",
+        "username": "acceptance_ui_b",
+        "auth_source": "api_key",
+        "gateway_tool": "arithmetic__sum_amounts",
+        "outcome": "succeeded"
+      },
+      {
+        "id": "29dab4d1-d0ba-45ad-a2b0-2e4bf462d8d1",
+        "username": "acceptance_ui_b",
+        "auth_source": "api_key",
+        "gateway_tool": "woocommerce__list_orders",
+        "outcome": "succeeded"
+      }
+    ]
+  }
+]

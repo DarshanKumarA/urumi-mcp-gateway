@@ -1,5 +1,7 @@
 # Threat model draft
 
+Current implemented controls and residual risks are summarized in [security-summary.md](security-summary.md), with dated live evidence in [acceptance.md](acceptance.md). Earlier draft and milestone sections below are historical; their pending statements are scoped to those dates. No comprehensive hardening, VPS/TLS or prompt-injection immunity is claimed.
+
 ## OpenRouter provider boundary — 27 October 2026
 
 The user selected z-ai/glm-5.3-flash and authorized bounded paid acceptance calls.

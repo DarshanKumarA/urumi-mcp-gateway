@@ -540,4 +540,31 @@ Validated on 2026-10-21 from clean main at af7bb37; release urumi stayed revisio
 - Dependency/lock consistency, documentation links/anchors/tables, credential/contact
   and built-asset scans, and whitespace validation passed. Commit/push authorized by user.
 
-The system is not finished. Extend this chronology as milestones actually complete; use the approved [working process](../AGENTS.md) and stop at review boundaries.
+### 14–15 November 2026 — Final local runtime acceptance
+
+- Resumed the exact clean tracked checkpoint `a6665db` and healthy revision 7; retained
+  the unrelated untracked file, original store/PVCs and every existing Secret. Current
+  user authorization superseded the stale Stage 0 boundary in AGENTS.md.
+- A's real chat created product 30 after a SKU check. Guest COD checkout produced order
+  31; Woo admin and today's orders agreed on INR 499. The same prompt exercised actual
+  Woo/Arithmetic calls in both dashboard chat and a separate member's external client.
+- Used explicitly permitted MCP Inspector rather than requiring an unavailable Claude
+  subscription. A small masked-input helper supplies the OpenRouter tool loop while the
+  official Inspector CLI performs all external MCP calls. Its successful live rerun on
+  15 November used a key created and revoked in the member dashboard, and an explicit
+  14 November date rather than disguising the new day's empty result.
+- Proved disabled catalogs, stale-call denial, Unreachable after pod deletion, healthy
+  peers during a short controlled outage, and recovery. Revoked keys failed on the next
+  request. Audits distinguish session A from API-key B, including authenticated failures.
+  PostgreSQL/gateway replacement preserved 39 audits and identity/revocation state;
+  the later UI/helper checks added two API-key audits and five member-session read
+  audits, reaching 46. Both disposable member accounts were disabled after key revocation.
+- All 382 tests and dashboard build passed. The first root-directory gateway test run
+  exposed a documentation command error; running from the application directory passed
+  all 202 gateway tests, so no runtime patch/rebuild was justified. Both overlays passed
+  lint and complete schema/resource/security checks. A readiness wait initially raced
+  pod creation; explicit creation then readiness waits confirmed recovery.
+- Added concise system-design/security/production/demo guides and dated evidence;
+  refreshed stale current-status matrices while retaining historical analysis. The
+  narrated video and submission are still human deliverables. Real VPS/TLS, multi-store,
+  fresh installation, peak capacity and backup restore remain unverified/unattempted.

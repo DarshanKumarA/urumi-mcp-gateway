@@ -17,7 +17,7 @@ Follow this sequence: **understand → plan → identify files → implement sma
 5. Show and review the complete Git diff, including new files, and explain each changed file. Preserve unrelated user changes and the original assignment document.
 6. Run relevant tests or validation and report commands, results, failures, and limits honestly. Documentation is not evidence that a system requirement has been implemented or verified.
 7. Update the relevant requirements, decision records, progress notes, and security analysis. After each meaningful step, check whether [docs/project-journey.md](docs/project-journey.md) needs an entry or update. Progress describes current status; decisions explain individual choices; the journey preserves the chronological engineering story, reasoning, validation, learning, and commit references for an interview walkthrough. Keep it concise, not a command log. Keep proposals separate from accepted choices and implemented behavior.
-8. Stop at major milestone boundaries for the user to verify understanding before continuing. Do not commit, publish, or submit unless authorized.
+8. Follow the current user-authorized milestone boundary. The November completion request authorizes continuous core acceptance, confirmed bug fixes, documentation, and reviewed commit/push without repeated permission. Do not submit the hiring form or claim the user has recorded/explained a video without actual evidence.
 
 ## Security and scope rules
 
@@ -29,4 +29,11 @@ Follow this sequence: **understand → plan → identify files → implement sma
 
 ## Current milestone boundary
 
-Stage 0 governance was approved and committed as 51f27b2 on main. Architecture v1 decisions A1–A13 have been reviewed and approved; the current milestone records them in documentation and adds docs/project-journey.md. Preserve the source DOCX and faithful assignment transcription. No application directories, manifests, charts, dependency files, Dockerfiles, frontend/backend code, ORM models, databases, or other implementation scaffolding are authorized. Prototype and implementation validation described in the architecture are future work, not permission to start. Do not commit this documentation update. Stop for review; update this boundary only when the user authorizes the next milestone.
+The user explicitly authorized completing the mandatory local project from `a6665db`
+on 14 November 2026 and resumed on 15 November. The original Stage 0 scaffolding/commit
+restriction is superseded by that authorization and the intervening committed work.
+Preserve existing business data, PVCs, Secrets, the assignment DOCX, and the unrelated
+untracked `application stack…` file. Do not add optional bonuses or change deployment
+versions without a confirmed need. Record real results and limits in docs/acceptance.md;
+review and validate the exact tracked changes before the authorized commit/push.
+The remaining human video/submission obligations must remain explicit.

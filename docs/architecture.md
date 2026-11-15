@@ -1,5 +1,7 @@
 # Architecture v1 and assignment boundaries
 
+Current local implementation and live results are summarized in [system-design.md](system-design.md) and [acceptance.md](acceptance.md). The local core passed on 14–15 November 2026; video/submission remain pending. Earlier stage sections below preserve their original design and validation boundaries and do not override this current status.
+
 ## 27 October provider selection update
 
 Local gateway now selects OpenRouter through the existing Provider interface,

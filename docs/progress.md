@@ -2,11 +2,25 @@
 
 ## Current milestone
 
-**2026-10-27 — Stage 8.1 deployed at revision 7 with OpenRouter; final Definition-of-Done acceptance in progress.**
-Stage 8.0 is committed as bd13a4c. One authorized Helm upgrade completed; all eight
-workloads are Ready and migration/admin/store bootstrap Jobs completed. Final live
-chat, checkout, two-user external-client and audit acceptance remain pending.
-Earlier milestone entries below retain their history.
+**15 November 2026 — Mandatory local runtime acceptance passed; video and submission pending.**
+The application remains deployed at Helm revision 7 from `a6665db`. On 14 November,
+A's chat created product 30 (INR 499), guest checkout placed COD order 31, Woo admin
+confirmed it, and both A's chat and B's Inspector/OpenRouter prompt performed real
+Woo → Arithmetic composition. Disabled/dead upstream behavior, recovery, next-request
+key revocation, attributed audits, network boundaries, and PostgreSQL/gateway pod
+replacement passed. Original PVCs/Secrets and historical store data are preserved.
+
+The 15 November browser member check created and revoked its own key and used the
+new reproducible Inspector helper successfully against the explicit 14 November date.
+The complete regression suite is 382 passing tests, plus TypeScript/Vite, local/prod
+Helm lint and 27-object schema checks. A root-directory test command was corrected
+in the gateway README; no production application code/image/schema change was needed.
+
+See [acceptance](acceptance.md) for exact evidence, failures encountered and limits;
+[demo](demo.md) for the remaining human recording/submission checklist. No VPS/TLS,
+multi-store, fresh-machine install, backup restore or load-capacity claim. The current
+user authorized review, commit and push of this completion change. Earlier entries
+below are historical records, not the current acceptance status.
 
 ## Stage 8.1 deployment evidence — acceptance not yet complete
 

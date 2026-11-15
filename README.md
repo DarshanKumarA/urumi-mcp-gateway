@@ -2,7 +2,16 @@
 
 This repository is for the Urumi AI FDE internship assignment: run a WooCommerce store on Kubernetes, write its MCP server, aggregate at least three upstream MCP servers through a team gateway, and provide a React dashboard with a chat agent that uses the gateway as the logged-in user.
 
-**Current state (27 October 2026):** The complete local stack is deployed in the existing `urumi-local` Kubernetes cluster, Helm release `urumi` revision **7**. The gateway uses **OpenRouter / `z-ai/glm-5.3-flash`**. Provider smoke and two authenticated read-only dashboard queries passed, with audit attribution. All eight workloads were Ready at the last check; original store/storage identities were retained. The latest queries found no orders for that day, so they did not exercise arithmetic composition. Final two-user/external-client/revocation/demo acceptance and VPS/TLS validation remain incomplete. See [progress](docs/progress.md) and [journey](docs/project-journey.md) for evidence and limits.
+**Current state (15 November 2026):** The local core passed its live acceptance
+flow on 14 November, followed by member dashboard key creation/revocation and a
+repeatable external prompt check on 15 November. Product **30** and COD order **31**
+are real demo data; User A chat and User B's MCP Inspector calls both composed
+WooCommerce with Arithmetic. Revocation, disabled catalogs, upstream failure/recovery,
+audit attribution, network isolation and PostgreSQL/gateway replacement were verified.
+All **382 tests** and the dashboard build passed. The deployed application remains
+Helm revision **7**, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
+**Video recording and form submission remain pending.** No real VPS, TLS or multi-store
+deployment is claimed. See [dated acceptance and limits](docs/acceptance.md).
 
 ## Source of truth and project documents
 
@@ -19,6 +28,14 @@ The [original assignment DOCX](docs/source/urumi-mcp-gateway-assignment.docx) is
 | [docs/project-journey.md](docs/project-journey.md) | Chronological engineering story and learning for an interview walkthrough |
 | [docs/threat-model.md](docs/threat-model.md) | Required threat analysis, required controls, and separate optional hardening |
 
+## Final guides
+
+- [Live acceptance and evidence](docs/acceptance.md)
+- [Demo script, Inspector setup and submission checklist](docs/demo.md)
+- [Short system design and tradeoffs](docs/system-design.md)
+- [Short threat model and security limits](docs/security-summary.md)
+- [Production setup, upgrades and rollback](docs/production.md)
+
 ## Technology decisions and proposals
 
 React is required for the dashboard. The assignment also mandates WordPress with WooCommerce, Kubernetes, Helm (not Kustomize), Streamable HTTP for the custom WooCommerce MCP server and supported upstreams, and Kubernetes Secrets.
@@ -31,11 +48,11 @@ The mandatory core uses one store. Multi-store provisioning and other stand-out 
 
 ## Setup scope
 
-The steps below reproduce the local packaging and deployment configuration. They do not reproduce existing database contents or prove the remaining demo obligations automatically. Deliverable acceptance remains tracked as REQ-DEL-01 in [requirements](docs/requirements.md).
+The steps below reproduce the local packaging and deployment configuration. They do not reproduce existing database contents; the dated acceptance report records the observed local proof. A fresh-machine installation was not repeated in this completion run. Deliverable acceptance remains tracked as REQ-DEL-01 in [requirements](docs/requirements.md).
 
 ## Working process
 
-Understand → plan → identify files → implement small change → review diff → validate → document → verify understanding. Follow [AGENTS.md](AGENTS.md) and stop at major milestones. Real credentials must never enter source or committed configuration.
+Understand → plan → identify files → implement small change → review diff → validate → document → verify understanding. Follow [AGENTS.md](AGENTS.md) and the current user-authorized scope. Real credentials must never enter source or committed configuration.
 
 ## Final local topology and URLs
 
@@ -73,7 +90,7 @@ Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using th
 same masked-input/in-memory submission process below. Only the local gateway
 mounts it; the existing Gemini Secret is retained but not mounted locally.
 Production retains its Gemini default. Direct provider smoke and two read-only
-dashboard queries passed; full Definition-of-Done acceptance remains incomplete.
+dashboard queries passed. Later live core acceptance is recorded in [acceptance.md](docs/acceptance.md); video/submission remain outstanding.
 
 All are pre-created `Opaque` Secrets in namespace `urumi`; Helm creates none.
 Check only name/type/exact key names, never dump data or decode values.
@@ -291,7 +308,8 @@ For `What orders came in today, and what is their total and average order value?
 expect `woocommerce__list_orders` then `arithmetic__sum_amounts` **when orders exist**.
 The store uses Asia/Kolkata; an empty day has no average and should not trigger
 arithmetic on an empty list. Use an explicit known order date for a nonempty
-read-only test rather than creating orders merely to disguise an empty result.
+read-only replay. Order 31 belongs to 2026-11-14; a later day's empty result is correct.
+For the recorded live today flow, intentionally place a new authorized demo COD order.
 
 Each member creates their own gateway API key and configures an external MCP client
 with only `http://gateway.urumi.test:8080/mcp` and that Bearer key. Never configure
@@ -299,6 +317,27 @@ upstream URLs or service/Woo REST credentials in an external client. A key is sh
 once; revocation must reject its next request. Chat uses session identity instead.
 Mutating tools can change real demo data; do not repeat a write after an ambiguous
 response. Inspect state read-only first.
+
+### Place a demo order
+
+As User A, ask Chat to check a unique SKU, then create a named, priced product once.
+Open its storefront URL, choose Add to cart → Cart → Proceed to Checkout, supply
+synthetic demo contact/address details, select Cash on delivery and place the order.
+Guest checkout needs no customer login. Verify the order in WooCommerce admin, then
+ask A's chat for today's orders and their total/average; require actual Woo and
+Arithmetic tool activity. WordPress uses `urumi-admin`; gateway uses `urumiadmin`.
+Keep their passwords separate and off recordings. Email delivery is not configured.
+
+### Connect User B
+
+Invite a separate member from Team; redeem the private invitation and set a password.
+As that member, use API Keys → Create API key and privately copy its one-time value.
+Configure MCP Inspector with **Streamable HTTP**, the gateway endpoint above and
+that member's Bearer key. No upstream URL or upstream service credential is needed.
+The [demo guide](docs/demo.md#external-prompt-through-mcp-inspector) supplies a tested
+masked-input command for discovery and a real model-selected two-upstream prompt.
+It uses Inspector 2.15.0 and a separate OpenRouter prompt driver; Claude Code/Cursor
+were not tested. Revoke the test key after the demo and verify its next call fails.
 
 ## Production and use
 
@@ -311,12 +350,19 @@ K3s includes a [network policy controller](https://docs.k3s.io/networking/networ
 by default. Local acceptance observed allowed gateway traffic and a refused
 non-gateway connection to Woo MCP; other CNIs/environments need their own validation.
 
-After runtime approval: log in as initial admin, invite a member, generate each
+For a fresh operator session: log in as initial admin, invite a member, generate each
 user's own gateway API key, configure the external MCP endpoint with that Bearer
 key, and use Chat with browser session identity through the shared audited path.
 Never provide upstream service/Woo REST credentials to external clients. Existing
-product 11/order 12 and live-test product 16 remain; no extra checkout or reversal
-of the deliberate on-hold order is authorized by setup.
+product 11/order 12 and product 16 remain; final acceptance added product 30/order 31.
+Order 12 remains on hold. Setup alone does not authorize changing historical business data.
+Use the [production runbook](docs/production.md) for actual target preparation and the
+[demo checklist](docs/demo.md) for the remaining narrated recording/submission.
+
+Optional scope: no multi-store, real VPS, OAuth, granular tool permissions, scaling or
+rate-limit bonus was attempted. Targeted ingress policies and non-root custom apps
+overlap optional hardening; their exact implementation/limits are listed in the
+[security summary](docs/security-summary.md). No full hardening-bonus claim is made.
 
 App contracts: [gateway](apps/gateway/README.md), [dashboard](apps/dashboard/README.md),
 [Woo](apps/woo-mcp/README.md), [Arithmetic](apps/arithmetic-mcp/README.md),

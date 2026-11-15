@@ -1,5 +1,10 @@
 # Gateway protocol core and persistent management
 
+Current local runtime: Stage 8.1 OpenRouter image, Helm revision 7. The live core
+acceptance is documented in [the final report](../../docs/acceptance.md); historical
+stage headings below retain their original scope. Run tests from the application
+directory because readiness resolves its Alembic configuration there.
+
 ## Stage 8.0 deployment contract
 
 Supersedes earlier Stage 7.1 loopback-only/Helm-pending notes. Image: urumi-gateway:stage8.0.
@@ -58,10 +63,15 @@ From repository root in PowerShell:
 ```powershell
 py -3.13 -m venv apps/gateway/.venv
 apps/gateway/.venv/Scripts/python -m pip install --require-hashes --only-binary=:all: -r apps/gateway/requirements.lock
-$env:PYTHONPATH = 'apps/gateway/src'
-apps/gateway/.venv/Scripts/python -m unittest discover -s apps/gateway/tests -v
-apps/gateway/.venv/Scripts/python -m compileall -q apps/gateway/src apps/gateway/tests
-apps/gateway/.venv/Scripts/python -m pip check
+Push-Location apps/gateway
+try {
+    $env:PYTHONPATH = 'src'
+    .venv/Scripts/python -m unittest discover -s tests -v
+    .venv/Scripts/python -m compileall -q src tests
+    .venv/Scripts/python -m pip check
+} finally {
+    Pop-Location
+}
 ```
 
 Python 3.13; direct pins are `mcp==2.3.0`, `httpx2==2.16.0`,

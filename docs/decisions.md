@@ -1,5 +1,21 @@
 # Decision register
 
+## DEC-035 Final external acceptance client
+
+- **Constraint:** The mandatory external flow needs a second user's key and a prompt
+  using two upstreams. The user has no Claude Pro/Max access; the assignment explicitly
+  permits MCP Inspector.
+- **Decision:** Use official Inspector 2.15.0 for Streamable HTTP discovery/execution,
+  with a small external OpenRouter prompt driver using the already selected model.
+  The client is configured only with the gateway URL and member key; its LLM credential
+  is separate. Masked prompts/stdin keep secrets out of files, arguments and reports.
+- **Verification:** Real orders → Arithmetic, UI-created member key, revocation and audit
+  attribution passed. [Acceptance](acceptance.md) records the dates and exact scope.
+  Claude Code/Cursor were not tested. No new upstream, production image or optional
+  application feature was added; the prior expectation of a later Claude/Cursor demo
+  is replaced by the assignment-permitted Inspector workflow.
+
+
 ### DEC-034 Stage 8 explicit ordering and caller isolation
 
 - **Status:** Implemented for static review, 26 October 2026; no cluster start/deployment.
