@@ -55,7 +55,9 @@ The dashboard model is OpenRouter `z-ai/glm-5.3-flash`. It receives the live too
 catalog, asks for calls, and receives sanitized operational results. The backend
 executes those calls under the session user, never a model-supplied identity. Tool
 activity is visible in the UI. The loop is bounded to five tool rounds and ten calls;
-provider errors do not trigger automatic fallback or write replay.
+provider errors do not trigger automatic fallback or write replay. The revision-8
+OpenRouter adapter permits one bounded transient model-generation retry; see
+[the follow-up](reliability-2026-11-15.md).
 
 ## Deployment and production changes
 

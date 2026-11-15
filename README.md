@@ -8,10 +8,156 @@ repeatable external prompt check on 15 November. Product **30** and COD order **
 are real demo data; User A chat and User B's MCP Inspector calls both composed
 WooCommerce with Arithmetic. Revocation, disabled catalogs, upstream failure/recovery,
 audit attribution, network isolation and PostgreSQL/gateway replacement were verified.
-All **382 tests** and the dashboard build passed. The deployed application remains
-Helm revision **7**, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
+The original **382-test** acceptance baseline passed; the follow-up has **204 gateway** and **27 dashboard** tests plus **5 secret-setup** tests passing. The application now runs at
+Helm revision **8** after the tested chat/readability update, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
 **Video recording and form submission remain pending.** No real VPS, TLS or multi-store
 deployment is claimed. See [dated acceptance and limits](docs/acceptance.md).
+
+## Start here as a reviewer
+
+Use **PowerShell 7** for the commands below. Clone with `git clone
+https://github.com/DarshanKumarA/urumi-mcp-gateway.git`, then `Set-Location
+urumi-mcp-gateway`. All paths below are relative to that directory. An OpenRouter
+account/key with credit is required for LLM answers; this repository supplies no
+credentials. Protocol tests and the other application tests use synthetic fixtures.
+
+### Prerequisites and checks
+
+Install Git, Docker Desktop with Linux containers/WSL2, kubectl, k3d, Helm 4,
+PowerShell 7 and Python 3.13 from their official distributions. Node/npm is needed
+for host dashboard tests and Inspector; image builds use the pinned container runtimes.
+Check `git --version`, `docker version`, `kubectl version --client`, `k3d version`,
+`helm version`, `$PSVersionTable.PSVersion`, `py -3.13 --version` and `node --version`.
+Docker must report a running Linux server. Allow port 8080 for the local ingress;
+6550 is the local Kubernetes API binding. Image/dependency downloads require Internet.
+
+This is the tested Windows operator workflow, not a claim of a fresh-machine test.
+Linux/macOS users need equivalent paths, hosts-file changes and secret provisioning;
+the two store secret scripts require PowerShell 7. Keep enough RAM available for
+Docker and the workload budgets. Do not run multiple fresh copies on a constrained laptop.
+
+### If this is the existing project machine
+
+Do not repeat fresh installation or recreate the cluster. Start Docker Desktop, then:
+
+```powershell
+k3d cluster list
+# Only if urumi-local is stopped:
+k3d cluster start urumi-local
+kubectl config use-context k3d-urumi-local
+kubectl --context k3d-urumi-local -n urumi get pods,pvc,ingress
+helm list --kube-context k3d-urumi-local -n urumi
+py -3.13 scripts/setup-platform-secrets.py check
+```
+
+Expected: six Deployments and two StatefulSets ready, three Bound claims, and store
+and gateway Ingresses. Completed bootstrap/migration Jobs are normal. Open the two
+URLs in the topology section. Sign in using the passwords chosen at setup; **there
+is no default password**. Gateway admin `urumiadmin` and WordPress `urumi-admin` are
+different accounts. Secret access is an operator recovery path, not a password reset.
+
+### Fresh installation in the correct order
+
+1. Create the cluster and hosts entries using steps 1–3 under **Reproduce the local
+   deployment** below. Only create a cluster if `k3d cluster list` shows it is absent.
+2. Select the context and create the namespace once:
+
+   ```powershell
+   kubectl config use-context k3d-urumi-local
+   kubectl --context k3d-urumi-local create namespace urumi
+   pwsh -File scripts/setup-store-secrets.ps1 -Mode Validate
+   pwsh -File scripts/setup-store-secrets.ps1 -Mode Create
+   ```
+
+   The store helper generates database/auth secrets and prompts for the WordPress
+   admin password. Save chosen passwords privately. It does not rotate existing data.
+3. Install **only the store** first so WooCommerce can issue its REST credentials:
+
+   ```powershell
+   helm upgrade --install urumi charts/urumi --kube-context k3d-urumi-local -n urumi -f charts/urumi/values-local.yaml --set platform.enabled=false --set wooMcp.enabled=false --set auxiliaryMcp.arithmetic-mcp.enabled=false --set auxiliaryMcp.store-policy-mcp.enabled=false --wait=watcher --wait-for-jobs --timeout 15m
+   kubectl --context k3d-urumi-local -n urumi get pods,jobs,pvc
+   ```
+
+   WordPress/MariaDB must be Ready and store bootstrap Complete. Never run these
+   disables against an already accepted full stack.
+4. Open `http://store.urumi.test:8080/wp-admin`, sign in as `urumi-admin` with your
+   chosen store password. Go to WooCommerce → Settings → Advanced → REST API → Add
+   key. Assign the service account, choose Read/Write and generate once. Privately
+   enter the consumer key and secret into the masked helper prompts:
+
+   ```powershell
+   pwsh -File scripts/setup-woocommerce-rest-secret.ps1 -Mode Validate
+   pwsh -File scripts/setup-woocommerce-rest-secret.ps1 -Mode Create
+   py -3.13 scripts/setup-platform-secrets.py create
+   py -3.13 scripts/setup-platform-secrets.py check
+   ```
+
+   The platform helper generates matching PostgreSQL password/URL and a separate
+   Woo service token, then prompts for gateway admin credentials and OpenRouter key.
+   It checks all existing contracts before creating missing objects, never replaces
+   them, and is safe to rerun after correcting a partial setup. Never use tracing or
+   terminal transcription while entering credentials. A shape check cannot prove an
+   external API key is valid or funded.
+5. Build/import all five images with step 6 below. Lint/render, then apply the **full
+   local values** with step 8 below. The first fresh install preview uses
+   `helm upgrade --install ... --dry-run=server`; the store release already exists
+   after step 3. Do not pass `--reuse-values`, which could retain the temporary disables.
+6. Wait for all eight workloads and gateway migration/bootstrap Jobs. Open the
+   dashboard, sign in using your gateway credentials, refresh Servers and require
+   three Connected upstreams/seven tools. Ask a read-only order question. An empty
+   day is valid. Place a synthetic COD order to exercise nonempty totals.
+7. Follow **Place a demo order**, **Connect User B**, and [the demo guide](docs/demo.md).
+   Set up the Inspector dependencies before recording. The preserved order 31 is
+   from 14 November 2026 and is not a current-day order on later dates.
+
+### Run the automated checks without store mutations
+
+Create each Python environment from its committed hash lock. Repeat for `gateway`,
+`woo-mcp`, `arithmetic-mcp` and `store-policy-mcp`:
+
+```powershell
+py -3.13 -m venv apps/gateway/.venv
+apps/gateway/.venv/Scripts/python -m pip install --require-hashes --only-binary=:all: -r apps/gateway/requirements.lock
+Push-Location apps/gateway
+try {
+    $env:PYTHONPATH = 'src'
+    .venv/Scripts/python -m unittest discover -s tests -q
+} finally { Pop-Location }
+```
+
+For another app, replace both `apps/gateway` paths with its directory. Run the gateway
+suite from its application directory because Alembic configuration is relative there.
+
+```powershell
+Push-Location apps/dashboard
+try { npm ci --ignore-scripts; npm test; npm run build } finally { Pop-Location }
+py -3.13 -m unittest discover -s tests/integration -p test_platform_secret_setup.py -q
+helm lint charts/urumi -f charts/urumi/values-local.yaml
+helm lint charts/urumi -f charts/urumi/values-prod.yaml
+```
+
+Full schema validation additionally needs `PyYAML` and `jsonschema` in your test
+Python environment and a Kubernetes OpenAPI v2 JSON file; see
+`tests/integration/validate_chart.py`. Application tests alone do not prove live
+network isolation, checkout, persistence or external-client compatibility.
+
+### When something fails
+
+| Symptom | Check and next action |
+| --- | --- |
+| Local page will not open | Docker/cluster running, correct hosts entries, port 8080 and Ingress; do not reinstall the store |
+| ImagePullBackOff or ErrImageNeverPull | Build and import the exact configured tag into urumi-local; inspect Pod events |
+| Gateway not Ready | PostgreSQL Ready, migration/bootstrap Jobs Complete, exact Secret contracts; inspect events before changing anything |
+| AI credit or authentication message | Verify the configured provider/model and protected key; check account credit. Do not paste the key into Chat |
+| AI timeout or temporary outage | One bounded generation retry is automatic. If it still fails, wait and try a read-only question; record the troubleshooting code |
+| A tool failed | Look at tool activity and Servers, refresh health; inspect the store before repeating any write |
+| Orders missing | Check the store date/timezone, filters and pagination. Use 2026-11-14 to inspect preserved order 31 |
+| External client gets 401 | B's own key must be active and B enabled; acceptance test users/keys are disabled/revoked intentionally |
+| Email failed after checkout | Local SMTP is not configured; verify persisted order in Woo admin. This does not mean checkout failed |
+
+Chat shows plain-language failures plus expandable troubleshooting codes. Server logs
+record only a safe error code and completed-call count for chat failures, not prompts,
+results or credentials. Never publish raw environment, Secret, or wire-level logs.
 
 ## Source of truth and project documents
 
@@ -29,6 +175,9 @@ The [original assignment DOCX](docs/source/urumi-mcp-gateway-assignment.docx) is
 | [docs/threat-model.md](docs/threat-model.md) | Required threat analysis, required controls, and separate optional hardening |
 
 ## Final guides
+
+- [Chat reliability and reviewer setup follow-up](docs/reliability-2026-11-15.md)
+- [Interview reference PDF](docs/urumi-interview-reference.pdf) and [editable source](docs/interview-guide.md)
 
 - [Live acceptance and evidence](docs/acceptance.md)
 - [Demo script, Inspector setup and submission checklist](docs/demo.md)
@@ -84,8 +233,8 @@ No upstream MCP or database has a public route.
 
 ## External Secret contracts
 
-Local runtime update (27 October 2026): Helm revision 7 uses OpenRouter model
-`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.1-openrouter`.
+Local runtime update (15 November 2026): Helm revision 8 uses OpenRouter model
+`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.2-readability`.
 Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using the
 same masked-input/in-memory submission process below. Only the local gateway
 mounts it; the existing Gemini Secret is retained but not mounted locally.
@@ -120,7 +269,10 @@ protected Secret-manager interface; construct JSON in memory and submit through
 redirected stdin with explicit context `k3d-urumi-local`, namespace `urumi` and
 create-only semantics. Capture/suppress child output/error. No plaintext files,
 credential CLI arguments, chat disclosure or automatic rotation/replacement.
-Recheck identity/key names only. No new helper was added; the reviewed
+Recheck identity/key names only. Use `py -3.13 scripts/setup-platform-secrets.py check` or `create` for the four
+gateway/PostgreSQL/OpenRouter/service-token contracts. It preserves existing valid
+objects, fails on conflicts and never applies/replaces Secrets. It targets only the
+default local user/database/Service names. The reviewed
 [REST helper](scripts/setup-woocommerce-rest-secret.ps1) remains specific to its
 existing Secret. Review the concrete provisioning operation before entering real values.
 
@@ -161,8 +313,8 @@ An owned-setting conflict must stop acceptance, not weaken validation or patch a
 | Woo MCP | `urumi-woo-mcp:stage8.0` | 50m / 500m | 128Mi / 256Mi |
 | Arithmetic | `urumi-arithmetic-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Store Policy | `urumi-store-policy-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
-| Gateway | `urumi-gateway:stage8.1-openrouter` | 100m / 1000m | 192Mi / 512Mi |
-| Dashboard | `urumi-dashboard:stage7.1` | 25m / 250m | 32Mi / 128Mi |
+| Gateway | `urumi-gateway:stage8.2-readability` | 100m / 1000m | 192Mi / 512Mi |
+| Dashboard | `urumi-dashboard:stage8.2-readability` | 25m / 250m | 32Mi / 128Mi |
 | PostgreSQL | `postgres:18.6-bookworm` pinned below | 100m / 500m | 256Mi / 512Mi |
 | Each gateway Job / init | gateway Stage 8 image | 100m / 500m | 128Mi / 256Mi |
 
@@ -198,7 +350,7 @@ The configuration source is `charts/urumi/values-local.yaml`:
 ```yaml
 platform:
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.1-openrouter, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.2-readability, pullPolicy: Never}
     provider: openrouter
     model: z-ai/glm-5.3-flash
 ```
@@ -214,8 +366,11 @@ Chat follows: browser session identity → live namespaced tool catalog → mode
 request → shared InvocationService → committed audit START → upstream execution →
 audit finalization → normalized result → model answer and safe UI trace. The model
 does not contact WooCommerce directly. Requests use the already-pinned HTTP client;
-timeout is 30 seconds, tool-round limit is five, redirects and automatic retries
-are disabled. OpenRouter provider fallback is disabled. Prompts, tool schemas and
+timeout is 30 seconds per model attempt, with at most one additional model-generation
+attempt for transient timeouts/transport failures or HTTP 429/500/502/503/504. Short
+Retry-After hints are honored; longer hints stop immediately. Tool execution is never
+automatically replayed. The overall chat deadline remains 180 seconds and the tool-round
+limit is five. Redirects are disabled. OpenRouter provider fallback is disabled. Prompts, tool schemas and
 sanitized operational results are sent to OpenRouter and its serving provider;
 do not submit credentials or unnecessary personal data in Chat.
 
@@ -250,9 +405,8 @@ is needed just to build the images.
    Secrets. The committed store helper is `scripts/setup-store-secrets.ps1`; the
    Woo REST helper is `scripts/setup-woocommerce-rest-secret.ps1`. Each supports
    offline `Validate` and explicit `Create`/`Check`. Neither issues Woo REST keys.
-   Stage 8 provider/database/admin provisioning currently has a documented secure
-   procedure, not a committed general-purpose helper; do not substitute plaintext
-   manifests or `--from-literal` credential arguments.
+   Run `py -3.13 scripts/setup-platform-secrets.py create` for the remaining local
+   platform contracts. Do not substitute plaintext manifests or credential arguments.
 5. On a fresh store, obtain the Woo Read/Write REST key from WooCommerce admin
    **after** WordPress is installed. For that first store-only installation, use
    the same chart with `platform.enabled=false`, `wooMcp.enabled=false`,
@@ -266,11 +420,11 @@ is needed just to build the images.
 
    ```powershell
    docker build -t urumi-woo-mcp:stage8.0 apps/woo-mcp
-   docker build -t urumi-gateway:stage8.1-openrouter apps/gateway
-   docker build -t urumi-dashboard:stage7.1 apps/dashboard
+   docker build -t urumi-gateway:stage8.2-readability apps/gateway
+   docker build -t urumi-dashboard:stage8.2-readability apps/dashboard
    docker build -t urumi-arithmetic-mcp:stage6.1 apps/arithmetic-mcp
    docker build -t urumi-store-policy-mcp:stage6.1 apps/store-policy-mcp
-   k3d image import urumi-woo-mcp:stage8.0 urumi-gateway:stage8.1-openrouter urumi-dashboard:stage7.1 urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
+   k3d image import urumi-woo-mcp:stage8.0 urumi-gateway:stage8.2-readability urumi-dashboard:stage8.2-readability urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
    ```
 
 7. Lint/render before deployment. For an existing release also preview against the

@@ -6,6 +6,11 @@ import httpx2
 
 from .chat import SYSTEM, ChatError, Turn
 
+class TransientProviderError(ChatError):
+    def __init__(self, code, delay=1):
+        super().__init__(code)
+        self.delay = delay
+
 
 class OpenRouterProvider:
     def __init__(self, key, model, timeout=30, *, transport=None):
@@ -21,6 +26,17 @@ class OpenRouterProvider:
         await self.client.aclose()
 
     async def turn(self, message, tools, history):
+        # Only repeat model generation, never execution of a returned tool call.
+        # The first failed response has not been exposed to InvocationService.
+        for attempt in range(2):
+            try:
+                return await self._turn_once(message, tools, history)
+            except TransientProviderError as error:
+                if attempt:
+                    raise
+                await asyncio.sleep(error.delay)
+
+    async def _turn_once(self, message, tools, history):
         from .provider import suppress_provider_wire_logs
         suppress_provider_wire_logs()
         try:
@@ -45,6 +61,11 @@ class OpenRouterProvider:
                         code = {401: "PROVIDER_AUTH_FAILED", 403: "PROVIDER_AUTH_FAILED",
                                 402: "PROVIDER_QUOTA", 429: "PROVIDER_RATE_LIMIT"}.get(
                                     response.status_code, "PROVIDER_UNAVAILABLE")
+                        if response.status_code in {429, 500, 502, 503, 504}:
+                            hint = response.headers.get("retry-after", "1")
+                            # Do not retry earlier than a long or unparsed server hint.
+                            if hint.isdecimal() and 0 <= int(hint) <= 2:
+                                raise TransientProviderError(code, int(hint))
                         raise ChatError(code)
                     data = bytearray()
                     async for chunk in response.aiter_bytes():
@@ -88,11 +109,11 @@ class OpenRouterProvider:
                 content["reasoning_details"] = source["reasoning_details"]
             return Turn(text, calls, content)
         except (TimeoutError, httpx2.TimeoutException):
-            raise ChatError("PROVIDER_TIMEOUT") from None
+            raise TransientProviderError("PROVIDER_TIMEOUT") from None
         except ChatError:
             raise
         except httpx2.TransportError:
-            raise ChatError("PROVIDER_UNAVAILABLE") from None
+            raise TransientProviderError("PROVIDER_UNAVAILABLE") from None
         except Exception:
             raise ChatError("PROVIDER_INVALID_RESPONSE") from None
 

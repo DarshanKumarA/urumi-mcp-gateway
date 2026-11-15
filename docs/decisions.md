@@ -1,5 +1,18 @@
 # Decision register
 
+## DEC-036 Chat reliability and reviewer preparation
+
+- Reproduced readable-output defect: Markdown tables were displayed as raw text.
+  Use a small escaped React renderer with no HTML/active links and focused security tests.
+- The supplied generic failure did not identify its cause; 10 baseline calls passed.
+  Add safe diagnostic codes and at most one transient generation retry, never tool replay.
+  Respect long Retry-After hints by returning control; retain outer deadlines and limits.
+- Close the README's platform Secret setup gap using a local create-only masked-input
+  helper with preservation/conflict tests. Do not claim a fresh-machine reproduction.
+- User authorized these improvements and recording preparation. Revision 8 changes
+  only gateway/dashboard images and related jobs; store/PVC/Secret preservation remains required.
+  Validation and residual limits: [follow-up report](reliability-2026-11-15.md).
+
 ## DEC-035 Final external acceptance client
 
 - **Constraint:** The mandatory external flow needs a second user's key and a prompt

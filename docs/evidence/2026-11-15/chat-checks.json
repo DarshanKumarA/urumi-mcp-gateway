@@ -1,0 +1,297 @@
+{
+  "date": "2026-11-15",
+  "release_revision": 8,
+  "before": [
+    {
+      "sample": 1,
+      "prompt": "What orders came in today?",
+      "status": 200,
+      "ms": 4958,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 2,
+      "prompt": "List orders for 2026-11-14.",
+      "status": 200,
+      "ms": 4626,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 3,
+      "prompt": "What orders came in today and what are their total and average values?",
+      "status": 200,
+      "ms": 4624,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 4,
+      "prompt": "Show order 31 in a readable table.",
+      "status": 200,
+      "ms": 4152,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__get_order",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 5,
+      "prompt": "For 2026-11-14 calculate total and average order values using WooCommerce and Arithmetic.",
+      "status": 200,
+      "ms": 7857,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        },
+        {
+          "tool": "arithmetic__sum_amounts",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 6,
+      "prompt": "What orders came in today?",
+      "status": 200,
+      "ms": 3204,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 7,
+      "prompt": "List orders for 2026-11-14.",
+      "status": 200,
+      "ms": 2944,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 8,
+      "prompt": "What orders came in today and what are their total and average values?",
+      "status": 200,
+      "ms": 4785,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 9,
+      "prompt": "Show order 31 in a readable table.",
+      "status": 200,
+      "ms": 3230,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__get_order",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 10,
+      "prompt": "For 2026-11-14 calculate total and average order values using WooCommerce and Arithmetic.",
+      "status": 200,
+      "ms": 8395,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        },
+        {
+          "tool": "arithmetic__sum_amounts",
+          "outcome": "succeeded"
+        }
+      ]
+    }
+  ],
+  "after": [
+    {
+      "sample": 1,
+      "prompt": "What orders came in today?",
+      "status": 200,
+      "ms": 6095,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 2,
+      "prompt": "List orders for 2026-11-14.",
+      "status": 200,
+      "ms": 4505,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 3,
+      "prompt": "What orders came in today and what are their total and average values?",
+      "status": 200,
+      "ms": 4033,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 4,
+      "prompt": "Show order 31 in a readable table.",
+      "status": 200,
+      "ms": 5560,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__get_order",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 5,
+      "prompt": "For 2026-11-14 calculate total and average order values using WooCommerce and Arithmetic.",
+      "status": 200,
+      "ms": 8549,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        },
+        {
+          "tool": "arithmetic__sum_amounts",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 6,
+      "prompt": "What orders came in today?",
+      "status": 200,
+      "ms": 2926,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 7,
+      "prompt": "List orders for 2026-11-14.",
+      "status": 200,
+      "ms": 3049,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 8,
+      "prompt": "What orders came in today and what are their total and average values?",
+      "status": 200,
+      "ms": 4425,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 9,
+      "prompt": "Show order 31 in a readable table.",
+      "status": 200,
+      "ms": 4148,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__get_order",
+          "outcome": "succeeded"
+        }
+      ]
+    },
+    {
+      "sample": 10,
+      "prompt": "For 2026-11-14 calculate total and average order values using WooCommerce and Arithmetic.",
+      "status": 200,
+      "ms": 6784,
+      "error": null,
+      "tools": [
+        {
+          "tool": "woocommerce__list_orders",
+          "outcome": "succeeded"
+        },
+        {
+          "tool": "arithmetic__sum_amounts",
+          "outcome": "succeeded"
+        }
+      ]
+    }
+  ],
+  "external": {
+    "client": "MCP Inspector 2.15.0",
+    "node": "22.23.4",
+    "exit_code": 0,
+    "tools": [
+      "woocommerce__list_orders",
+      "arithmetic__sum_amounts"
+    ],
+    "temporary_key_revoked": true
+  },
+  "storage_unchanged": true,
+  "application_secrets_unchanged": true,
+  "helm_release_metadata_note": "Helm revision 7 release record changed to superseded during revision 8 upgrade; application credential Secrets retained their original identities and contents."
+}

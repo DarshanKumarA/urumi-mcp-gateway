@@ -1,0 +1,2 @@
+# PDF object offsets and whitespace are binary document structure, not source text.
+*.pdf binary

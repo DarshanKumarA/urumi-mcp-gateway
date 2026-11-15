@@ -568,3 +568,17 @@ Validated on 2026-10-21 from clean main at af7bb37; release urumi stayed revisio
   refreshed stale current-status matrices while retaining historical analysis. The
   narrated video and submission are still human deliverables. Real VPS/TLS, multi-store,
   fresh installation, peak capacity and backup restore remain unverified/unattempted.
+
+
+### 15 November 2026 — Reviewer setup and chat usability
+
+The user requested detailed reproduction instructions, external-demo readiness,
+intermittent-error investigation and an interview reference. Ten baseline prompts
+and ten post-upgrade prompts passed; the reported failure rate was not reproduced.
+Fixed raw Markdown presentation, added plain-language diagnostic messages and one
+bounded transient model-generation retry without tool/write replay. Added a tested
+create-only local platform Secret helper and a 15-page interview reference.
+204 gateway, 27 dashboard and 5 helper tests passed; both chart overlays validated.
+Reviewed preview changed only app/job image references and revision names; deployed
+revision 8 with all eight workloads Ready. Existing store/PVCs/Secrets preserved.
+See reliability-2026-11-15.md for the evidence and remaining recording obligations.

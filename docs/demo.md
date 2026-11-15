@@ -9,7 +9,7 @@ and order 31 belong to **14 November 2026**. Preserve historical data.
 
 1. Start the existing Docker Desktop/k3d cluster if stopped. Do not recreate it.
    Confirm context `k3d-urumi-local`, namespace `urumi`, eight workloads Ready, three
-   Bound PVCs, and three Connected upstreams. Current accepted Helm revision is 7.
+   Bound PVCs, and three Connected upstreams. Current Helm revision is 8.
 2. Open `http://gateway.urumi.test:8080` and `http://store.urumi.test:8080`.
    The WordPress administrator is **urumi-admin**; the gateway administrator is
    **urumiadmin**. They have different passwords. Use the existing credential manager
@@ -64,7 +64,8 @@ apps/gateway/.venv/Scripts/python scripts/inspector-demo.py --prompt "For 2026-1
 ```
 
 The helper prints real result/trace JSON, never credentials. It allows only the five
-known read tools, caps tool rounds/calls, and stops on failure without retries. The
+known read tools, caps tool rounds/calls, and stops on tool failure without retries.
+The shared OpenRouter adapter may retry transient model generation once. The
 dashboard retains separate write-capable chat behavior. Claude Code/Cursor compatibility
 is not claimed by the Inspector evidence.
 

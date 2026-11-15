@@ -1,5 +1,8 @@
 # Final local acceptance
 
+This is the original revision-7 acceptance record. The later revision-8 chat/setup
+update and repeat checks are documented in [the follow-up report](reliability-2026-11-15.md).
+
 The mandatory local runtime flow passed on **14 November 2026**, with a member
 dashboard/key and repeatable external-client check on **15 November 2026**.
 The deployed application remains commit `a6665db`, Helm revision **7** in

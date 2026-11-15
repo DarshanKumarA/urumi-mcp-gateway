@@ -2,6 +2,12 @@
 
 ## Current milestone
 
+**15 November follow-up:** Revision **8** now runs the chat/readability update.
+Reviewer setup instructions, create-only Secret helper, safe formatted answers,
+bounded generation retry and interview reference are complete. See
+[the follow-up report](reliability-2026-11-15.md) for test results and limits.
+The revision-7 acceptance below remains a historical baseline; video/submission remain pending.
+
 **15 November 2026 — Mandatory local runtime acceptance passed; video and submission pending.**
 The application remains deployed at Helm revision 7 from `a6665db`. On 14 November,
 A's chat created product 30 (INR 499), guest checkout placed COD order 31, Woo admin

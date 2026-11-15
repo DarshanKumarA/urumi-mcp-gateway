@@ -1,9 +1,11 @@
 # Gateway protocol core and persistent management
 
-Current local runtime: Stage 8.1 OpenRouter image, Helm revision 7. The live core
+Current local runtime: Stage 8.2 readability/OpenRouter image, Helm revision 8. The live core
 acceptance is documented in [the final report](../../docs/acceptance.md); historical
 stage headings below retain their original scope. Run tests from the application
 directory because readiness resolves its Alembic configuration there.
+The [follow-up report](../../docs/reliability-2026-11-15.md) covers bounded provider
+generation retries, safe diagnostics and current regression results.
 
 ## Stage 8.0 deployment contract
 

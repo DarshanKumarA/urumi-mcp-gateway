@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { AnswerContent } from "./AnswerContent";
 import {
   api,
   type Server,
@@ -843,6 +844,12 @@ const chatErrors: Record<string, string> = {
   PROVIDER_RATE_LIMIT: "The model provider is temporarily rate limited.",
   PROVIDER_AUTH_FAILED:
     "The model provider configuration needs administrator attention.",
+  PROVIDER_TIMEOUT: "The AI took too long to respond. Check the tool activity below before trying again; completed changes are not undone.",
+  PROVIDER_UNAVAILABLE: "The AI service is temporarily unavailable. Wait a moment, then try a read-only question. Check any completed changes before repeating them.",
+  PROVIDER_QUOTA: "The AI account has run out of credit or reached its spending limit. Ask your administrator to check OpenRouter billing.",
+  PROVIDER_INVALID_RESPONSE: "The AI returned an incomplete or unreadable response. Review the tool activity before asking again.",
+  CHAT_TIMEOUT: "This request took too long. Review the tool activity and check the store before repeating a change.",
+  REQUEST_FAILED: "The connection to the gateway was interrupted. Check that the local cluster is running. A submitted change may still have completed; inspect the store before repeating it.",
 };
 export function Chat() {
   const [message, setMessage] = useState(""),
@@ -911,7 +918,7 @@ export function Chat() {
               <div className="chat-answer">
                 <small className="eyebrow">URUMI</small>
                 {t.reply.answer && (
-                  <p className="answer-text">{t.reply.answer}</p>
+                  <AnswerContent text={t.reply.answer} />
                 )}
                 {t.reply.error && (
                   <p role="alert" className="error">
@@ -919,6 +926,7 @@ export function Chat() {
                       "The request could not finish. Review any tool activity before submitting again; a write may already have taken effect."}
                   </p>
                 )}
+                {t.reply.error && <details className="error-details"><summary>Details for troubleshooting</summary><code>{t.reply.error}</code></details>}
                 {!!t.reply.trace.length && (
                   <section className="tool-activity" aria-label="Tool activity">
                     <header>

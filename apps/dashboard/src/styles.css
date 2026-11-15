@@ -665,6 +665,18 @@ dialog > p {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+.answer-content { margin: 12px 0 18px; line-height: 1.65; overflow-wrap: anywhere; }
+.answer-content p { margin: 8px 0; white-space: pre-wrap; }
+.answer-content h3 { font-size: 1rem; margin: 18px 0 8px; }
+.answer-content ul { padding-left: 24px; margin: 12px 0; }
+.answer-content li { margin: 5px 0; }
+.answer-content code { background: var(--color-primary-50); padding: 2px 4px; }
+.answer-table { overflow-x: auto; margin: 16px 0; border: 1px solid var(--color-primary-200); border-radius: 6px; }
+.answer-table table { width: 100%; min-width: 380px; border-collapse: collapse; table-layout: auto; }
+.answer-table th { background: var(--color-primary-50); font-weight: 600; text-align: left; }
+.answer-table th, .answer-table td { padding: 12px 16px; min-width: 90px; vertical-align: top; overflow-wrap: normal; border-bottom: 1px solid var(--color-primary-100); }
+.answer-table tbody tr:nth-child(even) { background: var(--color-primary-50); }
+.answer-table tbody tr:last-child td { border-bottom: 0; }
 .tool-activity {
   border: 1px solid var(--color-primary-200);
   border-radius: 4px;

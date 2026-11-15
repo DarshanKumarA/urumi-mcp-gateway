@@ -1,6 +1,7 @@
 """Bounded session chat; every tool execution uses the shared audited gateway service."""
 import asyncio
 import json
+import logging
 import re
 import time
 from dataclasses import dataclass
@@ -125,6 +126,7 @@ class ChatService:
             code=error.code
         except Exception:
             code="CHAT_UNAVAILABLE"
+        logging.getLogger("urumi.chat").warning("chat_failed code=%s completed_calls=%d", code, len(trace))
         return dict(answer="", trace=trace, error=code)
 
 
