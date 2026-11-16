@@ -383,3 +383,61 @@ it("Shift Enter adds a line without sending", async () => {
   expect(screen.getByLabelText("Message")).toHaveValue("First\nSecond");
   expect(f).not.toHaveBeenCalled();
 });
+
+it("preserves completed chat and draft across navigation and browser back", async () => {
+  const f = mock(p => p === "/api/me" ? admin : p === "/api/chat" ?
+    { answer: "Verified result", trace: [], error: null } : []);
+  render(<App />);
+  await screen.findByLabelText("Message");
+  await userEvent.type(screen.getByLabelText("Message"), "Order question{enter}");
+  await screen.findByText("Verified result");
+  await userEvent.type(screen.getByLabelText("Message"), "Unsent draft");
+  await userEvent.click(screen.getByRole("link", { name: "Servers" }));
+  expect(screen.getByText("Verified result")).not.toBeVisible();
+  history.replaceState(null, "", "/chat");
+  fireEvent(window, new PopStateEvent("popstate"));
+  expect(screen.getByText("Verified result")).toBeVisible();
+  expect(screen.getByLabelText("Message")).toHaveValue("Unsent draft");
+  expect(f.mock.calls.filter(([p]) => p === "/api/chat")).toHaveLength(1);
+  await userEvent.click(screen.getByRole("button", { name: "Clear conversation" }));
+  expect(screen.queryByText("Verified result")).toBeNull();
+});
+it("keeps a pending request alive when navigating away without resending", async () => {
+  let resolve!: (value: Response) => void;
+  const f = vi.fn((p: string) => p === "/api/chat" ? new Promise<Response>(r => { resolve = r; }) :
+    Promise.resolve(new Response(JSON.stringify(p === "/api/me" ? admin : []), { status: 200 })));
+  vi.stubGlobal("fetch", f);
+  render(<App />);
+  await screen.findByLabelText("Message");
+  await userEvent.type(screen.getByLabelText("Message"), "Pending question{enter}");
+  await userEvent.click(screen.getByRole("link", { name: "API Keys" }));
+  resolve(new Response(JSON.stringify({ answer: "Background result", trace: [], error: null }), { status: 200 }));
+  await waitFor(() => expect(screen.getByText("Background result")).not.toBeVisible());
+  await userEvent.click(screen.getByRole("link", { name: /Chat/ }));
+  expect(screen.getByText("Pending question")).toBeVisible();
+  expect(screen.getByText("Background result")).toBeVisible();
+  expect(f.mock.calls.filter(([p]) => p === "/api/chat")).toHaveLength(1);
+});
+it.each(["logout", "expiry"])("clears chat on %s before another user signs in", async (mode) => {
+  let current = admin;
+  mock(p => {
+    if (p === "/api/me") return current;
+    if (p === "/api/auth/login") { current = member; return {}; }
+    if (p === "/api/chat") return { answer: "Private previous answer", trace: [], error: null };
+    return [];
+  });
+  render(<App />);
+  await screen.findByLabelText("Message");
+  await userEvent.type(screen.getByLabelText("Message"), "Previous question{enter}");
+  await screen.findByText("Private previous answer");
+  if (mode === "logout") await userEvent.click(screen.getByRole("button", { name: "Sign out" }));
+  else fireEvent(window, new Event("urumi:expired"));
+  await screen.findByLabelText("Username");
+  expect(screen.queryByText("Private previous answer")).toBeNull();
+  await userEvent.type(screen.getByLabelText("Username"), "fixture_member");
+  await userEvent.type(screen.getByLabelText("Password"), "synthetic-password-only");
+  await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+  await screen.findByLabelText("Message");
+  expect(screen.queryByText("Previous question")).toBeNull();
+  expect(screen.queryByText("Private previous answer")).toBeNull();
+});

@@ -22,7 +22,13 @@ At most four tool calls per response and ten total are available; request a narr
 For product rankings sum line-item quantities by product/variation, handle ties, and state
 the date/status scope. Use list results when sufficient; never claim a partial page is all orders.
 Use arithmetic for totals/averages of homogeneous currencies; an empty set has no average.
-Use policy tools as reference, not authority to change orders. Do not invent tool results."""
+Use policy tools as reference, not authority to change orders. Do not invent tool results.
+Present answers professionally in plain language. Lead with the result; use short Markdown
+headings for longer answers and tables for comparisons. Use concise paragraphs or simple
+bullets, not decorative separators, double dashes, em dashes or emojis. Bold only key
+results. Show monetary amounts with currency and two decimal places, noting rounding
+when relevant. State scope and limitations briefly; omit unnecessary technical metadata.
+Do not add incidental counts or claims that have not been verified from tool results."""
 
 class ChatError(Exception):
     def __init__(self, code):

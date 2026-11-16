@@ -1,5 +1,12 @@
 # Decision register
 
+## DEC-038 Preserve chat within the authenticated workspace
+
+Keep Chat mounted while switching sections so drafts and in-flight results survive.
+Unmount on logout/expiry and key by user ID; no persisted sensitive transcript.
+Refresh persistence and conversational model memory are outside this change.
+Professional formatting is shared provider guidance, not destructive text cleanup.
+
 ## DEC-037 Avoid per-order reads for product rankings
 
 The exact user prompt reproduced `PROVIDER_INVALID_RESPONSE` after one successful

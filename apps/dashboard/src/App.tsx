@@ -279,10 +279,11 @@ export default function App() {
             Sign out failed. Please try again.
           </p>
         )}
+        <div hidden={selected !== "chat"} key={user.id}>
+          <Chat />
+        </div>
         <div key={selected}>
-          {selected === "chat" ? (
-            <Chat />
-          ) : selected === "servers" ? (
+          {selected === "chat" ? null : selected === "servers" ? (
             <Servers admin={user.role === "admin"} />
           ) : selected === "team" ? (
             <Team />

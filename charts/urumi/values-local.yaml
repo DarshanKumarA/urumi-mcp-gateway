@@ -54,13 +54,13 @@ platform:
   postgres:
     storageClass: local-path
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.4-order-analysis, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.5-chat-continuity, pullPolicy: Never}
     provider: openrouter
     model: z-ai/glm-5.3-flash
     environment: local
     secureCookie: false
   dashboard:
-    image: {repository: urumi-dashboard, tag: stage8.4-order-analysis, pullPolicy: Never}
+    image: {repository: urumi-dashboard, tag: stage8.5-chat-continuity, pullPolicy: Never}
   ingress:
     host: gateway.urumi.test
     tls: {enabled: false, secretName: ""}

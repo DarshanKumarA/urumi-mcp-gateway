@@ -599,3 +599,24 @@ Over-budget batches now have explicit guidance. Three live repetitions succeeded
 with Woo → Arithmetic; independent quantities/Decimal totals matched.
 356 relevant tests pass; all eight workloads ready; application Secrets/PVCs preserved.
 See [diagnosis and limitations](order-analysis-2026-11-16.md).
+
+## 16 November — chat continuity and professional answers
+
+Chat stays mounted and hidden when another section is selected. Completed turns,
+drafts and in-flight replies survive section navigation, including popstate navigation,
+without resubmission. Sign-out/session expiry unmount the workspace and clear history;
+the component is also keyed by user ID. No browser storage or backend history is added.
+Refresh/tab closure still clears chat, and each submitted message remains independent
+for model context. Existing Clear conversation removes displayed turns.
+
+The shared answer instructions request result-first prose, short headings, comparison
+tables, currency formatting and no decorative dash separators or emojis. This is
+model guidance, not a guaranteed output schema; tool values are never rewritten.
+
+Validation: 33 dashboard tests (navigation/draft, background completion, clear, logout
+and expiry isolation included), 28 gateway chat tests and TypeScript/Vite build pass.
+Revision **11** deployed; all eight workloads ready. Live read-only answer returned
+a leading result, comparison table and INR 532.33 average with no decorative separators
+or emojis, but one em dash remained. Formatting is guidance, not a strict guarantee.
+Application Secrets/PVCs unchanged. Navigation validated in automated UI tests;
+a manual browser navigation check was not repeated for this release.
