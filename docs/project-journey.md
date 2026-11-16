@@ -582,3 +582,11 @@ create-only local platform Secret helper and a 15-page interview reference.
 Reviewed preview changed only app/job image references and revision names; deployed
 revision 8 with all eight workloads Ready. Existing store/PVCs/Secrets preserved.
 See reliability-2026-11-15.md for the evidence and remaining recording obligations.
+
+
+### 16 November 2026 — Immediate chat submission
+
+Chat now displays the submitted message before the model request completes and updates
+that same entry on success or failure. Enter sends; Shift+Enter inserts a newline;
+IME composition is respected. All 29 dashboard tests pass, including pending-message
+and keyboard regression checks. Dashboard image stage8.3-chat-input is used by revision 9.

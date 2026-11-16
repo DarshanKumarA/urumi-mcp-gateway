@@ -2,6 +2,10 @@
 
 ## Current milestone
 
+**16 November:** Revision 9 updates only the dashboard image for immediate pending
+messages, Enter to send and Shift+Enter for newlines. All 29 dashboard tests and
+the production build pass. The earlier revision-8 results below remain historical.
+
 **15 November follow-up:** Revision **8** now runs the chat/readability update.
 Reviewer setup instructions, create-only Secret helper, safe formatted answers,
 bounded generation retry and interview reference are complete. See

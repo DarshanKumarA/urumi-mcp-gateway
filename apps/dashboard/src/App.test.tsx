@@ -362,3 +362,24 @@ it("statuses include text and do not rely on color", () => {
   render(<Status value="disabled" />);
   expect(screen.getByText("Disabled")).toBeVisible();
 });
+
+it("shows submitted text while pending and sends with Enter", async () => {
+  let resolve!: (value: Response) => void;
+  const f = vi.spyOn(globalThis, "fetch").mockImplementation(() => new Promise(r => { resolve = r; }));
+  render(<Chat />);
+  await userEvent.type(screen.getByLabelText("Message"), "Pending order question{enter}");
+  expect(screen.getByText("Pending order question")).toBeVisible();
+  expect(screen.getByRole("status")).toHaveTextContent("Working");
+  expect(f).toHaveBeenCalledTimes(1);
+  resolve(new Response(JSON.stringify({ answer: "Finished", trace: [], error: null }), { status: 200 }));
+  await screen.findByText("Finished");
+  expect(screen.getAllByText("Pending order question")).toHaveLength(1);
+});
+
+it("Shift Enter adds a line without sending", async () => {
+  const f = mock(() => ({}));
+  render(<Chat />);
+  await userEvent.type(screen.getByLabelText("Message"), "First{shift>}{enter}{/shift}Second");
+  expect(screen.getByLabelText("Message")).toHaveValue("First\nSecond");
+  expect(f).not.toHaveBeenCalled();
+});

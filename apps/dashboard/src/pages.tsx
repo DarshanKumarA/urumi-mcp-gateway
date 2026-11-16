@@ -860,17 +860,13 @@ export function Chat() {
     const text = message.trim();
     setBusy(true);
     setMessage("");
+    setTurns((t) => [...t, { message: text, reply: { answer: "", trace: [], error: null } }]);
+    const finish = (reply: Answer) => setTurns((t) => t.map((turn, i) => i === t.length - 1 ? { ...turn, reply } : turn));
     try {
       const reply = await api<Answer>("/chat", { message: text });
-      setTurns((t) => [...t, { message: text, reply }]);
+      finish(reply);
     } catch {
-      setTurns((t) => [
-        ...t,
-        {
-          message: text,
-          reply: { answer: "", trace: [], error: "REQUEST_FAILED" },
-        },
-      ]);
+      finish({ answer: "", trace: [], error: "REQUEST_FAILED" });
     } finally {
       setBusy(false);
     }
@@ -971,12 +967,18 @@ export function Chat() {
             disabled={busy}
             placeholder="Ask about orders, products, policies…"
             onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void send();
+              }
+            }}
           />
           <button className="primary" disabled={busy || !message.trim()}>
             {busy ? "Working…" : "Send"}
           </button>
           <small>
-            Each message is independent. Tool calls are attributed to you and
+            Enter to send; Shift+Enter for a new line. Each message is independent. Tool calls are attributed to you and
             audited. Requested changes can modify store data.
           </small>
         </form>

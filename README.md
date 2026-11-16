@@ -2,14 +2,14 @@
 
 This repository is for the Urumi AI FDE internship assignment: run a WooCommerce store on Kubernetes, write its MCP server, aggregate at least three upstream MCP servers through a team gateway, and provide a React dashboard with a chat agent that uses the gateway as the logged-in user.
 
-**Current state (15 November 2026):** The local core passed its live acceptance
+**Current state (16 November 2026):** The local core passed its live acceptance
 flow on 14 November, followed by member dashboard key creation/revocation and a
 repeatable external prompt check on 15 November. Product **30** and COD order **31**
 are real demo data; User A chat and User B's MCP Inspector calls both composed
 WooCommerce with Arithmetic. Revocation, disabled catalogs, upstream failure/recovery,
 audit attribution, network isolation and PostgreSQL/gateway replacement were verified.
-The original **382-test** acceptance baseline passed; the follow-up has **204 gateway** and **27 dashboard** tests plus **5 secret-setup** tests passing. The application now runs at
-Helm revision **8** after the tested chat/readability update, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
+The original **382-test** acceptance baseline passed; the follow-up has **204 gateway** and **29 dashboard** tests plus **5 secret-setup** tests passing. The application now runs at
+Helm revision **9** after the tested chat/readability update, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
 **Video recording and form submission remain pending.** No real VPS, TLS or multi-store
 deployment is claimed. See [dated acceptance and limits](docs/acceptance.md).
 
@@ -314,7 +314,7 @@ An owned-setting conflict must stop acceptance, not weaken validation or patch a
 | Arithmetic | `urumi-arithmetic-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Store Policy | `urumi-store-policy-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Gateway | `urumi-gateway:stage8.2-readability` | 100m / 1000m | 192Mi / 512Mi |
-| Dashboard | `urumi-dashboard:stage8.2-readability` | 25m / 250m | 32Mi / 128Mi |
+| Dashboard | `urumi-dashboard:stage8.3-chat-input` | 25m / 250m | 32Mi / 128Mi |
 | PostgreSQL | `postgres:18.6-bookworm` pinned below | 100m / 500m | 256Mi / 512Mi |
 | Each gateway Job / init | gateway Stage 8 image | 100m / 500m | 128Mi / 256Mi |
 
@@ -421,10 +421,10 @@ is needed just to build the images.
    ```powershell
    docker build -t urumi-woo-mcp:stage8.0 apps/woo-mcp
    docker build -t urumi-gateway:stage8.2-readability apps/gateway
-   docker build -t urumi-dashboard:stage8.2-readability apps/dashboard
+   docker build -t urumi-dashboard:stage8.3-chat-input apps/dashboard
    docker build -t urumi-arithmetic-mcp:stage6.1 apps/arithmetic-mcp
    docker build -t urumi-store-policy-mcp:stage6.1 apps/store-policy-mcp
-   k3d image import urumi-woo-mcp:stage8.0 urumi-gateway:stage8.2-readability urumi-dashboard:stage8.2-readability urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
+   k3d image import urumi-woo-mcp:stage8.0 urumi-gateway:stage8.2-readability urumi-dashboard:stage8.3-chat-input urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
    ```
 
 7. Lint/render before deployment. For an existing release also preview against the

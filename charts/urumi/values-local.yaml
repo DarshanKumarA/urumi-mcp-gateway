@@ -60,7 +60,7 @@ platform:
     environment: local
     secureCookie: false
   dashboard:
-    image: {repository: urumi-dashboard, tag: stage8.2-readability, pullPolicy: Never}
+    image: {repository: urumi-dashboard, tag: stage8.3-chat-input, pullPolicy: Never}
   ingress:
     host: gateway.urumi.test
     tls: {enabled: false, secretName: ""}
