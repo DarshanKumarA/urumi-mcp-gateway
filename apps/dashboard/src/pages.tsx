@@ -914,6 +914,15 @@ export function Chat() {
               </div>
               <div className="chat-answer">
                 <small className="eyebrow">URUMI</small>
+                {busy && i === turns.length - 1 && (
+                  <div className="typing-indicator" role="status">
+                    <span className="typing-bubble" aria-hidden="true">
+                      <span /><span /><span />
+                    </span>
+                    <span className="typing-caption" aria-hidden="true">Preparing your reply</span>
+                    <span className="sr-only">Working through your tools…</span>
+                  </div>
+                )}
                 {t.reply.answer && (
                   <AnswerContent text={t.reply.answer} />
                 )}
@@ -944,11 +953,6 @@ export function Chat() {
               </div>
             </article>
           ))}
-          {busy && (
-            <p className="thinking" role="status">
-              Working through your tools…
-            </p>
-          )}
         </div>
         <form
           className="composer"

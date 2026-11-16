@@ -620,3 +620,13 @@ a leading result, comparison table and INR 532.33 average with no decorative sep
 or emojis, but one em dash remained. Formatting is guidance, not a strict guarantee.
 Application Secrets/PVCs unchanged. Navigation validated in automated UI tests;
 a manual browser navigation check was not repeated for this release.
+
+### 16 November — typing indicator
+
+Revision **12** updates only the dashboard image to stage8.6-typing. A soft teal
+three-dot bubble appears inside the pending URUMI reply, replacing the plain loading
+line. Staggered CSS motion respects prefers-reduced-motion; screen readers receive
+a static status message. Completion/error removes the indicator through existing busy
+state. All 33 dashboard tests and TypeScript/Vite build pass. No new dependencies,
+provider calls, data persistence or tool behavior changes. Animation appearance has
+not been manually browser-verified in this release.

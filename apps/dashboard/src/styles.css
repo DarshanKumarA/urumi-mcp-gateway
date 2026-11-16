@@ -739,10 +739,40 @@ dialog > p {
   font-size: 0.7rem;
   color: var(--color-primary-600);
 }
-.thinking {
-  color: var(--color-primary-600);
-  font-size: 0.8rem;
-  padding: 12px;
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 64px;
+  height: 38px;
+  border: 1px solid var(--color-accent-200);
+  border-radius: 14px 14px 14px 4px;
+  background: var(--color-accent-50);
+}
+.typing-bubble > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-accent-700);
+  animation: typing-dot 1.4s ease-in-out infinite;
+}
+.typing-bubble > span:nth-child(2) { animation-delay: 0.16s; }
+.typing-bubble > span:nth-child(3) { animation-delay: 0.32s; }
+.typing-caption { color: var(--color-primary-600); font-size: 0.8rem; }
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-bubble > span { animation: none; opacity: 0.75; }
 }
 .sr-only {
   position: absolute;

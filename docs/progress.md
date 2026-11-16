@@ -2,6 +2,16 @@
 
 ## Current milestone
 
+### 16 November — typing indicator
+
+Revision **12** updates only the dashboard image to stage8.6-typing. A soft teal
+three-dot bubble appears inside the pending URUMI reply, replacing the plain loading
+line. Staggered CSS motion respects prefers-reduced-motion; screen readers receive
+a static status message. Completion/error removes the indicator through existing busy
+state. All 33 dashboard tests and TypeScript/Vite build pass. No new dependencies,
+provider calls, data persistence or tool behavior changes. Animation appearance has
+not been manually browser-verified in this release.
+
 ### 16 November — chat continuity and professional answers
 
 Chat stays mounted and hidden when another section is selected. Completed turns,

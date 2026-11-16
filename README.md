@@ -233,7 +233,7 @@ No upstream MCP or database has a public route.
 
 ## External Secret contracts
 
-Local runtime update (16 November 2026): Helm revision 11 uses OpenRouter model
+Local runtime update (16 November 2026): Helm revision 12 uses OpenRouter model
 `z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.5-chat-continuity`.
 Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using the
 same masked-input/in-memory submission process below. Only the local gateway
@@ -314,7 +314,7 @@ An owned-setting conflict must stop acceptance, not weaken validation or patch a
 | Arithmetic | `urumi-arithmetic-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Store Policy | `urumi-store-policy-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Gateway | `urumi-gateway:stage8.5-chat-continuity` | 100m / 1000m | 192Mi / 512Mi |
-| Dashboard | `urumi-dashboard:stage8.5-chat-continuity` | 25m / 250m | 32Mi / 128Mi |
+| Dashboard | `urumi-dashboard:stage8.6-typing` | 25m / 250m | 32Mi / 128Mi |
 | PostgreSQL | `postgres:18.6-bookworm` pinned below | 100m / 500m | 256Mi / 512Mi |
 | Each gateway Job / init | gateway Stage 8 image | 100m / 500m | 128Mi / 256Mi |
 
@@ -421,10 +421,10 @@ is needed just to build the images.
    ```powershell
    docker build -t urumi-woo-mcp:stage8.4-order-analysis apps/woo-mcp
    docker build -t urumi-gateway:stage8.5-chat-continuity apps/gateway
-   docker build -t urumi-dashboard:stage8.5-chat-continuity apps/dashboard
+   docker build -t urumi-dashboard:stage8.6-typing apps/dashboard
    docker build -t urumi-arithmetic-mcp:stage6.1 apps/arithmetic-mcp
    docker build -t urumi-store-policy-mcp:stage6.1 apps/store-policy-mcp
-   k3d image import urumi-woo-mcp:stage8.4-order-analysis urumi-gateway:stage8.5-chat-continuity urumi-dashboard:stage8.5-chat-continuity urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
+   k3d image import urumi-woo-mcp:stage8.4-order-analysis urumi-gateway:stage8.5-chat-continuity urumi-dashboard:stage8.6-typing urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
    ```
 
 7. Lint/render before deployment. For an existing release also preview against the
