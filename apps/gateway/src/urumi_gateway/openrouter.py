@@ -83,8 +83,10 @@ class OpenRouterProvider:
             if not isinstance(text, str):
                 raise ChatError("PROVIDER_INVALID_RESPONSE")
             raw_calls = source.get("tool_calls") or []
-            if not isinstance(raw_calls, list) or len(raw_calls) > 4:
+            if not isinstance(raw_calls, list):
                 raise ChatError("PROVIDER_INVALID_RESPONSE")
+            if len(raw_calls) > 4:
+                raise ChatError("CHAT_CALL_LIMIT")
             calls, wire_calls, ids = [], [], set()
             for call in raw_calls:
                 ident, function = call["id"], call["function"]

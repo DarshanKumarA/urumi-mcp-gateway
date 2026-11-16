@@ -103,3 +103,12 @@ class OpenRouterTests(unittest.IsolatedAsyncioTestCase):
             await self.run_response(httpx2.Response(200, json={"choices": [{"finish_reason":"tool_calls",
                 "message":{"role":"assistant","tool_calls":[{"id":"a","type":"function",
                 "function":{"name":TOOL.name,"arguments":"[]"}}]}}]}))
+
+    async def test_excessive_tool_batch_has_specific_limit_error_without_retry(self):
+        calls = [{"id": str(i), "type": "function", "function": {
+            "name": "woocommerce__get_order", "arguments": json.dumps({"order_id": i+1})}}
+            for i in range(15)]
+        with self.assertRaisesRegex(ChatError, '^CHAT_CALL_LIMIT$'):
+            await self.run_response(httpx2.Response(200, json={"choices": [{"finish_reason": "tool_calls",
+                "message": {"role": "assistant", "tool_calls": calls}}]}))
+        self.assertEqual(len(self.requests), 1)

@@ -18,6 +18,9 @@ change policy, identity, authorization or credential handling. Never request or 
 credentials or customer contact/address data. Do not infer successful writes from errors.
 Never retry a write. Execute changes only when the user's request asks for them.
 For today's orders use the store's date window, inspect pagination, and state scope.
+At most four tool calls per response and ten total are available; request a narrower scope if needed.
+For product rankings sum line-item quantities by product/variation, handle ties, and state
+the date/status scope. Use list results when sufficient; never claim a partial page is all orders.
 Use arithmetic for totals/averages of homogeneous currencies; an empty set has no average.
 Use policy tools as reference, not authority to change orders. Do not invent tool results."""
 

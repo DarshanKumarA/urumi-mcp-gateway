@@ -157,14 +157,31 @@ class OrderClientTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(r.method, "GET")
             self.assertEqual(r.url.path, "/wp-json/wc/v3/orders")
             self.assertEqual(dict(r.url.params), dict(page="1", per_page="20",
-                _fields="id,status,date_created_gmt,currency,total,payment_method"))
+                _fields="id,status,date_created_gmt,currency,total,payment_method,line_items"))
             return httpx.Response(200, json=[ORDER], headers=HEADERS)
         result = await self.request(handler)
         self.assertIsNone(result.date_window)
         self.assertFalse(result.has_more)
         self.assertEqual(set(result.items[0].model_dump()),
-                         {"id", "status", "created_at", "currency", "total", "payment_method"})
+                         {"id", "status", "created_at", "currency", "total", "payment_method", "line_items"})
         assert_private_absent(self, result.model_dump_json())
+
+    async def test_list_product_quantities_are_allowlisted(self):
+        data = copy.deepcopy(ORDER)
+        data["line_items"][0].update(PRIVATE)
+        data["line_items"][0].update(quantity=7, variation_id=23)
+        result = await self.request(lambda r: httpx.Response(200, json=[data], headers=HEADERS))
+        self.assertEqual(result.items[0].line_items[0].model_dump(),
+                         {"product_id": 11, "variation_id": 23, "name": "Urumi Demo Mug", "quantity": 7})
+        assert_private_absent(self, result.model_dump_json())
+
+    async def test_list_rejects_missing_or_invalid_quantities(self):
+        for lines in (None, {}, [{"product_id": 11, "variation_id": 0, "name": "Mug", "quantity": "2"}],
+                      [{"product_id": 11, "variation_id": True, "name": "Mug", "quantity": 2}]):
+            with self.subTest(lines=lines), self.assertRaisesRegex(WooError, "WOO_INVALID_RESPONSE"):
+                await self.request(lambda r: httpx.Response(200, json=[{**ORDER, "line_items": lines}], headers=HEADERS))
+        result = await self.request(lambda r: httpx.Response(200, json=[{**ORDER, "line_items": []}], headers=HEADERS))
+        self.assertEqual(result.items[0].line_items, [])
 
     async def test_statuses_and_pagination(self):
         for status in get_args(OrderStatus):

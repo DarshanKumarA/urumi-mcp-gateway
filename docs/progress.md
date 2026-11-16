@@ -2,6 +2,17 @@
 
 ## Current milestone
 
+### 16 November — confirmed order-ranking failure fixed
+
+Revision **10** adds compact product quantities to list_orders, eliminating the
+15-detail-call fan-out that triggered a misleading provider response error.
+Over-budget batches now have explicit guidance. Three live repetitions succeeded
+with Woo → Arithmetic; independent quantities/Decimal totals matched.
+356 relevant tests pass; all eight workloads ready; application Secrets/PVCs preserved.
+See [diagnosis and limitations](order-analysis-2026-11-16.md).
+
+## Earlier milestone evidence
+
 **16 November:** Revision 9 updates only the dashboard image for immediate pending
 messages, Enter to send and Shift+Enter for newlines. All 29 dashboard tests and
 the production build pass. The earlier revision-8 results below remain historical.

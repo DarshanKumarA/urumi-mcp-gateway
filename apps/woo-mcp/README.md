@@ -264,6 +264,9 @@ Order status accepts pending, processing, on-hold, completed, cancelled, refunde
 failed. Date accepts only today or a valid YYYY-MM-DD. Omitted date sends no date
 filter and returns date_window=null. No arbitrary URL/parameter passthrough.
 OrderSummary contains id/status/created_at/currency/total/payment_method.
+ListedOrder adds compact line_items (product_id, variation_id, name, quantity)
+so product rankings can use one paginated list rather than get_order for each order.
+Only these four line-item fields are exposed; nested metadata is excluded.
 OrderDetail adds line_items/shipping_lines/shipping_total/tax_total.
 Line items allow only product_id/variation_id/name/sku/quantity/unit_price/subtotal/total;
 shipping lines only method_id/method_title/total. Zero variation_id becomes null;

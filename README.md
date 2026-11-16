@@ -233,8 +233,8 @@ No upstream MCP or database has a public route.
 
 ## External Secret contracts
 
-Local runtime update (15 November 2026): Helm revision 8 uses OpenRouter model
-`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.2-readability`.
+Local runtime update (16 November 2026): Helm revision 10 uses OpenRouter model
+`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.4-order-analysis`.
 Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using the
 same masked-input/in-memory submission process below. Only the local gateway
 mounts it; the existing Gemini Secret is retained but not mounted locally.
@@ -310,11 +310,11 @@ An owned-setting conflict must stop acceptance, not weaken validation or patch a
 
 | Workload | Local tag | CPU request / limit | Memory request / limit |
 | --- | --- | --- | --- |
-| Woo MCP | `urumi-woo-mcp:stage8.0` | 50m / 500m | 128Mi / 256Mi |
+| Woo MCP | `urumi-woo-mcp:stage8.4-order-analysis` | 50m / 500m | 128Mi / 256Mi |
 | Arithmetic | `urumi-arithmetic-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Store Policy | `urumi-store-policy-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
-| Gateway | `urumi-gateway:stage8.2-readability` | 100m / 1000m | 192Mi / 512Mi |
-| Dashboard | `urumi-dashboard:stage8.3-chat-input` | 25m / 250m | 32Mi / 128Mi |
+| Gateway | `urumi-gateway:stage8.4-order-analysis` | 100m / 1000m | 192Mi / 512Mi |
+| Dashboard | `urumi-dashboard:stage8.4-order-analysis` | 25m / 250m | 32Mi / 128Mi |
 | PostgreSQL | `postgres:18.6-bookworm` pinned below | 100m / 500m | 256Mi / 512Mi |
 | Each gateway Job / init | gateway Stage 8 image | 100m / 500m | 128Mi / 256Mi |
 
@@ -350,7 +350,7 @@ The configuration source is `charts/urumi/values-local.yaml`:
 ```yaml
 platform:
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.2-readability, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.4-order-analysis, pullPolicy: Never}
     provider: openrouter
     model: z-ai/glm-5.3-flash
 ```
@@ -419,12 +419,12 @@ is needed just to build the images.
    exist and their identities have been verified):
 
    ```powershell
-   docker build -t urumi-woo-mcp:stage8.0 apps/woo-mcp
-   docker build -t urumi-gateway:stage8.2-readability apps/gateway
-   docker build -t urumi-dashboard:stage8.3-chat-input apps/dashboard
+   docker build -t urumi-woo-mcp:stage8.4-order-analysis apps/woo-mcp
+   docker build -t urumi-gateway:stage8.4-order-analysis apps/gateway
+   docker build -t urumi-dashboard:stage8.4-order-analysis apps/dashboard
    docker build -t urumi-arithmetic-mcp:stage6.1 apps/arithmetic-mcp
    docker build -t urumi-store-policy-mcp:stage6.1 apps/store-policy-mcp
-   k3d image import urumi-woo-mcp:stage8.0 urumi-gateway:stage8.2-readability urumi-dashboard:stage8.3-chat-input urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
+   k3d image import urumi-woo-mcp:stage8.4-order-analysis urumi-gateway:stage8.4-order-analysis urumi-dashboard:stage8.4-order-analysis urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
    ```
 
 7. Lint/render before deployment. For an existing release also preview against the
@@ -521,3 +521,10 @@ overlap optional hardening; their exact implementation/limits are listed in the
 App contracts: [gateway](apps/gateway/README.md), [dashboard](apps/dashboard/README.md),
 [Woo](apps/woo-mcp/README.md), [Arithmetic](apps/arithmetic-mcp/README.md),
 [Policy](apps/store-policy-mcp/README.md).
+
+### Product-ranking chat diagnosis
+
+Order lists include compact product quantities so ranking questions do not require
+a separate request per order. If `CHAT_CALL_LIMIT` appears, narrow the date/status
+scope; completed tool activity remains visible. [Live diagnosis and verification](docs/order-analysis-2026-11-16.md)
+records the reproduced failure, deployed correction and remaining limits.

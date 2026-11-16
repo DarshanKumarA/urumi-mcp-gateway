@@ -143,6 +143,17 @@ class OrderSummary(StrictModel):
     payment_method: Annotated[str, Field(max_length=100)]
 
 
+class OrderProduct(StrictModel):
+    product_id: Annotated[int, Field(strict=True, ge=0)]
+    variation_id: Annotated[int, Field(strict=True, gt=0)] | None
+    name: Annotated[str, Field(max_length=200)]
+    quantity: Annotated[int, Field(strict=True, gt=0)]
+
+
+class ListedOrder(OrderSummary):
+    line_items: list[OrderProduct]
+
+
 class OrderLine(StrictModel):
     product_id: Annotated[int, Field(ge=0)]
     variation_id: Annotated[int, Field(gt=0)] | None
@@ -175,7 +186,7 @@ class OrderDateWindow(StrictModel):
 
 
 class OrderCollection(StrictModel):
-    items: list[OrderSummary]
+    items: list[ListedOrder]
     page: Page
     per_page: PageSize
     total: Annotated[int, Field(ge=0)]

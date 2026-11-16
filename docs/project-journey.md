@@ -590,3 +590,12 @@ Chat now displays the submitted message before the model request completes and u
 that same entry on success or failure. Enter sends; Shift+Enter inserts a newline;
 IME composition is respected. All 29 dashboard tests pass, including pending-message
 and keyboard regression checks. Dashboard image stage8.3-chat-input is used by revision 9.
+
+## 16 November — confirmed order-ranking failure fixed
+
+Revision **10** adds compact product quantities to list_orders, eliminating the
+15-detail-call fan-out that triggered a misleading provider response error.
+Over-budget batches now have explicit guidance. Three live repetitions succeeded
+with Woo → Arithmetic; independent quantities/Decimal totals matched.
+356 relevant tests pass; all eight workloads ready; application Secrets/PVCs preserved.
+See [diagnosis and limitations](order-analysis-2026-11-16.md).

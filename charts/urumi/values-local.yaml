@@ -23,7 +23,7 @@ wooMcp:
   enabled: true
   image:
     repository: urumi-woo-mcp
-    tag: stage8.0
+    tag: stage8.4-order-analysis
     # Later import this exact local build into k3d before the authorized upgrade.
     pullPolicy: Never
   config:
@@ -54,13 +54,13 @@ platform:
   postgres:
     storageClass: local-path
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.2-readability, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.4-order-analysis, pullPolicy: Never}
     provider: openrouter
     model: z-ai/glm-5.3-flash
     environment: local
     secureCookie: false
   dashboard:
-    image: {repository: urumi-dashboard, tag: stage8.3-chat-input, pullPolicy: Never}
+    image: {repository: urumi-dashboard, tag: stage8.4-order-analysis, pullPolicy: Never}
   ingress:
     host: gateway.urumi.test
     tls: {enabled: false, secretName: ""}

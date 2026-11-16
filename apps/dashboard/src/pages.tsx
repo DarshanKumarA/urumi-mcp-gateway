@@ -841,6 +841,7 @@ const chatErrors: Record<string, string> = {
     "A tool did not complete successfully. No automatic retry was made. A write may have an unknown outcome; inspect its current state before trying again.",
   CHAT_ROUND_LIMIT:
     "The tool-round limit was reached. Review the activity before continuing.",
+  CHAT_CALL_LIMIT: "This question needs more tool calls than allowed. Try a narrower date range or fewer orders. Review completed activity before repeating any change.",
   PROVIDER_RATE_LIMIT: "The model provider is temporarily rate limited.",
   PROVIDER_AUTH_FAILED:
     "The model provider configuration needs administrator attention.",

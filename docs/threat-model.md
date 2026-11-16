@@ -1,5 +1,11 @@
 # Threat model draft
 
+## 16 November order-list projection
+
+Product identity, name and quantity are explicitly projected from REST line items.
+Nested metadata, customer contacts, addresses and arbitrary fields remain excluded.
+Existing response-size, pagination and tool-execution limits are unchanged.
+
 Current implemented controls and residual risks are summarized in [security-summary.md](security-summary.md), with dated live evidence in [acceptance.md](acceptance.md). Earlier draft and milestone sections below are historical; their pending statements are scoped to those dates. No comprehensive hardening, VPS/TLS or prompt-injection immunity is claimed.
 
 ## OpenRouter provider boundary — 27 October 2026

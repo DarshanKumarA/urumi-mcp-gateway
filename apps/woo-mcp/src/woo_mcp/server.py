@@ -72,7 +72,7 @@ def create_server(config=None, *, client_factory=None):
 
     async def list_orders(ctx: Context[WooClient], page: Page = 1, per_page: PageSize = 20,
                           status: OrderStatus | None = None, date: OrderDate | None = None) -> OrderCollection:
-        """List one page of orders; today uses the store timezone. Reuse the returned date for later pages."""
+        """List one page of orders with product IDs, names and quantities for product rankings; no separate get_order needed. Check has_more. Today uses store timezone; reuse returned date for later pages."""
         return await tool_call(ctx, ListOrdersInput, "list_orders", page=page,
                                 per_page=per_page, status=status, date=date)
 

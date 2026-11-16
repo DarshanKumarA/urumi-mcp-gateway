@@ -5,10 +5,10 @@ from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from zoneinfo import ZoneInfo
 
-from .models import OrderDateWindow, OrderDetail, OrderSummary
+from .models import OrderDateWindow, OrderDetail, ListedOrder
 
-SUMMARY_FIELDS = "id,status,date_created_gmt,currency,total,payment_method"
-DETAIL_FIELDS = SUMMARY_FIELDS + ",line_items,shipping_lines,shipping_total,total_tax"
+SUMMARY_FIELDS = "id,status,date_created_gmt,currency,total,payment_method,line_items"
+DETAIL_FIELDS = SUMMARY_FIELDS + ",shipping_lines,shipping_total,total_tax"
 
 
 def resolve_date_window(value, timezone, *, now=None):
@@ -46,7 +46,17 @@ def normalize_order(data, *, detail=False):
     result = {key: data[key] for key in ("id", "status", "currency", "total", "payment_method")}
     result["created_at"] = datetime.fromisoformat(raw_date).replace(tzinfo=UTC)
     if not detail:
-        return OrderSummary.model_validate(result)
+        if not isinstance(data["line_items"], list):
+            raise ValueError()
+        lines = []
+        for item in data["line_items"]:
+            line = {key: item[key] for key in ("product_id", "name", "quantity")}
+            variation = item["variation_id"]
+            if type(variation) is not int or variation < 0:
+                raise ValueError()
+            line["variation_id"] = variation or None
+            lines.append(line)
+        return ListedOrder.model_validate({**result, "line_items": lines})
     if not isinstance(data["line_items"], list) or not isinstance(data["shipping_lines"], list):
         raise ValueError()
     lines = []

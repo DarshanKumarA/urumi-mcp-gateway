@@ -1,5 +1,20 @@
 # Decision register
 
+## DEC-037 Avoid per-order reads for product rankings
+
+The exact user prompt reproduced `PROVIDER_INVALID_RESPONSE` after one successful
+`woocommerce__list_orders`. A guarded, read-only diagnostic observed a valid model
+response proposing 15 `get_order` calls; the adapter permits four per response.
+This was a tool-budget failure, not malformed JSON or failed WooCommerce retrieval.
+
+The existing paginated list now includes allowlisted product ID, variation, name
+and quantity. This removes the per-order lookup requirement for quantity rankings.
+Detail responses and input arguments remain unchanged. Pagination, the 64 KB chat
+result ceiling, four-call batch and ten-call total limits remain enforced. Larger
+queries may still require a narrower scope; partial pages must be labelled.
+Over-budget OpenRouter batches now return `CHAT_CALL_LIMIT` with useful UI guidance.
+No automatic tool replay was added.
+
 ## DEC-036 Chat reliability and reviewer preparation
 
 - Reproduced readable-output defect: Markdown tables were displayed as raw text.

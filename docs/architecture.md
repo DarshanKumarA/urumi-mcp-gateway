@@ -1,5 +1,20 @@
 # Architecture v1 and assignment boundaries
 
+## 16 November: order-ranking fan-out correction
+
+The exact user prompt reproduced `PROVIDER_INVALID_RESPONSE` after one successful
+`woocommerce__list_orders`. A guarded, read-only diagnostic observed a valid model
+response proposing 15 `get_order` calls; the adapter permits four per response.
+This was a tool-budget failure, not malformed JSON or failed WooCommerce retrieval.
+
+The existing paginated list now includes allowlisted product ID, variation, name
+and quantity. This removes the per-order lookup requirement for quantity rankings.
+Detail responses and input arguments remain unchanged. Pagination, the 64 KB chat
+result ceiling, four-call batch and ten-call total limits remain enforced. Larger
+queries may still require a narrower scope; partial pages must be labelled.
+Over-budget OpenRouter batches now return `CHAT_CALL_LIMIT` with useful UI guidance.
+No automatic tool replay was added.
+
 Current local implementation and live results are summarized in [system-design.md](system-design.md) and [acceptance.md](acceptance.md). The local core passed on 14–15 November 2026; video/submission remain pending. Earlier stage sections below preserve their original design and validation boundaries and do not override this current status.
 
 ## 27 October provider selection update
