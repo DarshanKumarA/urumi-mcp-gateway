@@ -1,0 +1,335 @@
+{
+  "format_version": 1,
+  "started_utc": "2026-11-18T16:06:08.635819+00:00",
+  "source_commit": "9f0aac5b5f34f06c3b7c7c031fea835be30fd120",
+  "tracked_changes_present": true,
+  "runner_sha256": "c34af66e146574e343b4883fc21f7ff856334d614cdaffef105b64b3de9d5b4a",
+  "scope": "Fixture tests, localhost TCP, offline helpers, builds and static chart/repository checks. No live store/provider/Kubernetes calls.",
+  "log_policy": "Combined stdout/stderr; ANSI removed, local home/repository paths normalized, common key patterns redacted. Review before sharing.",
+  "checks": [
+    {
+      "id": "gateway-tests",
+      "command": [
+        "<REPO>\\apps\\gateway\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "apps/gateway",
+      "started_utc": "2026-11-18T16:06:08.637083+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "gateway-tests.txt",
+      "sha256": "0b1cd628b21a1321e6e071bc1a92023a56832e2362ba99fdedf3965f3bd68c58",
+      "test_count": 215,
+      "finished_utc": "2026-11-18T16:07:10.449359+00:00",
+      "duration_seconds": 61.812,
+      "original_collected_sha256": "2d1ac01c39216a9cf8ea50160c8942acf636b22b63b62894082aae1a8d3460c9"
+    },
+    {
+      "id": "woo-mcp-tests",
+      "command": [
+        "<REPO>\\apps\\woo-mcp\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "apps/woo-mcp",
+      "started_utc": "2026-11-18T16:07:10.450103+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "woo-mcp-tests.txt",
+      "sha256": "bcf053a59274c8a804659ac501262e6e17de1f274e285216e3931cbc7e093594",
+      "test_count": 122,
+      "finished_utc": "2026-11-18T16:07:19.104791+00:00",
+      "duration_seconds": 8.655,
+      "original_collected_sha256": "3b5ebf408efd79afefd9251e84238b33e5d8c7be5f08ff1313ff4c0f7a87f8b3"
+    },
+    {
+      "id": "arithmetic-mcp-tests",
+      "command": [
+        "<REPO>\\apps\\arithmetic-mcp\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "apps/arithmetic-mcp",
+      "started_utc": "2026-11-18T16:07:19.105889+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arithmetic-mcp-tests.txt",
+      "sha256": "180bb5cc0fd819697ff3d7f6a805e78231525f1b035400723dbbcf777884ade5",
+      "test_count": 21,
+      "finished_utc": "2026-11-18T16:07:21.667054+00:00",
+      "duration_seconds": 2.561,
+      "original_collected_sha256": "4e3d80ffa441c9b272ca207ee5b3bc30da1831de27061df6913c9a4b937220f1"
+    },
+    {
+      "id": "store-policy-mcp-tests",
+      "command": [
+        "<REPO>\\apps\\store-policy-mcp\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "apps/store-policy-mcp",
+      "started_utc": "2026-11-18T16:07:21.667676+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "store-policy-mcp-tests.txt",
+      "sha256": "c5a14c6aaea0685064eb42cc478004bf550c9ca66fb26e648f1d555f0e1014aa",
+      "test_count": 15,
+      "finished_utc": "2026-11-18T16:07:24.143800+00:00",
+      "duration_seconds": 2.476,
+      "original_collected_sha256": "028f1d0479a0a117c9d40d124b6200935d0f74df907c18ed8c2c5eca86b40877"
+    },
+    {
+      "id": "platform-secret-helper",
+      "command": [
+        "<USER>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/integration",
+        "-p",
+        "test_platform_secret_setup.py",
+        "-v"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:24.144489+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "platform-secret-helper.txt",
+      "sha256": "18fb7b9261816a32326b83f122cd143b6964745f49a11cf0fd0cb2ffc75c53ec",
+      "test_count": 6,
+      "finished_utc": "2026-11-18T16:07:24.364343+00:00",
+      "duration_seconds": 0.22,
+      "original_collected_sha256": "667615aaf495f6aef0f34983859ce41e0a7c107b4978b5be24627e4e30115b9e"
+    },
+    {
+      "id": "dashboard-tests",
+      "command": [
+        "C:\\Program Files\\nodejs\\npm.cmd",
+        "test",
+        "--",
+        "--reporter=verbose"
+      ],
+      "cwd": "apps/dashboard",
+      "started_utc": "2026-11-18T16:07:24.371811+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "dashboard-tests.txt",
+      "sha256": "ea47c61461a7dc599b8ae9842e0e3027bd1ca2721889afd213493b48f470d910",
+      "test_count": 33,
+      "finished_utc": "2026-11-18T16:07:38.541752+00:00",
+      "duration_seconds": 14.17,
+      "original_collected_sha256": "600bc4a38be9eb73540d06502c5ebadb8e8c0eb16dd002f0393950fda0a7d15b"
+    },
+    {
+      "id": "dashboard-build",
+      "command": [
+        "C:\\Program Files\\nodejs\\npm.cmd",
+        "run",
+        "build"
+      ],
+      "cwd": "apps/dashboard",
+      "started_utc": "2026-11-18T16:07:38.542382+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "dashboard-build.txt",
+      "sha256": "8b58e122a23f6b199ef7e2a00826a95c8397ea7f6a621e7b153187b11573d615",
+      "finished_utc": "2026-11-18T16:07:40.091561+00:00",
+      "duration_seconds": 1.549,
+      "original_collected_sha256": "8b58e122a23f6b199ef7e2a00826a95c8397ea7f6a621e7b153187b11573d615"
+    },
+    {
+      "id": "setup-store-secrets",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/setup-store-secrets.ps1",
+        "-Mode",
+        "Validate"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:40.092250+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "setup-store-secrets.txt",
+      "sha256": "e5f9f3534815700bc5d912e6a75e9caa6a85f3ecfd882ed5334602660f6cb8f3",
+      "finished_utc": "2026-11-18T16:07:40.692680+00:00",
+      "duration_seconds": 0.6,
+      "original_collected_sha256": "9f84c2d5514fc999d73106a2cce435abcf95c9f5ec489e19c7655caefc4c43f9"
+    },
+    {
+      "id": "setup-woocommerce-rest-secret",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/setup-woocommerce-rest-secret.ps1",
+        "-Mode",
+        "Validate"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:40.693351+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "setup-woocommerce-rest-secret.txt",
+      "sha256": "2ff04838e0365f1747169ad2b237a449ed4606a214fd60a3dbe22dacf6d1f835",
+      "finished_utc": "2026-11-18T16:07:41.225094+00:00",
+      "duration_seconds": 0.532,
+      "original_collected_sha256": "8e3fb9ff4a75ef41da6a8ef45fa4fcac54bf02602c3f33f7a0c9fac53323ba1f"
+    },
+    {
+      "id": "arithmetic-mcp-tcp",
+      "command": [
+        "<REPO>\\apps\\arithmetic-mcp\\.venv\\Scripts\\python.exe",
+        "tests/upstreams/smoke.py",
+        "arithmetic-mcp"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:41.225832+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "arithmetic-mcp-tcp.txt",
+      "sha256": "f58e64b6245e32164a4212a2d9b222ab4c02d3c51704f32473f55c7533095b70",
+      "finished_utc": "2026-11-18T16:07:43.815820+00:00",
+      "duration_seconds": 2.59,
+      "original_collected_sha256": "e3157f34524eaff17eb75c6e0f1b4588a9c472f77dabd07831a2f12bfe7dbc7b"
+    },
+    {
+      "id": "store-policy-mcp-tcp",
+      "command": [
+        "<REPO>\\apps\\store-policy-mcp\\.venv\\Scripts\\python.exe",
+        "tests/upstreams/smoke.py",
+        "store-policy-mcp"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:43.816453+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "store-policy-mcp-tcp.txt",
+      "sha256": "0aa4197f9af8927d2113b02620bc9a0604455ddc8cf7a77bf827e11c737ca6b2",
+      "finished_utc": "2026-11-18T16:07:46.525913+00:00",
+      "duration_seconds": 2.709,
+      "original_collected_sha256": "6842ecafe1613da9d4187ecb56ab688ef2b8672dbd1067a300c3ef6b8fb47b7b"
+    },
+    {
+      "id": "helm-local",
+      "command": [
+        "helm",
+        "lint",
+        "charts/urumi",
+        "-f",
+        "charts/urumi/values-local.yaml"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:46.526606+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "helm-local.txt",
+      "sha256": "5f6cad204163fe92570f234c00aced13c8edba3a75ff961df5d5fc5814dabef3",
+      "finished_utc": "2026-11-18T16:07:46.793715+00:00",
+      "duration_seconds": 0.267,
+      "original_collected_sha256": "5f6cad204163fe92570f234c00aced13c8edba3a75ff961df5d5fc5814dabef3"
+    },
+    {
+      "id": "helm-prod",
+      "command": [
+        "helm",
+        "lint",
+        "charts/urumi",
+        "-f",
+        "charts/urumi/values-prod.yaml"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:46.794376+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "helm-prod.txt",
+      "sha256": "5f6cad204163fe92570f234c00aced13c8edba3a75ff961df5d5fc5814dabef3",
+      "finished_utc": "2026-11-18T16:07:46.926081+00:00",
+      "duration_seconds": 0.132,
+      "original_collected_sha256": "5f6cad204163fe92570f234c00aced13c8edba3a75ff961df5d5fc5814dabef3"
+    },
+    {
+      "id": "chart-schema",
+      "command": [
+        "<USER>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "tests/integration/validate_chart.py",
+        "<USER>\\Documents\\Codex\\2026-11-14\\referenced-chatgpt-conversation-this-is-an\\work\\kubernetes-openapi.json"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:46.941125+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "chart-schema.txt",
+      "sha256": "7dde5dc539ae596b8eb0a048a2f9afb3b56cc39db49f57a0fc4a6715cd6fed9c",
+      "finished_utc": "2026-11-18T16:07:50.590407+00:00",
+      "duration_seconds": 3.649,
+      "original_collected_sha256": "59607adc4dd5a7889e980507813b5bae88f8d14a002765d785ab81ee6d2484ac"
+    },
+    {
+      "id": "repository",
+      "command": [
+        "<USER>\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+        "tests/integration/repository_checks.py",
+        "--tracked-only"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:50.591300+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "repository.txt",
+      "sha256": "602bde31d6f324152d0d65e1889d23dbe07eafe3eb571d4a509dbdb68fe13812",
+      "finished_utc": "2026-11-18T16:07:58.913707+00:00",
+      "duration_seconds": 8.322,
+      "original_collected_sha256": "b9ad0b4b8f7922582d58471eacacb147d0062363ff8916677825693134901d77"
+    },
+    {
+      "id": "git-whitespace",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": ".",
+      "started_utc": "2026-11-18T16:07:58.914390+00:00",
+      "status": "PASS",
+      "exit_code": 0,
+      "log": "git-whitespace.txt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "finished_utc": "2026-11-18T16:07:58.968243+00:00",
+      "duration_seconds": 0.054,
+      "original_collected_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "schema_sha256": "97aa53503d7079a927ce9b01eabec6b0a24bfac211cb12367becbae6daa54b1a",
+  "finished_utc": "2026-11-18T16:07:58.968662+00:00",
+  "totals": {
+    "PASS": 16,
+    "FAIL": 0,
+    "SKIPPED": 0
+  },
+  "passed_test_count": 412,
+  "archive_preparation": {
+    "date": "2026-11-18",
+    "changes": "LF line endings, trailing spaces and extra EOF blank lines only; original collected hashes retained; execution-time runner hash unchanged.",
+    "prepared_runner_sha256": "a3844e9a7163a1c0f4e951cac0c125532d1338b2ee81ca5014b9bc6035bf691e"
+  }
+}

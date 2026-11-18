@@ -9,8 +9,9 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def files():
-    result = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT)
+def files(*, tracked_only=False):
+    options = ["--cached"] if tracked_only else ["--cached", "--others", "--exclude-standard"]
+    result = subprocess.check_output(["git", "ls-files", *options, "-z"], cwd=ROOT)
     return sorted({ROOT / s.decode() for s in result.split(b"\0") if s})
 
 
@@ -127,7 +128,11 @@ def locks():
 
 
 if __name__ == "__main__":
-    paths = files()
+    import argparse
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--tracked-only", action="store_true",
+                        help="Exclude unrelated untracked files; stage intended new files before final review.")
+    paths = files(tracked_only=parser.parse_args().tracked_only)
     locks()
     docs(paths)
     scan(paths + list((ROOT / "apps/dashboard/dist").rglob("*")))

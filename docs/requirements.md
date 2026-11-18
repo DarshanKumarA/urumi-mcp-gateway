@@ -1,5 +1,11 @@
 # Requirements and demonstration traceability
 
+Testing handoff: [manual cases and expected outcomes](testing/manual-tests.md),
+[blank results sheet](testing/manual-results-template.md), and
+[dated automated logs/live evidence index](testing/test-history.md). The 18 November
+fixture/offline run passed 412 tests and 16 checks; it does not replace the live Done
+demonstration or human video. Each manual case names its relevant requirement/demo IDs.
+
 ## Latest verification — 16 November 2026
 
 The [final compliance rehearsal](compliance-2026-11-16.md) supersedes the two earlier

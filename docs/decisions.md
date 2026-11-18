@@ -1,5 +1,16 @@
 # Decision register
 
+## 18 November — test records and reviewer handoff
+
+Keep reproducible fixture/offline test collection separate from live acceptance.
+The runner neither deploys nor reads live Secrets, and creates a new ignored result
+folder for each run. Reviewed archives include command/timing/status/hash metadata;
+historical reports remain dated and unavailable transcripts are not fabricated.
+Repository scans can use `--tracked-only` to avoid reading unrelated untracked files.
+New intended files must be staged for the final scan. The maintained manual guide
+includes expected results, evidence fields and cleanup; its blank template starts
+every case as NOT RUN. See [testing instructions](testing/README.md).
+
 ## 16 November 2026 — close the two strict mandatory gaps
 
 The user authorized fixing Kubernetes Secret storage for admin-entered upstream

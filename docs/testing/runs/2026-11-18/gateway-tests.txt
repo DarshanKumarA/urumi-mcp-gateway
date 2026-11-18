@@ -1,0 +1,239 @@
+test_admin_identifies_and_revokes_member_key (test_auth_api.AuthApiTests.test_admin_identifies_and_revokes_member_key) ... Executing <Task pending name='Task-1' coro=<AuthApiTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_auth_api.py:27> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.292 seconds
+ok
+test_admin_management_allowed (test_auth_api.AuthApiTests.test_admin_management_allowed) ... ok
+test_anonymous_all_management_denied (test_auth_api.AuthApiTests.test_anonymous_all_management_denied) ... ok
+test_browser_identity_and_role_cannot_be_supplied (test_auth_api.AuthApiTests.test_browser_identity_and_role_cannot_be_supplied) ... ok
+test_cross_site_fetch_rejected_even_with_origin (test_auth_api.AuthApiTests.test_cross_site_fetch_rejected_even_with_origin) ... ok
+test_disabled_member_session_api_and_enable (test_auth_api.AuthApiTests.test_disabled_member_session_api_and_enable) ... ok
+test_expired_session_api (test_auth_api.AuthApiTests.test_expired_session_api) ... ok
+test_invalid_login_generic (test_auth_api.AuthApiTests.test_invalid_login_generic) ... ok
+test_invite_admin_issue_once_safe_listing_accept (test_auth_api.AuthApiTests.test_invite_admin_issue_once_safe_listing_accept) ... Executing <Task pending name='Task-50' coro=<AuthApiTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_auth_api.py:27> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.101 seconds
+ok
+test_invite_no_role_or_username_override (test_auth_api.AuthApiTests.test_invite_no_role_or_username_override) ... ok
+test_key_once_prefix_only_listing (test_auth_api.AuthApiTests.test_key_once_prefix_only_listing) ... ok
+test_login_csrf_rejected_no_cookie (test_auth_api.AuthApiTests.test_login_csrf_rejected_no_cookie) ... ok
+test_login_me_cookie_hash_only (test_auth_api.AuthApiTests.test_login_me_cookie_hash_only) ... ok
+test_logout_revokes_and_clears (test_auth_api.AuthApiTests.test_logout_revokes_and_clears) ... ok
+test_member_all_management_denied (test_auth_api.AuthApiTests.test_member_all_management_denied) ... ok
+test_member_cannot_revoke_or_read_other_key (test_auth_api.AuthApiTests.test_member_cannot_revoke_or_read_other_key) ... ok
+test_member_invitation_and_user_management_denied (test_auth_api.AuthApiTests.test_member_invitation_and_user_management_denied) ... ok
+test_origin_missing_cross_origin_null_rejected (test_auth_api.AuthApiTests.test_origin_missing_cross_origin_null_rejected) ... ok
+test_own_key_revoke_api (test_auth_api.AuthApiTests.test_own_key_revoke_api) ... ok
+test_relogin_rotates_existing_session (test_auth_api.AuthApiTests.test_relogin_rotates_existing_session) ... ok
+test_revoked_invite_api (test_auth_api.AuthApiTests.test_revoked_invite_api) ... ok
+test_secure_cookie_and_production_config (test_auth_api.AuthApiTests.test_secure_cookie_and_production_config) ... ok
+test_validation_and_logs_do_not_echo_sensitive_inputs (test_auth_api.AuthApiTests.test_validation_and_logs_do_not_echo_sensitive_inputs) ... ok
+test_arithmetic_composition (test_chat.ChatTests.test_arithmetic_composition) ... ok
+test_concurrent_session_attribution (test_chat.ChatTests.test_concurrent_session_attribution) ... ok
+test_disabled_server (test_chat.ChatTests.test_disabled_server) ... chat_failed code=CHAT_UNKNOWN_TOOL completed_calls=0
+ok
+test_duplicate_write_blocked (test_chat.ChatTests.test_duplicate_write_blocked) ... chat_failed code=CHAT_WRITE_REPEAT_BLOCKED completed_calls=1
+ok
+test_empty_and_oversized_message (test_chat.ChatTests.test_empty_and_oversized_message) ... Executing <Task pending name='Task-178' coro=<ChatTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_chat.py:47> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.133 seconds
+ok
+test_failure_stops_no_replay (test_chat.ChatTests.test_failure_stops_no_replay) ... chat_failed code=CHAT_TOOL_FAILED completed_calls=1
+ok
+test_malformed_response (test_chat.ChatTests.test_malformed_response) ... chat_failed code=PROVIDER_INVALID_RESPONSE completed_calls=0
+ok
+test_max_rounds (test_chat.ChatTests.test_max_rounds) ... chat_failed code=CHAT_ROUND_LIMIT completed_calls=1
+ok
+test_member_catalog (test_chat.ChatTests.test_member_catalog) ... ok
+test_no_identity_input (test_chat.ChatTests.test_no_identity_input) ... ok
+test_no_tool_answer (test_chat.ChatTests.test_no_tool_answer) ... ok
+test_not_configured (test_chat.ChatTests.test_not_configured) ... ok
+test_one_tool_audit_session (test_chat.ChatTests.test_one_tool_audit_session) ... ok
+test_policy_composition (test_chat.ChatTests.test_policy_composition) ... ok
+test_product_create_once (test_chat.ChatTests.test_product_create_once) ... ok
+test_provider_rate_limit (test_chat.ChatTests.test_provider_rate_limit) ... chat_failed code=PROVIDER_RATE_LIMIT completed_calls=0
+ok
+test_provider_timeout (test_chat.ChatTests.test_provider_timeout) ... chat_failed code=PROVIDER_TIMEOUT completed_calls=0
+ok
+test_safe_provider_exception (test_chat.ChatTests.test_safe_provider_exception) ... chat_failed code=CHAT_UNAVAILABLE completed_calls=0
+ok
+test_same_origin_required (test_chat.ChatTests.test_same_origin_required) ... ok
+test_session_required (test_chat.ChatTests.test_session_required) ... ok
+test_start_failure_zero_dispatch (test_chat.ChatTests.test_start_failure_zero_dispatch) ... chat_failed code=CHAT_TOOL_FAILED completed_calls=1
+ok
+test_unknown_tool (test_chat.ChatTests.test_unknown_tool) ... chat_failed code=CHAT_UNKNOWN_TOOL completed_calls=0
+ok
+test_private_fields_removed (test_chat.ProviderTests.test_private_fields_removed) ... ok
+test_provider_wire_logs_are_suppressed (test_chat.ProviderTests.test_provider_wire_logs_are_suppressed) ... ok
+test_sdk_auth_rate_and_other_failures_are_sanitized (test_chat.ProviderTests.test_sdk_auth_rate_and_other_failures_are_sanitized) ... ok
+test_sdk_configuration_and_signature_preservation (test_chat.ProviderTests.test_sdk_configuration_and_signature_preservation) ... ok
+test_sdk_timeout_sanitized (test_chat.ProviderTests.test_sdk_timeout_sanitized) ... ok
+test_sdk_truncated_answer_is_not_success (test_chat.ProviderTests.test_sdk_truncated_answer_is_not_success) ... ok
+test_copy_verify_then_migrate_is_idempotent (test_credential_store.MigrationTests.test_copy_verify_then_migrate_is_idempotent) ... ok
+test_database_contains_reference_not_raw_credential (test_credential_store.MigrationTests.test_database_contains_reference_not_raw_credential) ... ok
+test_failed_copy_keeps_old_database_value (test_credential_store.MigrationTests.test_failed_copy_keeps_old_database_value) ... ok
+test_conflict_bounded_and_safe_retry (test_credential_store.SecretTests.test_conflict_bounded_and_safe_retry) ... ok
+test_missing_invalid_reference_and_bad_response_are_sanitized (test_credential_store.SecretTests.test_missing_invalid_reference_and_bad_response_are_sanitized) ... ok
+test_reads_rotated_service_account_token (test_credential_store.SecretTests.test_reads_rotated_service_account_token) ... ok
+test_roundtrip_and_append_preserve_old_values (test_credential_store.SecretTests.test_roundtrip_and_append_preserve_old_values) ... ok
+test_secret_limit_preserves_existing_data (test_credential_store.SecretTests.test_secret_limit_preserves_existing_data) ... ok
+test_canonical_application_host_sdk_discovery (test_deployment.DeploymentTests.test_canonical_application_host_sdk_discovery) ... ok
+test_invalid_service_token_is_not_seeded (test_deployment.DeploymentTests.test_invalid_service_token_is_not_seeded) ... ok
+test_no_ready_before_all_bootstrap_receipts (test_deployment.DeploymentTests.test_no_ready_before_all_bootstrap_receipts) ... ok
+test_readiness_db_failure_safe_and_no_upstream_dependency (test_deployment.DeploymentTests.test_readiness_db_failure_safe_and_no_upstream_dependency) ... ok
+test_repeat_seed_preserves_edits_and_deletion_and_token (test_deployment.DeploymentTests.test_repeat_seed_preserves_edits_and_deletion_and_token) ... ok
+test_three_seeds_token_server_side_only (test_deployment.DeploymentTests.test_three_seeds_token_server_side_only) ... ok
+test_wrong_schema_not_ready (test_deployment.DeploymentTests.test_wrong_schema_not_ready) ... ok
+test_admin_revokes_member_key_immediately (test_identity.IdentityTests.test_admin_revokes_member_key_immediately) ... ok
+test_argon2id_independent_salts_and_verification (test_identity.IdentityTests.test_argon2id_independent_salts_and_verification) ... ok
+test_bootstrap_command_missing_files_fails_without_details (test_identity.IdentityTests.test_bootstrap_command_missing_files_fails_without_details) ... ok
+test_bootstrap_command_uses_file_and_preserves_existing_admin (test_identity.IdentityTests.test_bootstrap_command_uses_file_and_preserves_existing_admin) ... ok
+test_bootstrap_idempotent_never_overwrites_password (test_identity.IdentityTests.test_bootstrap_idempotent_never_overwrites_password) ... Executing <Task pending name='Task-413' coro=<IdentityTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_identity.py:23> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.107 seconds
+ok
+test_bootstrap_other_identity_conflict (test_identity.IdentityTests.test_bootstrap_other_identity_conflict) ... ok
+test_configuration_fails_closed (test_identity.IdentityTests.test_configuration_fails_closed) ... ok
+test_disabled_user_rejects_login_session_and_key (test_identity.IdentityTests.test_disabled_user_rejects_login_session_and_key) ... ok
+test_generic_login_failure_verifies_dummy (test_identity.IdentityTests.test_generic_login_failure_verifies_dummy) ... ok
+test_identity_migration_is_explicit_not_startup_ddl (test_identity.IdentityTests.test_identity_migration_is_explicit_not_startup_ddl) ... ok
+test_invitation_cannot_target_existing_user (test_identity.IdentityTests.test_invitation_cannot_target_existing_user) ... ok
+test_invitation_concurrent_accept_only_one (test_identity.IdentityTests.test_invitation_concurrent_accept_only_one) ... ok
+test_invitation_database_forbids_admin_role (test_identity.IdentityTests.test_invitation_database_forbids_admin_role) ... ok
+test_invitation_expired_revoked_invalid (test_identity.IdentityTests.test_invitation_expired_revoked_invalid) ... ok
+test_invitation_single_use_hash_only_member_identity (test_identity.IdentityTests.test_invitation_single_use_hash_only_member_identity) ... ok
+test_key_hash_prefix_safe_metadata_verifier (test_identity.IdentityTests.test_key_hash_prefix_safe_metadata_verifier) ... ok
+test_key_unknown_malformed (test_identity.IdentityTests.test_key_unknown_malformed) ... ok
+test_malformed_or_unknown_session (test_identity.IdentityTests.test_malformed_or_unknown_session) ... ok
+test_member_cannot_invite (test_identity.IdentityTests.test_member_cannot_invite) ... ok
+test_member_cannot_revoke_other_key (test_identity.IdentityTests.test_member_cannot_revoke_other_key) ... ok
+test_own_key_revocation_immediate (test_identity.IdentityTests.test_own_key_revocation_immediate) ... ok
+test_password_limits (test_identity.IdentityTests.test_password_limits) ... ok
+test_reconnect_persistence (test_identity.IdentityTests.test_reconnect_persistence) ... ok
+test_session_expired (test_identity.IdentityTests.test_session_expired) ... ok
+test_session_hash_only_and_safe_identity (test_identity.IdentityTests.test_session_hash_only_and_safe_identity) ... ok
+test_session_revoked (test_identity.IdentityTests.test_session_revoked) ... ok
+test_username_unique_and_immutable_in_database (test_identity.IdentityTests.test_username_unique_and_immutable_in_database) ... ok
+test_admin_create_list_detail_safe_dtos (test_management.ManagementTests.test_admin_create_list_detail_safe_dtos) ... ok
+test_disabled_refresh_never_contacts_upstream (test_management.ManagementTests.test_disabled_refresh_never_contacts_upstream) ... ok
+test_duplicate_slug_conflict (test_management.ManagementTests.test_duplicate_slug_conflict) ... ok
+test_enable_disable_removal (test_management.ManagementTests.test_enable_disable_removal) ... Executing <Task pending name='Task-548' coro=<ManagementTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_management.py:25> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.103 seconds
+Executing <Task pending name='Task-548' coro=<ManagementTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_management.py:48> wait_for=<Future pending cb=[Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.235 seconds
+ok
+test_host_allowlist (test_management.ManagementTests.test_host_allowlist) ... ok
+test_invalid_fields_and_secret_errors_are_sanitized (test_management.ManagementTests.test_invalid_fields_and_secret_errors_are_sanitized) ... ok
+test_invalid_url_and_credential_reflection_rejected (test_management.ManagementTests.test_invalid_url_and_credential_reflection_rejected) ... ok
+test_invalid_uuid_and_missing_record (test_management.ManagementTests.test_invalid_uuid_and_missing_record) ... ok
+test_malformed_json_does_not_echo_credential (test_management.ManagementTests.test_malformed_json_does_not_echo_credential) ... ok
+test_patch_preserves_replaces_and_clears_credential (test_management.ManagementTests.test_patch_preserves_replaces_and_clears_credential) ... ok
+test_persistent_repository_mcp_integration_and_disable (test_management.ManagementTests.test_persistent_repository_mcp_integration_and_disable) ... ok
+test_refresh_connected_then_failure_retains_stale_tools (test_management.ManagementTests.test_refresh_connected_then_failure_retains_stale_tools) ... ok
+test_repository_failure_has_safe_status (test_management.ManagementTests.test_repository_failure_has_safe_status) ... ok
+test_stale_management_cache_never_becomes_live_mcp_catalog (test_management.ManagementTests.test_stale_management_cache_never_becomes_live_mcp_catalog) ... ok
+test_admin_audit_pagination_filters_and_member_denial (test_mcp_audit.MCPAuditTests.test_admin_audit_pagination_filters_and_member_denial) ... ok
+test_audit_list_database_failure_is_safe (test_mcp_audit.MCPAuditTests.test_audit_list_database_failure_is_safe) ... ok
+test_audit_uuid_and_snapshots_immutable (test_mcp_audit.MCPAuditTests.test_audit_uuid_and_snapshots_immutable) ... ok
+test_auto_protocol (test_mcp_audit.MCPAuditTests.test_auto_protocol) ... ok
+test_cancelled_invocation_leaves_started_without_replay (test_mcp_audit.MCPAuditTests.test_cancelled_invocation_leaves_started_without_replay) ... ok
+test_current_protocol (test_mcp_audit.MCPAuditTests.test_current_protocol) ... ok
+test_dead_peer_audit_and_healthy_peer (test_mcp_audit.MCPAuditTests.test_dead_peer_audit_and_healthy_peer) ... ok
+test_disabled_peer_disappears_call_audited_without_dispatch (test_mcp_audit.MCPAuditTests.test_disabled_peer_disappears_call_audited_without_dispatch) ... Executing <Task pending name='starlette.middleware.base.BaseHTTPMiddleware.__call__.<locals>.call_next.<locals>.coro' coro=<TaskHandle._run_coro() running at <REPO>\apps\gateway\.venv\Lib\site-packages\anyio\_core\_tasks.py:327> cb=[TaskGroup._spawn.<locals>.task_done() at <REPO>\apps\gateway\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:870] created at <REPO>\apps\gateway\.venv\Lib\site-packages\anyio\_backends\_asyncio.py:944> took 0.236 seconds
+ok
+test_disabled_user_next_request_denied (test_mcp_audit.MCPAuditTests.test_disabled_user_next_request_denied) ... ok
+test_every_http_method_requires_bearer (test_mcp_audit.MCPAuditTests.test_every_http_method_requires_bearer) ... ok
+test_finalization_failure_one_call_started_record_unknown (test_mcp_audit.MCPAuditTests.test_finalization_failure_one_call_started_record_unknown) ... ok
+test_history_survives_registration_removal_and_key_revocation (test_mcp_audit.MCPAuditTests.test_history_survives_registration_removal_and_key_revocation) ... ok
+test_initial_audit_failure_prevents_any_upstream_operation (test_mcp_audit.MCPAuditTests.test_initial_audit_failure_prevents_any_upstream_operation) ... ok
+test_legacy_protocol (test_mcp_audit.MCPAuditTests.test_legacy_protocol) ... ok
+test_malformed_schemes_duplicate_headers_rejected (test_mcp_audit.MCPAuditTests.test_malformed_schemes_duplicate_headers_rejected) ... ok
+test_malicious_upstream_error_sanitized (test_mcp_audit.MCPAuditTests.test_malicious_upstream_error_sanitized) ... ok
+test_no_key_header_args_results_or_hashes_in_audit_or_logs (test_mcp_audit.MCPAuditTests.test_no_key_header_args_results_or_hashes_in_audit_or_logs) ... ok
+test_official_client_missing_and_unknown_key (test_mcp_audit.MCPAuditTests.test_official_client_missing_and_unknown_key) ... ok
+test_query_cookie_arguments_and_forwarded_headers_cannot_authenticate (test_mcp_audit.MCPAuditTests.test_query_cookie_arguments_and_forwarded_headers_cannot_authenticate) ... ok
+test_rejected_audit_failure_is_closed_and_unknown_key_has_no_false_owner (test_mcp_audit.MCPAuditTests.test_rejected_audit_failure_is_closed_and_unknown_key_has_no_false_owner) ... ok
+test_replaced_registration_cannot_rebind_audit_to_another_server (test_mcp_audit.MCPAuditTests.test_replaced_registration_cannot_rebind_audit_to_another_server) ... ok
+test_request_state_copy_and_authorization_removed (test_mcp_audit.MCPAuditTests.test_request_state_copy_and_authorization_removed) ... ok
+test_revocation_next_existing_client_request_denied (test_mcp_audit.MCPAuditTests.test_revocation_next_existing_client_request_denied) ... ok
+test_revoked_call_has_attributed_safe_metadata_without_dispatch (test_mcp_audit.MCPAuditTests.test_revoked_call_has_attributed_safe_metadata_without_dispatch) ... ok
+test_route_binding_failure_prevents_tool_dispatch (test_mcp_audit.MCPAuditTests.test_route_binding_failure_prevents_tool_dispatch) ... ok
+test_session_principal_reserved_shared_path_without_key (test_mcp_audit.MCPAuditTests.test_session_principal_reserved_shared_path_without_key) ... ok
+test_start_is_committed_before_dispatch_and_exact_mapping (test_mcp_audit.MCPAuditTests.test_start_is_committed_before_dispatch_and_exact_mapping) ... ok
+test_timeout_audited_once_and_peer_works (test_mcp_audit.MCPAuditTests.test_timeout_audited_once_and_peer_works) ... Executing <Task pending name='Task-827' coro=<MCPAuditTests.asyncSetUp() running at <REPO>\apps\gateway\tests\test_mcp_audit.py:36> wait_for=<Future pending cb=[_chain_future.<locals>._call_check_cancel() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\futures.py:384, Task.task_wakeup()] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:459> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.306 seconds
+ok
+test_two_user_concurrent_attribution (test_mcp_audit.MCPAuditTests.test_two_user_concurrent_attribution) ... ok
+test_unknown_tool_audited_without_arbitrary_name (test_mcp_audit.MCPAuditTests.test_unknown_tool_audited_without_arbitrary_name) ... ok
+test_validation_failure_audited (test_mcp_audit.MCPAuditTests.test_validation_failure_audited) ... ok
+test_verifier_database_failure_fails_closed (test_mcp_audit.MCPAuditTests.test_verifier_database_failure_fails_closed) ... ok
+test_excessive_tool_batch_has_specific_limit_error_without_retry (test_openrouter.OpenRouterTests.test_excessive_tool_batch_has_specific_limit_error_without_retry) ... ok
+test_long_retry_after_is_not_ignored (test_openrouter.OpenRouterTests.test_long_retry_after_is_not_ignored) ... ok
+test_malformed_response (test_openrouter.OpenRouterTests.test_malformed_response) ... ok
+test_oversized_response (test_openrouter.OpenRouterTests.test_oversized_response) ... ok
+test_status_errors_are_sanitized_with_bounded_transient_retry (test_openrouter.OpenRouterTests.test_status_errors_are_sanitized_with_bounded_transient_retry) ... ok
+test_text_and_request_contract (test_openrouter.OpenRouterTests.test_text_and_request_contract) ... ok
+test_timeout_retry_is_bounded (test_openrouter.OpenRouterTests.test_timeout_retry_is_bounded) ... ok
+test_tool_arguments_must_be_object (test_openrouter.OpenRouterTests.test_tool_arguments_must_be_object) ... ok
+test_tool_schema_and_id_roundtrip (test_openrouter.OpenRouterTests.test_tool_schema_and_id_roundtrip) ... Executing <Task finished name='Task-916' coro=<OpenRouterTests.test_tool_schema_and_id_roundtrip() done, defined at <REPO>\apps\gateway\tests\test_openrouter.py:40> result=None created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.172 seconds
+ok
+test_transient_generation_recovers_without_executing_tools (test_openrouter.OpenRouterTests.test_transient_generation_recovers_without_executing_tools) ... ok
+test_concurrent_seed_one_registration (test_persistence.PersistenceTests.test_concurrent_seed_one_registration) ... ok
+test_credential_preserve_replace_clear (test_persistence.PersistenceTests.test_credential_preserve_replace_clear) ... ok
+test_crud_survives_new_repository_and_engine (test_persistence.PersistenceTests.test_crud_survives_new_repository_and_engine) ... ok
+test_database_rejects_inconsistent_credential_columns (test_persistence.PersistenceTests.test_database_rejects_inconsistent_credential_columns) ... ok
+test_edit_invalidates_cache_and_late_observation (test_persistence.PersistenceTests.test_edit_invalidates_cache_and_late_observation) ... ok
+test_identity_immutable_application_and_database (test_persistence.PersistenceTests.test_identity_immutable_application_and_database) ... ok
+test_migration_schema_matches_and_reversible_on_fixture (test_persistence.PersistenceTests.test_migration_schema_matches_and_reversible_on_fixture) ... ok
+test_observation_cannot_store_raw_error_text (test_persistence.PersistenceTests.test_observation_cannot_store_raw_error_text) ... ok
+test_production_engine_rejects_sqlite (test_persistence.PersistenceTests.test_production_engine_rejects_sqlite) ... ok
+test_removal_cleans_secret_cache_health (test_persistence.PersistenceTests.test_removal_cleans_secret_cache_health) ... ok
+test_seed_idempotent_no_overwrite_no_resurrection (test_persistence.PersistenceTests.test_seed_idempotent_no_overwrite_no_resurrection) ... ok
+test_seed_preserves_preexisting_registration (test_persistence.PersistenceTests.test_seed_preserves_preexisting_registration) ... ok
+test_status_and_last_good_metadata_persist (test_persistence.PersistenceTests.test_status_and_last_good_metadata_persist) ... ok
+test_unique_slug_application_and_database (test_persistence.PersistenceTests.test_unique_slug_application_and_database) ... ok
+test_url_validation_and_normalization (test_persistence.PersistenceTests.test_url_validation_and_normalization) ... ok
+test_all_upstreams_disabled_returns_empty_catalog (test_protocol.ProtocolTests.test_all_upstreams_disabled_returns_empty_catalog) ... ok
+test_caller_headers_are_not_upstream_credentials (test_protocol.ProtocolTests.test_caller_headers_are_not_upstream_credentials) ... ok
+test_cancellation_closes_session_without_replay (test_protocol.ProtocolTests.test_cancellation_closes_session_without_replay) ... ok
+test_concurrent_discovery_does_not_accumulate_timeout_waits (test_protocol.ProtocolTests.test_concurrent_discovery_does_not_accumulate_timeout_waits) ... ok
+test_dead_peer_isolated_and_metadata_retained (test_protocol.ProtocolTests.test_dead_peer_isolated_and_metadata_retained) ... ok
+test_disable_during_precall_discovery_prevents_dispatch (test_protocol.ProtocolTests.test_disable_during_precall_discovery_prevents_dispatch) ... ok
+test_disabled_from_start (test_protocol.ProtocolTests.test_disabled_from_start) ... ok
+test_disabled_never_contacted_and_stale_calls_denied (test_protocol.ProtocolTests.test_disabled_never_contacted_and_stale_calls_denied) ... ok
+test_discovery_timeout_releases_sessions (test_protocol.ProtocolTests.test_discovery_timeout_releases_sessions) ... ok
+test_duplicate_or_invalid_upstream_names_fail_isolated (test_protocol.ProtocolTests.test_duplicate_or_invalid_upstream_names_fail_isolated) ... ok
+test_edit_during_discovery_cannot_publish_old_catalog (test_protocol.ProtocolTests.test_edit_during_discovery_cannot_publish_old_catalog) ... ok
+test_equal_length_long_names_route_exact_originals (test_protocol.ProtocolTests.test_equal_length_long_names_route_exact_originals) ... ok
+test_explicit_current_protocol (test_protocol.ProtocolTests.test_explicit_current_protocol) ... ok
+test_forced_generated_collision_rejected_before_catalog_publication (test_protocol.ProtocolTests.test_forced_generated_collision_rejected_before_catalog_publication) ... ok
+test_header_schema_survives_both_hops (test_protocol.ProtocolTests.test_header_schema_survives_both_hops) ... ok
+test_legacy_client (test_protocol.ProtocolTests.test_legacy_client) ... ok
+test_legacy_upstream_with_current_gateway_client (test_protocol.ProtocolTests.test_legacy_upstream_with_current_gateway_client) ... ok
+test_length_shortened_name_routes_exact_original (test_protocol.ProtocolTests.test_length_shortened_name_routes_exact_original) ... ok
+test_local_schema_reference_preserved (test_protocol.ProtocolTests.test_local_schema_reference_preserved) ... ok
+test_malformed_protocol_response_isolated (test_protocol.ProtocolTests.test_malformed_protocol_response_isolated) ... ok
+test_modern_auto (test_protocol.ProtocolTests.test_modern_auto) ... ok
+test_mutating_annotations_and_single_header_mismatch_attempt (test_protocol.ProtocolTests.test_mutating_annotations_and_single_header_mismatch_attempt) ... ok
+test_original_name_with_separator_is_preserved (test_protocol.ProtocolTests.test_original_name_with_separator_is_preserved) ... ok
+test_prompt_injection_remains_data (test_protocol.ProtocolTests.test_prompt_injection_remains_data) ... ok
+test_redirect_never_followed (test_protocol.ProtocolTests.test_redirect_never_followed) ... ok
+test_remote_schema_references_refused_without_fetching (test_protocol.ProtocolTests.test_remote_schema_references_refused_without_fetching) ... ok
+test_removed_server_cannot_be_called (test_protocol.ProtocolTests.test_removed_server_cannot_be_called) ... ok
+test_returned_error_sanitized_and_no_retry (test_protocol.ProtocolTests.test_returned_error_sanitized_and_no_retry) ... ok
+test_slow_call_does_not_block_healthy_call (test_protocol.ProtocolTests.test_slow_call_does_not_block_healthy_call) ... ok
+test_slow_discovery_bounded (test_protocol.ProtocolTests.test_slow_discovery_bounded) ... ok
+test_static_header_applied_only_to_registered_server (test_protocol.ProtocolTests.test_static_header_applied_only_to_registered_server) ... ok
+test_transport_loss_single_attempt_and_no_secret_logs (test_protocol.ProtocolTests.test_transport_loss_single_attempt_and_no_secret_logs) ... ok
+test_unknown_name_and_wrong_slug_never_route (test_protocol.ProtocolTests.test_unknown_name_and_wrong_slug_never_route) ... ok
+test_unsafe_metadata_never_exposed (test_protocol.ProtocolTests.test_unsafe_metadata_never_exposed) ... ok
+test_upstream_pagination_is_complete_and_bounded (test_protocol.ProtocolTests.test_upstream_pagination_is_complete_and_bounded) ... ok
+test_validation_does_not_forward_rejected_arguments (test_protocol.ProtocolTests.test_validation_does_not_forward_rejected_arguments) ... ok
+test_credentials_and_public_projection (test_registry.RegistryTests.test_credentials_and_public_projection) ... ok
+test_edit_enable_disable_remove (test_registry.RegistryTests.test_edit_enable_disable_remove) ... ok
+test_equal_length_long_common_prefix_names_remain_distinct (test_registry.RegistryTests.test_equal_length_long_common_prefix_names_remain_distinct) ... ok
+test_exactly_128_character_name_unchanged (test_registry.RegistryTests.test_exactly_128_character_name_unchanged) ... ok
+test_header_injection_and_reserved_headers_rejected (test_registry.RegistryTests.test_header_injection_and_reserved_headers_rejected) ... ok
+test_health_never_changes_enabled_and_old_observation_ignored (test_registry.RegistryTests.test_health_never_changes_enabled_and_old_observation_ignored) ... ok
+test_identity_and_slug_immutable (test_registry.RegistryTests.test_identity_and_slug_immutable) ... ok
+test_long_names_from_distinct_slugs_remain_distinct (test_registry.RegistryTests.test_long_names_from_distinct_slugs_remain_distinct) ... ok
+test_namespacing_and_length_suffix (test_registry.RegistryTests.test_namespacing_and_length_suffix) ... ok
+test_overlong_name_uses_complete_content_digest_and_safe_characters (test_registry.RegistryTests.test_overlong_name_uses_complete_content_digest_and_safe_characters) ... ok
+test_registration_defaults (test_registry.RegistryTests.test_registration_defaults) ... ok
+test_slug_validation (test_registry.RegistryTests.test_slug_validation) ... ok
+test_timeout_configuration (test_registry.RegistryTests.test_timeout_configuration) ... ok
+test_unique_identity_and_slug (test_registry.RegistryTests.test_unique_identity_and_slug) ... ok
+test_url_validation_and_safe_error (test_registry.RegistryTests.test_url_validation_and_safe_error) ... ok
+
+----------------------------------------------------------------------
+Ran 215 tests in 57.354s
+
+OK

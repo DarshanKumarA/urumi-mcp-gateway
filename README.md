@@ -117,6 +117,12 @@ different accounts. Secret access is an operator recovery path, not a password r
 
 ### Run the automated checks without store mutations
 
+For a guided test session, use the [manual feature tests](docs/testing/manual-tests.md),
+[results template](docs/testing/manual-results-template.md), and
+[dated test history/logs](docs/testing/test-history.md). The repeatable
+[`scripts/run-tests.py`](scripts/run-tests.py) runner records per-check transcripts
+and a machine-readable manifest; see [testing instructions](docs/testing/README.md).
+
 Create each Python environment from its committed hash lock. Repeat for `gateway`,
 `woo-mcp`, `arithmetic-mcp` and `store-policy-mcp`:
 

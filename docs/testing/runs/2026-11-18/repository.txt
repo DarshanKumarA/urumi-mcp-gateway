@@ -1,0 +1,7 @@
+PASS gateway direct pins/hash-lock/installed consistency: 55 packages
+PASS woo-mcp direct pins/hash-lock/installed consistency: 34 packages
+PASS arithmetic-mcp direct pins/hash-lock/installed consistency: 29 packages
+PASS store-policy-mcp direct pins/hash-lock/installed consistency: 29 packages
+PASS npm manifest/lock pins and artifact integrity metadata
+PASS documentation relative links/anchors/tables: 282 links
+PASS heuristic credential/contact scan, including built dashboard assets

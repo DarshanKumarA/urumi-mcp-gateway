@@ -1,0 +1,87 @@
+test_ambient_decimal_precision_does_not_change_result (test_arithmetic.ArithmeticTests.test_ambient_decimal_precision_does_not_change_result) ... ok
+test_currency (test_arithmetic.ArithmeticTests.test_currency) ... ok
+test_decimal_length_bounds (test_arithmetic.ArithmeticTests.test_decimal_length_bounds) ... ok
+test_decimal_statistics (test_arithmetic.ArithmeticTests.test_decimal_statistics) ... ok
+test_empty_and_oversized_list_rejected (test_arithmetic.ArithmeticTests.test_empty_and_oversized_list_rejected) ... ok
+test_float_integer_boolean_rejected (test_arithmetic.ArithmeticTests.test_float_integer_boolean_rejected) ... ok
+test_half_even_rounding (test_arithmetic.ArithmeticTests.test_half_even_rounding) ... ok
+test_integer_like (test_arithmetic.ArithmeticTests.test_integer_like) ... ok
+test_malformed_decimal_rejected (test_arithmetic.ArithmeticTests.test_malformed_decimal_rejected) ... ok
+test_negative_values (test_arithmetic.ArithmeticTests.test_negative_values) ... ok
+test_no_float_artifact (test_arithmetic.ArithmeticTests.test_no_float_artifact) ... ok
+test_precision_bounds_exact_sum (test_arithmetic.ArithmeticTests.test_precision_bounds_exact_sum) ... ok
+test_pure_no_io_execution (test_arithmetic.ArithmeticTests.test_pure_no_io_execution) ... ok
+test_repeating_average (test_arithmetic.ArithmeticTests.test_repeating_average) ... ok
+test_unknown_fields (test_arithmetic.ArithmeticTests.test_unknown_fields) ... ok
+test_zero_and_trailing_zeros (test_arithmetic.ArithmeticTests.test_zero_and_trailing_zeros) ... ok
+test_auto_protocol (test_protocol.ProtocolTests.test_auto_protocol) ... StreamableHTTP session manager started
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Executing <Task pending name='Task-2' coro=<ProtocolTests.test_auto_protocol() running at <REPO>\apps\arithmetic-mcp\tests\test_protocol.py:45> cb=[_run_until_complete_cb() at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\base_events.py:181] created at <USER>\AppData\Local\Programs\Python\Python313\Lib\asyncio\runners.py:100> took 0.154 seconds
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+StreamableHTTP session manager shutting down
+ok
+test_config_exact_hosts_and_rejection (test_protocol.ProtocolTests.test_config_exact_hosts_and_rejection) ... ok
+test_current_protocol (test_protocol.ProtocolTests.test_current_protocol) ... StreamableHTTP session manager started
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+StreamableHTTP session manager shutting down
+ok
+test_host_and_origin_protection (test_protocol.ProtocolTests.test_host_and_origin_protection) ... StreamableHTTP session manager started
+Terminating session: None
+HTTP Request: GET http://127.0.0.1:8000/mcp "HTTP/1.1 421 Misdirected Request"
+Terminating session: None
+HTTP Request: GET http://127.0.0.1:8000/mcp "HTTP/1.1 403 Forbidden"
+StreamableHTTP session manager shutting down
+ok
+test_legacy_protocol (test_protocol.ProtocolTests.test_legacy_protocol) ... StreamableHTTP session manager started
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 202 Accepted"
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Tool 'sum_amounts' rejected arguments: ['']
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+StreamableHTTP session manager shutting down
+ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.726s
+
+OK

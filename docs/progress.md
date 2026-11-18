@@ -1,5 +1,16 @@
 # Project progress
 
+## 18 November — maintained testing guide and logs
+
+Added [manual feature/operator cases](testing/manual-tests.md), a blank results
+template, [historical evidence index](testing/test-history.md), and a fixture/offline
+runner that records verbose per-check logs, commands, UTC times, exit codes and hashes.
+The fresh run passed **412 tests across 16 checks**, with no failures/skips. Application
+code, deployment, Secrets and business records were unchanged. Historical missing
+console logs are explicitly labelled rather than reconstructed. Live manual cases
+were documented, not rerun by this documentation task. The new guide's links and
+examples receive final staged review separately from the automated run.
+
 Final review resumed on **18 November 2026**: revision 13, eight healthy workloads,
 three original Bound PVCs and seven tools from three enabled/Connected upstreams
 were rechecked. The business-flow evidence below remains dated 16 November.

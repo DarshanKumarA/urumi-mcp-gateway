@@ -1,5 +1,21 @@
 # Project journey
 
+## 18 November — make verification repeatable for another tester
+
+The user requested a maintained manual instruction file and test logs. Earlier
+milestones retained reports/screenshots/structured observations but not every console
+transcript. A new fixture/offline runner now captures individual test names, commands,
+timestamps, exit codes and artifact hashes, with ignored local run folders and reviewed
+dated archives. It preserves failures and labels skips instead of treating absence as
+success. A fresh run passed 412 tests and all 16 checks without live store/provider calls.
+
+The manual guide covers login, roles, five Woo tools, chat UX, external Inspector,
+registry controls, failures, audits, network/persistence checks and explicit cleanup.
+A blank result sheet separates expected behavior from observed results. Historical
+gaps and old-image smoke scripts are identified in [the test history](testing/test-history.md).
+This provides a reproducible testing handoff without claiming the user has recorded
+the demo or repeating business mutations just to produce documentation.
+
 ## 16 November 2026 — strict compliance and final rehearsal
 
 Comparing the source assignment with the implementation exposed two concrete gaps:

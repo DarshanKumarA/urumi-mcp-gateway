@@ -1,0 +1,157 @@
+test_authenticated_current_and_legacy_discovery_no_woo_call (test_caller_auth.CallerAuthTests.test_authenticated_current_and_legacy_discovery_no_woo_call) ... StreamableHTTP session manager started
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:8000/mcp "HTTP/1.1 401 Unauthorized"
+StreamableHTTP session manager shutting down
+StreamableHTTP session manager started
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 202 Accepted"
+Terminating session: None
+HTTP Request: POST http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+HTTP Request: GET http://127.0.0.1:8000/mcp "HTTP/1.1 401 Unauthorized"
+StreamableHTTP session manager shutting down
+ok
+test_every_http_method_denies_missing_invalid_duplicate_and_query (test_caller_auth.CallerAuthTests.test_every_http_method_denies_missing_invalid_duplicate_and_query) ... HTTP Request: GET http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: GET http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: GET http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: GET http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: POST http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: POST http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: POST http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: POST http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: DELETE http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: DELETE http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: DELETE http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: DELETE http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: OPTIONS http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: OPTIONS http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: OPTIONS http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+HTTP Request: OPTIONS http://localhost/mcp?token=invalid "HTTP/1.1 401 Unauthorized"
+ok
+test_missing_or_malformed_file_fails_closed (test_caller_auth.CallerAuthTests.test_missing_or_malformed_file_fails_closed) ... ok
+test_valid_request_strips_service_credential (test_caller_auth.CallerAuthTests.test_valid_request_strips_service_credential) ... HTTP Request: GET http://127.0.0.1:8000/mcp "HTTP/1.1 200 OK"
+ok
+test_absolute_deadline (test_connectivity.ClientTests.test_absolute_deadline) ... ok
+test_entrypoint_sanitizes_exception (test_connectivity.ClientTests.test_entrypoint_sanitizes_exception) ... ok
+test_exact_signature_host_and_normalization (test_connectivity.ClientTests.test_exact_signature_host_and_normalization) ... ok
+test_invalid_sku_makes_no_request (test_connectivity.ClientTests.test_invalid_sku_makes_no_request) ... ok
+test_malformed_responses (test_connectivity.ClientTests.test_malformed_responses) ... ok
+test_redirect_not_followed (test_connectivity.ClientTests.test_redirect_not_followed) ... ok
+test_response_bound (test_connectivity.ClientTests.test_response_bound) ... ok
+test_status_errors_and_no_retry (test_connectivity.ClientTests.test_status_errors_and_no_retry) ... ok
+test_transport_timeout (test_connectivity.ClientTests.test_transport_timeout) ... ok
+test_unreachable (test_connectivity.ClientTests.test_unreachable) ... ok
+test_invalid_origins (test_connectivity.ConfigurationTests.test_invalid_origins) ... ok
+test_origins_queries (test_connectivity.ConfigurationTests.test_origins_queries) ... ok
+test_required_files (test_connectivity.ConfigurationTests.test_required_files) ... ok
+test_absolute_deadline_no_retry (test_create_product.CreateClientTests.test_absolute_deadline_no_retry) ... ok
+test_bad_json_and_size_are_unknown (test_create_product.CreateClientTests.test_bad_json_and_size_are_unknown) ... ok
+test_bad_response_is_unknown (test_create_product.CreateClientTests.test_bad_response_is_unknown) ... ok
+test_cancellation_does_not_replay (test_create_product.CreateClientTests.test_cancellation_does_not_replay) ... ok
+test_conflict_is_not_message_guessing (test_create_product.CreateClientTests.test_conflict_is_not_message_guessing) ... ok
+test_create_time_conflict (test_create_product.CreateClientTests.test_create_time_conflict) ... ok
+test_exact_payload_signing_and_normalization (test_create_product.CreateClientTests.test_exact_payload_signing_and_normalization) ... ok
+test_network_failures_are_unknown_once (test_create_product.CreateClientTests.test_network_failures_are_unknown_once) ... ok
+test_null_sku_omitted (test_create_product.CreateClientTests.test_null_sku_omitted) ... ok
+test_precheck_duplicate_never_posts (test_create_product.CreateClientTests.test_precheck_duplicate_never_posts) ... ok
+test_precheck_failure_never_posts (test_create_product.CreateClientTests.test_precheck_failure_never_posts) ... ok
+test_rejected_statuses (test_create_product.CreateClientTests.test_rejected_statuses) ... ok
+test_server_redirect_unexpected_success_are_unknown (test_create_product.CreateClientTests.test_server_redirect_unexpected_success_are_unknown) ... ok
+test_sku_precheck_no_match_then_one_post (test_create_product.CreateClientTests.test_sku_precheck_no_match_then_one_post) ... ok
+test_sku_timeout_no_reconciliation_read (test_create_product.CreateClientTests.test_sku_timeout_no_reconciliation_read) ... ok
+test_unexpected_transport_failure_safe_unknown (test_create_product.CreateClientTests.test_unexpected_transport_failure_safe_unknown) ... ok
+test_write_committed_but_response_body_lost (test_create_product.CreateClientTests.test_write_committed_but_response_body_lost) ... ok
+test_defaults_trim_and_optional_sku (test_create_product.CreateInputTests.test_defaults_trim_and_optional_sku) ... ok
+test_name_and_sku_bounds (test_create_product.CreateInputTests.test_name_and_sku_bounds) ... ok
+test_prices (test_create_product.CreateInputTests.test_prices) ... ok
+test_status_stock_and_extras (test_create_product.CreateInputTests.test_status_stock_and_extras) ... ok
+test_bad_environment_fails_without_values (test_hosting.HostingConfigTests.test_bad_environment_fails_without_values) ... ok
+test_environment_uses_existing_config_fields (test_hosting.HostingConfigTests.test_environment_uses_existing_config_fields) ... ok
+test_host_origin_checks_use_sdk (test_hosting.HostingConfigTests.test_host_origin_checks_use_sdk) ... ok
+test_import_factory_does_not_load_credentials (test_hosting.HostingConfigTests.test_import_factory_does_not_load_credentials) ... ok
+test_missing_files_fail_startup (test_hosting.HostingConfigTests.test_missing_files_fail_startup) ... ok
+test_real_tcp_discovery_and_graceful_shutdown (test_hosting.HostingConfigTests.test_real_tcp_discovery_and_graceful_shutdown) ... ok
+test_bad_json_oversize_both_operations (test_orders.OrderClientTests.test_bad_json_oversize_both_operations) ... ok
+test_bad_line_values (test_orders.OrderClientTests.test_bad_line_values) ... ok
+test_bad_pagination_and_duplicate_ids (test_orders.OrderClientTests.test_bad_pagination_and_duplicate_ids) ... ok
+test_decimal_price_variation_deleted_product (test_orders.OrderClientTests.test_decimal_price_variation_deleted_product) ... ok
+test_detail_malformed (test_orders.OrderClientTests.test_detail_malformed) ... ok
+test_detail_path_normalization_privacy (test_orders.OrderClientTests.test_detail_path_normalization_privacy) ... ok
+test_empty_list (test_orders.OrderClientTests.test_empty_list) ... ok
+test_explicit_date_request (test_orders.OrderClientTests.test_explicit_date_request) ... ok
+test_list_defaults_no_date_privacy (test_orders.OrderClientTests.test_list_defaults_no_date_privacy) ... ok
+test_list_product_quantities_are_allowlisted (test_orders.OrderClientTests.test_list_product_quantities_are_allowlisted) ... ok
+test_list_rejects_missing_or_invalid_quantities (test_orders.OrderClientTests.test_list_rejects_missing_or_invalid_quantities) ... ok
+test_malformed_summary (test_orders.OrderClientTests.test_malformed_summary) ... ok
+test_runtime_boundary_guard (test_orders.OrderClientTests.test_runtime_boundary_guard) ... ok
+test_safe_errors_no_retry_both_operations (test_orders.OrderClientTests.test_safe_errors_no_retry_both_operations) ... ok
+test_statuses_and_pagination (test_orders.OrderClientTests.test_statuses_and_pagination) ... ok
+test_today_resolved_once_before_request (test_orders.OrderClientTests.test_today_resolved_once_before_request) ... ok
+test_transport_errors_both_operations (test_orders.OrderClientTests.test_transport_errors_both_operations) ... ok
+test_unrepresentable_window_no_request (test_orders.OrderClientTests.test_unrepresentable_window_no_request) ... ok
+test_explicit_window_utc (test_orders.OrderDateTests.test_explicit_window_utc) ... ok
+test_leap_day_and_year_rollover (test_orders.OrderDateTests.test_leap_day_and_year_rollover) ... ok
+test_omitted_date_and_naive_clock (test_orders.OrderDateTests.test_omitted_date_and_naive_clock) ... ok
+test_strict_second_boundaries (test_orders.OrderDateTests.test_strict_second_boundaries) ... ok
+test_today_kolkata_midnight (test_orders.OrderDateTests.test_today_kolkata_midnight) ... ok
+test_get_id (test_orders.OrderInputTests.test_get_id) ... ok
+test_list_defaults_statuses (test_orders.OrderInputTests.test_list_defaults_statuses) ... ok
+test_list_invalid (test_orders.OrderInputTests.test_list_invalid) ... ok
+test_timezone_config (test_orders.OrderInputTests.test_timezone_config) ... ok
+test_currency_configuration (test_products.InputTests.test_currency_configuration) ... ok
+test_defaults_and_trim (test_products.InputTests.test_defaults_and_trim) ... ok
+test_invalid_inputs (test_products.InputTests.test_invalid_inputs) ... ok
+test_bad_pagination (test_products.ProductTests.test_bad_pagination) ... ok
+test_deadline (test_products.ProductTests.test_deadline) ... ok
+test_draft_without_price (test_products.ProductTests.test_draft_without_price) ... ok
+test_empty_collection (test_products.ProductTests.test_empty_collection) ... ok
+test_http_errors (test_products.ProductTests.test_http_errors) ... ok
+test_json_and_size (test_products.ProductTests.test_json_and_size) ... ok
+test_malformed_product (test_products.ProductTests.test_malformed_product) ... ok
+test_mapping_normalization (test_products.ProductTests.test_mapping_normalization) ... ok
+test_sku_last_page (test_products.ProductTests.test_sku_last_page) ... ok
+test_transport_failures (test_products.ProductTests.test_transport_failures) ... ok
+test_create_duplicates_and_unknown_errors (test_protocol.ProtocolTests.test_create_duplicates_and_unknown_errors) ... ok
+test_create_protocols (test_protocol.ProtocolTests.test_create_protocols) ... ok
+test_create_validation (test_protocol.ProtocolTests.test_create_validation) ... ok
+test_explicit_2026 (test_protocol.ProtocolTests.test_explicit_2026) ... ok
+test_invalid_arguments_are_safe_tool_errors (test_protocol.ProtocolTests.test_invalid_arguments_are_safe_tool_errors) ... ok
+test_legacy_2025 (test_protocol.ProtocolTests.test_legacy_2025) ... ok
+test_modern_discovery (test_protocol.ProtocolTests.test_modern_discovery) ... ok
+test_order_errors_are_sanitized (test_protocol.ProtocolTests.test_order_errors_are_sanitized) ... ok
+test_order_invalid_arguments (test_protocol.ProtocolTests.test_order_invalid_arguments) ... ok
+test_order_protocols (test_protocol.ProtocolTests.test_order_protocols) ... ok
+test_update_conflict_and_write_errors (test_protocol.ProtocolTests.test_update_conflict_and_write_errors) ... ok
+test_update_protocols (test_protocol.ProtocolTests.test_update_protocols) ... ok
+test_update_validation (test_protocol.ProtocolTests.test_update_validation) ... ok
+test_upstream_error_is_not_success (test_protocol.ProtocolTests.test_upstream_error_is_not_success) ... ok
+test_bad_get_identity_status_and_payload_never_put (test_update_order_status.UpdateClientTests.test_bad_get_identity_status_and_payload_never_put) ... ok
+test_clear_status_parameter_rejection (test_update_order_status.UpdateClientTests.test_clear_status_parameter_rejection) ... ok
+test_committed_update_lost_response_stays_unknown (test_update_order_status.UpdateClientTests.test_committed_update_lost_response_stays_unknown) ... ok
+test_conflict_precedes_noop_and_never_puts (test_update_order_status.UpdateClientTests.test_conflict_precedes_noop_and_never_puts) ... ok
+test_deadline_get_vs_put (test_update_order_status.UpdateClientTests.test_deadline_get_vs_put) ... ok
+test_exact_get_put_payload_signature_and_private_normalization (test_update_order_status.UpdateClientTests.test_exact_get_put_payload_signature_and_private_normalization) ... ok
+test_generic_rejection_not_guessed_from_code_or_message (test_update_order_status.UpdateClientTests.test_generic_rejection_not_guessed_from_code_or_message) ... ok
+test_get_network_failure_is_not_write_ambiguity (test_update_order_status.UpdateClientTests.test_get_network_failure_is_not_write_ambiguity) ... ok
+test_json_and_size_failure_distinguish_get_from_put (test_update_order_status.UpdateClientTests.test_json_and_size_failure_distinguish_get_from_put) ... ok
+test_missing_order_and_other_get_errors_never_put (test_update_order_status.UpdateClientTests.test_missing_order_and_other_get_errors_never_put) ... ok
+test_non_atomic_guard_does_not_prevent_intervening_write (test_update_order_status.UpdateClientTests.test_non_atomic_guard_does_not_prevent_intervening_write) ... ok
+test_other_rejected_put_responses (test_update_order_status.UpdateClientTests.test_other_rejected_put_responses) ... ok
+test_put_http_ambiguity_never_retries_or_reconciles (test_update_order_status.UpdateClientTests.test_put_http_ambiguity_never_retries_or_reconciles) ... ok
+test_put_network_failures_one_attempt_unknown (test_update_order_status.UpdateClientTests.test_put_network_failures_one_attempt_unknown) ... ok
+test_refunded_can_be_observed_without_invented_transition_matrix (test_update_order_status.UpdateClientTests.test_refunded_can_be_observed_without_invented_transition_matrix) ... ok
+test_same_status_noop_all_targets (test_update_order_status.UpdateClientTests.test_same_status_noop_all_targets) ... ok
+test_unexpected_error_and_cancellation_never_replay (test_update_order_status.UpdateClientTests.test_unexpected_error_and_cancellation_never_replay) ... ok
+test_unusable_rejection_body_is_conservative (test_update_order_status.UpdateClientTests.test_unusable_rejection_body_is_conservative) ... ok
+test_wrong_status_identity_or_malformed_put_is_unknown (test_update_order_status.UpdateClientTests.test_wrong_status_identity_or_malformed_put_is_unknown) ... ok
+test_invalid_expected_status (test_update_order_status.UpdateInputTests.test_invalid_expected_status) ... ok
+test_invalid_id (test_update_order_status.UpdateInputTests.test_invalid_id) ... ok
+test_invalid_targets (test_update_order_status.UpdateInputTests.test_invalid_targets) ... ok
+test_required_fields_and_extras (test_update_order_status.UpdateInputTests.test_required_fields_and_extras) ... ok
+test_valid_status_sets (test_update_order_status.UpdateInputTests.test_valid_status_sets) ... ok
+
+----------------------------------------------------------------------
+Ran 122 tests in 6.692s
+
+OK

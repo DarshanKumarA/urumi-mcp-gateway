@@ -1,5 +1,10 @@
 # Demo and submission checklist
 
+For step-by-step testing with expected results and cleanup, use the
+[manual test guide](testing/manual-tests.md). Record outcomes in its
+[results template](testing/manual-results-template.md); automated logs and historical
+evidence are indexed in [test history](testing/test-history.md).
+
 The final rehearsal is in [compliance-2026-11-16.md](compliance-2026-11-16.md);
 earlier acceptance results are in [acceptance.md](acceptance.md). This guide is the
 recording plan, not a claim that a video has been recorded or submitted. Use a new

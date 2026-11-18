@@ -31,6 +31,7 @@ values-secrets.yaml
 values-secrets.yml
 
 # Local logs and editor/OS temporary files
+.test-results/
 *.log
 *.swp
 *.swo

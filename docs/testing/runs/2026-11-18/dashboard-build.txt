@@ -1,0 +1,14 @@
+
+> urumi-dashboard@0.0.1 build
+> tsc --noEmit && vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 20 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.44 kB │ gzip:  0.28 kB
+dist/assets/index-NqC81Ftv.css   14.40 kB │ gzip:  3.65 kB
+dist/assets/index-DQERsMeR.js   249.26 kB │ gzip: 76.95 kB
+
+✓ built in 297ms

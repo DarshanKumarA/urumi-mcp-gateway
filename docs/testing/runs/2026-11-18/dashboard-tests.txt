@@ -1,0 +1,45 @@
+
+> urumi-dashboard@0.0.1 test
+> vitest run --reporter=verbose
+
+
+ RUN  v5.0.5 <REPO>/apps/dashboard
+
+ ✓ src/AnswerContent.test.tsx > renders real headers, rows, emphasis and lists 77ms
+ ✓ src/AnswerContent.test.tsx > does not execute model HTML or create remote images or links 6ms
+ ✓ src/AnswerContent.test.tsx > preserves escaped pipes and malformed rows as readable text 11ms
+ ✓ src/App.test.tsx > loads login then me and signs out 821ms
+ ✓ src/App.test.tsx > admin navigation has all five pages 25ms
+ ✓ src/App.test.tsx > member navigation excludes Team and Audit 10ms
+ ✓ src/App.test.tsx > renders all three server states and readable tools 35ms
+ ✓ src/App.test.tsx > disable sends exactly one action 99ms
+ ✓ src/App.test.tsx > member catalog hides administration 15ms
+ ✓ src/App.test.tsx > normal edit omits credential and preserves immutable slug 141ms
+ ✓ src/App.test.tsx > server removal requires confirmation 168ms
+ ✓ src/App.test.tsx > invitation is shown once and cleared after dismissal 313ms
+ ✓ src/App.test.tsx > API key is shown once and disappears on dismissal 295ms
+ ✓ src/App.test.tsx > key revocation requires confirmation 108ms
+ ✓ src/App.test.tsx > admin views and revokes member key without seeing raw key 185ms
+ ✓ src/App.test.tsx > audit renders attributed metadata and bounded pagination 20ms
+ ✓ src/App.test.tsx > chat renders answer with two-server trace 294ms
+ ✓ src/App.test.tsx > chat does not retry a failed mutation 291ms
+ ✓ src/App.test.tsx > chat empty starters set input only 62ms
+ ✓ src/App.test.tsx > loading state is explicit 3ms
+ ✓ src/App.test.tsx > empty key state 10ms
+ ✓ src/App.test.tsx > empty audit state 16ms
+ ✓ src/App.test.tsx > safe error never shows raw response 18ms
+ ✓ src/App.test.tsx > invitation acceptance uses token in body not URL 754ms
+ ✓ src/App.test.tsx > relative API requests always include cookies 1ms
+ ✓ src/App.test.tsx > secret dialog escapes text and supports Escape dismissal 4ms
+ ✓ src/App.test.tsx > statuses include text and do not rely on color 3ms
+ ✓ src/App.test.tsx > shows submitted text while pending and sends with Enter 366ms
+ ✓ src/App.test.tsx > Shift Enter adds a line without sending 280ms
+ ✓ src/App.test.tsx > preserves completed chat and draft across navigation and browser back 649ms
+ ✓ src/App.test.tsx > keeps a pending request alive when navigating away without resending 419ms
+ ✓ src/App.test.tsx > clears chat on logout before another user signs in 1105ms
+ ✓ src/App.test.tsx > clears chat on expiry before another user signs in 1072ms
+
+ Test Files  2 passed (2)
+      Tests  33 passed (33)
+   Start at  21:37:26
+   Duration  11.55s (tests 53%, environment 30%, setup 14%, import 2%, transform 1%)

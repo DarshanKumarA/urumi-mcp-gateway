@@ -1,0 +1,13 @@
+PASS gateway direct pins/hash-lock/installed consistency: 55 packages
+PASS woo-mcp direct pins/hash-lock/installed consistency: 34 packages
+PASS arithmetic-mcp direct pins/hash-lock/installed consistency: 29 packages
+PASS store-policy-mcp direct pins/hash-lock/installed consistency: 29 packages
+PASS npm manifest/lock pins and artifact integrity metadata
+PASS documentation relative links/anchors/tables: 347 links
+PASS heuristic credential/contact scan, including built dashboard assets
+PASS Python syntax: runner and repository checker
+PASS 16 archived log hashes, original collected hashes and final runner hash
+PASS synthetic CRLF/ANSI/trailing-space/EOF/path/key normalization checks
+PASS refusal to overwrite retained run: expected exit 2, manifest unchanged
+PASS staged whitespace after archive normalization
+NOTE initial staging whitespace checks failed on CRLF/trailing spaces/EOF blank lines; original diagnostics retained locally in .test-results/archive-whitespace-before.txt. Published output is format-normalized only.

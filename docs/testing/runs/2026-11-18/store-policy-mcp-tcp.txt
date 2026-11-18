@@ -1,0 +1,1 @@
+{"tool": "get_policy", "structured_call": "PASS", "host_rejected": true, "origin_rejected": true, "mode": "listening TCP", "clean_shutdown": true, "temporary_resources_removed": true}
