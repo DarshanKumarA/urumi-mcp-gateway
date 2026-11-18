@@ -16,6 +16,7 @@ from .database import SQLRepository, make_engine, bootstrap
 from .identity import IdentityService
 from .identity_repository import IdentityRepository
 from .models import Upstream, Credential
+from .credential_store import from_environment as credential_store, migrate_credentials
 
 RECEIPTS = {"identity-admin-v1", "woocommerce-v1", "arithmetic-v1", "store_policy-v1"}
 
@@ -69,7 +70,7 @@ async def initialize(engine):
     urls = {slug: os.environ[key] for slug, key in (
         ("woocommerce", "URUMI_WOO_MCP_URL"), ("arithmetic", "URUMI_ARITHMETIC_MCP_URL"),
         ("store_policy", "URUMI_STORE_POLICY_MCP_URL"))}
-    await seed_builtins(SQLRepository(engine), read_file("URUMI_WOO_MCP_TOKEN_FILE", 256), urls)
+    await seed_builtins(SQLRepository(engine, credential_store()), read_file("URUMI_WOO_MCP_TOKEN_FILE", 256), urls)
 
 
 def main():
@@ -83,6 +84,7 @@ def main():
             wait_for(engine, "database")
             cfg = Config("alembic.ini")
             with engine.begin() as connection:
+                migrate_credentials(connection, credential_store())
                 cfg.attributes["connection"] = connection
                 command.upgrade(cfg, "head")
         elif mode == "bootstrap":

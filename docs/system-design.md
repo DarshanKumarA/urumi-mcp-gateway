@@ -17,7 +17,8 @@ flowchart LR
     Gateway --> Policy[Store Policy MCP]
     Woo --> REST[Woo REST API]
     REST --> MariaDB[(MariaDB)]
-    Gateway --> PG[(PostgreSQL)]
+    Gateway --> PG[(PostgreSQL references and audits)]
+    Gateway --> Secrets[Kubernetes upstream credential Secret]
     Gateway --> Model[OpenRouter model]
 ```
 
@@ -48,8 +49,10 @@ Both chat and external calls use `InvocationService`. It commits audit START bef
 dispatch, records resolved tool identity, and finalizes success/failure with duration.
 Database failure before dispatch prevents execution. A crash or finalization failure
 may leave an unknown outcome; there is no distributed transaction with WooCommerce
-and no automatic retry. Transport authentication failures are outside this invocation
-audit, so a revoked key's 401 is shown separately.
+and no automatic retry. Known revoked/disabled keys are rejected before dispatch but
+recorded as failed `KEY_REJECTED` audit events under their stored owner. Only cached
+trusted tool metadata is used; initialization or unresolved names use `<authentication>`.
+Unknown credentials are not assigned a guessed identity.
 
 The dashboard model is OpenRouter `z-ai/glm-5.3-flash`. It receives the live tool
 catalog, asks for calls, and receives sanitized operational results. The backend
@@ -70,6 +73,13 @@ The same chart renders local and production resources. Production changes are va
 registry image locations, domains/HTTPS origin, Secure cookies, TLS Secret references,
 Ingress class, storage classes/capacities and operator-provisioned Secrets. See the
 [production runbook](production.md). No real VPS/TLS deployment was performed.
+
+Registry credential values live in one external Kubernetes Secret; PostgreSQL stores
+opaque references. Gateway and migration/bootstrap Jobs use a narrowly scoped Role
+and an explicitly projected rotating token. Every credential read verifies against
+the API; an unavailable Secret store fails closed. This adds an API dependency and
+latency to registry operations. Append-only entries favor recovery over automatic
+garbage collection; see [security limits](security-summary.md).
 
 Migration and bootstrap are explicit revisioned Jobs. The gateway waits for the schema
 and bootstrap receipts; it never resets users or registrations at startup. Helm rollback

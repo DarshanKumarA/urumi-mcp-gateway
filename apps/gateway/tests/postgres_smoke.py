@@ -15,7 +15,7 @@ from alembic.migration import MigrationContext
 
 from urumi_gateway.database import SQLRepository, make_engine, metadata, servers
 from urumi_gateway.models import Credential, Observation, Upstream
-from test_persistence import migrate
+from test_persistence import migrate, MemoryCredentials
 from support import SYNTHETIC
 from urumi_gateway.identity import IdentityService, IdentityError, digest
 from urumi_gateway.identity_repository import IdentityRepository, users, sessions, invitations, api_keys
@@ -193,13 +193,14 @@ def main():
         engine = make_engine(url)
         if sa.inspect(engine).get_table_names():
             raise ValueError("Empty fixture required")
+        engine._test_credentials = MemoryCredentials()
         migrate(engine)
         asyncio.run(exercise(engine))
         asyncio.run(identity_exercise(engine))
         asyncio.run(audit_exercise(engine))
         migrate(engine, "base", down=True)
         migrate(engine)
-        print("PASS: PostgreSQL 0001 -> 0002 -> 0003 empty migration/schema; registry and identity regressions; committed audit START/finalization; reconnect persistence; attribution survives server removal/key revocation; immutable audit and restrictive key constraints; immediate revocation; downgrade/upgrade")
+        print("PASS: PostgreSQL 0001 -> 0002 -> 0003 -> 0004 empty migration/schema; registry and identity regressions; committed audit START/finalization; reconnect persistence; attribution survives server removal/key revocation; immutable audit and restrictive key constraints; immediate revocation; downgrade/upgrade")
     except Exception:
         print("FAIL: PostgreSQL fixture validation; raw DB details suppressed")
         raise SystemExit(1) from None

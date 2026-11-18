@@ -21,6 +21,7 @@ from .chat import ChatService, chat_router
 from .core import Gateway
 from .database import SQLRepository, RepositoryUnavailable, make_engine
 from .errors import GatewayError
+from .credential_store import CredentialStoreUnavailable
 from .management import Management, CreateServer, EditServer, ServerView
 from .server import create_app as mcp_app
 
@@ -80,6 +81,10 @@ def create_app(repository, *, upstream=None, seed=False, auth_config=None, ident
     @app.exception_handler(KeyError)
     async def missing(request, error):
         return JSONResponse({"error": "NOT_FOUND"}, status_code=404)
+
+    @app.exception_handler(CredentialStoreUnavailable)
+    async def credential_unavailable(request, error):
+        return JSONResponse({"error": "CREDENTIAL_STORE_UNAVAILABLE"}, status_code=503)
 
     @app.exception_handler(RepositoryUnavailable)
     async def unavailable(request, error):
@@ -163,7 +168,8 @@ def create_production_app():
             invitation_seconds=int(os.environ.get("URUMI_INVITATION_SECONDS", "86400")))
         from .provider import from_environment
         provider = from_environment()
-        app = create_app(SQLRepository(engine), seed=False, auth_config=config, provider=provider,
+        from .credential_store import from_environment as credential_store
+        app = create_app(SQLRepository(engine, credential_store()), seed=False, auth_config=config, provider=provider,
                          max_tool_rounds=int(os.environ.get("URUMI_MAX_TOOL_ROUNDS", "5")))
     except Exception:
         engine.dispose()

@@ -43,3 +43,21 @@ capabilities:
       - key: database-url
         path: database-url
 {{- end -}}
+
+{{- define "urumi.credentialEnv" -}}
+- {name: URUMI_NAMESPACE, value: {{ .Release.Namespace | quote }}}
+- {name: URUMI_UPSTREAM_SECRET_NAME, value: {{ printf "%s-upstream-credentials" (include "urumi.fullname" .) | quote }}}
+{{- end -}}
+{{- define "urumi.credentialMount" -}}
+- {name: kubernetes-auth, mountPath: /run/kubernetes, readOnly: true}
+{{- end -}}
+{{- define "urumi.credentialVolume" -}}
+- name: kubernetes-auth
+  projected:
+    defaultMode: 0440
+    sources:
+      - serviceAccountToken: {path: token, expirationSeconds: 3600}
+      - configMap:
+          name: kube-root-ca.crt
+          items: [{key: ca.crt, path: ca.crt}]
+{{- end -}}

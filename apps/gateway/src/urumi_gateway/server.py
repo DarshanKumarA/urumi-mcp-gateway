@@ -27,5 +27,5 @@ def create_app(gateway, *, identity, invocations, allowed_hosts=None):
             enable_dns_rebinding_protection=True,
             allowed_hosts=allowed_hosts or ["127.0.0.1:*", "localhost:*", "[::1]:*"], allowed_origins=[]),
     )
-    app.add_middleware(MCPAuthentication, identity=identity)
+    app.add_middleware(MCPAuthentication, identity=identity, invocations=invocations)
     return app

@@ -1,7 +1,17 @@
 # Gateway protocol core and persistent management
 
-Current local runtime: Stage 8.2 readability/OpenRouter image, Helm revision 8. The live core
-acceptance is documented in [the final report](../../docs/acceptance.md); historical
+## Current compliance update (16 November 2026)
+
+Revision 13 supersedes historical plaintext-registry and unaudited-known-rejection
+descriptions below. Upstream values now live in an external Kubernetes Secret, with
+opaque PostgreSQL references and scoped get/update RBAC. Production runtime and
+migration/bootstrap require URUMI_NAMESPACE, URUMI_UPSTREAM_SECRET_NAME and the
+projected /run/kubernetes token/CA supplied by the chart. Known revoked/disabled keys
+produce KEY_REJECTED audit rows without dispatch. See the [final report](../../docs/compliance-2026-11-16.md)
+and [migration runbook](../../docs/production.md#credential-storage-migration).
+
+Earlier Stage 8.2 checkpoint: readability/OpenRouter image, Helm revision 8. That live core
+acceptance is documented in [the earlier report](../../docs/acceptance.md); historical
 stage headings below retain their original scope. Run tests from the application
 directory because readiness resolves its Alembic configuration there.
 The [follow-up report](../../docs/reliability-2026-11-15.md) covers bounded provider

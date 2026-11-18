@@ -68,26 +68,28 @@ def utc(value):
     return value.replace(tzinfo=timezone.utc) if value is not None and value.tzinfo is None else value
 
 
-def registration(row):
-    credential = (Credential(row["credential_type"], row["credential_value"], row["credential_header"])
+def registration(row, store):
+    credential = (Credential(row["credential_type"], store.get(row["credential_value"]), row["credential_header"])
                   if row["credential_type"] else None)
     return Upstream(id=row["id"], slug=row["slug"], display_name=row["display_name"], url=row["url"],
                     enabled=row["enabled"], revision=row["revision"], credential=credential,
                     created_at=utc(row["created_at"]), updated_at=utc(row["updated_at"]))
 
 
-def values(server):
+def values(server, store):
     c = server.credential
     return dict(id=server.id, slug=server.slug, display_name=server.display_name, url=server.url,
                 enabled=server.enabled, revision=server.revision,
                 credential_type=c.kind if c else None, credential_header=c.header_name if c else None,
-                credential_value=c.value if c else None, created_at=server.created_at,
+                credential_value=store.put(c.value) if c else None, created_at=server.created_at,
                 updated_at=server.updated_at)
 
 
 class SQLRepository:
-    def __init__(self, engine):
+    def __init__(self, engine, credential_store=None):
+        from .credential_store import UnavailableStore
         self.engine = engine
+        self.credential_store = credential_store or getattr(engine, "_test_credentials", None) or UnavailableStore()
 
     async def _run(self, operation):
         def transaction():
@@ -101,7 +103,7 @@ class SQLRepository:
         return await asyncio.to_thread(transaction)
 
     async def list(self):
-        return await self._run(lambda c: [registration(r) for r in c.execute(
+        return await self._run(lambda c: [registration(r, self.credential_store) for r in c.execute(
             sa.select(servers).order_by(servers.c.slug)).mappings()])
 
     async def get(self, server_id):
@@ -113,14 +115,14 @@ class SQLRepository:
     async def _get(self, predicate):
         def read(c):
             row = c.execute(sa.select(servers).where(predicate)).mappings().first()
-            return registration(row) if row else None
+            return registration(row, self.credential_store) if row else None
         return await self._run(read)
 
     async def add(self, server):
         def insert(c):
             if c.execute(sa.select(servers.c.id).where(servers.c.slug == server.slug)).first():
                 raise ValueError("DUPLICATE_REGISTRATION")
-            c.execute(servers.insert().values(**values(server), observed_status="unknown", tools=[]))
+            c.execute(servers.insert().values(**values(server, self.credential_store), observed_status="unknown", tools=[]))
         await self._run(insert)
 
     async def edit(self, server_id, **changes):
@@ -130,9 +132,12 @@ class SQLRepository:
             row = c.execute(sa.select(servers).where(servers.c.id == server_id).with_for_update()).mappings().first()
             if row is None:
                 raise KeyError("NOT_FOUND")
-            current = registration(row)
+            current = registration(row, self.credential_store)
             updated = replace(current, **changes, revision=current.revision + 1, updated_at=datetime.now(timezone.utc))
-            fields = values(updated)
+            fields = values(updated, self.credential_store) if "credential" in changes else {
+                **values(replace(updated, credential=None), self.credential_store),
+                "credential_type": row["credential_type"], "credential_header": row["credential_header"],
+                "credential_value": row["credential_value"]}
             for key in ("id", "slug", "created_at"):
                 fields.pop(key)
             # Any configuration edit invalidates metadata, including possible old credential reflections.
@@ -184,6 +189,6 @@ class SQLRepository:
             first = c.execute(insert(bootstrap).values(name=server.slug + "-v1")
                               .on_conflict_do_nothing().returning(bootstrap.c.name)).first()
             if first:
-                c.execute(insert(servers).values(**values(server), observed_status="unknown", tools=[])
+                c.execute(insert(servers).values(**values(server, self.credential_store), observed_status="unknown", tools=[])
                           .on_conflict_do_nothing())
         await self._run(seed)

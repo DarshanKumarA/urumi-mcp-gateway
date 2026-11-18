@@ -8,7 +8,11 @@ I built a team gateway that gives users one MCP endpoint for several tools. A cu
 
 The complete system runs in one Kubernetes namespace through one Helm chart. PostgreSQL stores gateway identity, registry and audit state. WordPress and MariaDB hold storefront content and orders. Kubernetes Secrets supply credentials. Local and production values reuse the templates; I have validated the local runtime, not a real VPS deployment.
 
-## What is proved
+## Final compliance rehearsal
+
+On 16 November 2026, Helm revision 13 passed the credential migration and rejection-audit acceptance. User A created product 32 and a synthetic COD checkout created order 33 for INR 549. The dashboard and separate member Inspector conversations used WooCommerce then Arithmetic and agreed with Woo admin. The final controls covered disabled catalogs, unavailable Policy with healthy Woo/Arithmetic, recovery, rejected-key attribution and cleanup. All rehearsal member accounts are disabled and keys revoked. The relevant checks passed: 215 gateway tests, 33 dashboard tests, 6 Secret-helper tests, both chart overlays and a real PostgreSQL migration exercise. See docs/compliance-2026-11-16.md for exact limits.
+
+## Earlier evidence
 
 On 14 November 2026, User A's chat created product 30 at INR 499. Guest COD checkout created order 31, verified in Woo admin. Chat and a separate member's external MCP client retrieved it and used Arithmetic for total and average. Revocation, disabled catalogs, dead-upstream isolation/recovery, caller attribution, targeted network isolation and PostgreSQL/gateway replacement were exercised. Screenshots and sanitized results are in docs/evidence/2026-11-14.
 
@@ -106,7 +110,9 @@ Per-tool authorization and tenant data isolation are not implemented. Hiding a s
 
 Woo REST credentials mount in Woo MCP. The provider key mounts in the gateway. A separate Woo service token is supplied to Woo and seeded into its gateway registration. A user's gateway key is never forwarded to an upstream. Server-side registration credentials are excluded from browser read DTOs and audits.
 
-The accepted database baseline stores upstream credential material without application-level encryption. Database/cluster administrators are trusted. Secret rotation alone does not automatically update the persisted registration or every running process; coordinate rotation rather than assuming a Secret edit is sufficient.
+Revision 13 stores upstream credential values in the external urumi-upstream-credentials Kubernetes Secret and opaque references in PostgreSQL. The gateway and migration/bootstrap Jobs use an explicitly projected rotating token and a Role that permits only get/update of that named Secret. Automatic token mounting remains disabled. The migration copies and verifies values before replacing the database fields; old gateway writers are stopped first.
+
+Kubernetes Secrets are not automatically encrypted merely because their representation is base64. The store retains superseded entries to preserve in-flight readers and recovery; there is no automatic garbage collection. Earlier WAL/backups may retain old plaintext. Back up references and Secret entries together. Cluster administrators remain trusted. Coordinated credential rotation and a compatible forward fix are safer than blindly rolling back to an old image that cannot read references.
 
 # MCP aggregation routing and failure isolation
 
@@ -184,7 +190,7 @@ Arguments/results and customer contacts are not stored in the audit log. It is a
 
 There is no distributed transaction between PostgreSQL and WooCommerce. The store can commit a write while the gateway loses a response or fails to finalize its audit. A started event can therefore mean interrupted or unknown outcome, not proof of failure. Inspect the store read-only before retrying a write.
 
-Invalid/revoked API keys are rejected before the invocation handler. Their HTTP 401 evidence is recorded separately; they do not become normal attributed tool-call rows. Authenticated disabled/dead tool failures do create failed audit rows. Do not claim the log attributes unknown credentials to a guessed user.
+Revoked keys and keys belonging to disabled members are rejected before the invocation handler. If the stored hash identifies the owner, the gateway records a failed KEY_REJECTED event under that user/key, then returns 401 without upstream execution. A bounded request inspection records only known cached tool metadata; other requests use <authentication>. If rejection auditing fails, access remains blocked with 503. Unknown or malformed credentials do not receive a guessed identity. Authenticated disabled/dead tool failures also create failed audit rows.
 
 ## Persistence experiments
 

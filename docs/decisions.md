@@ -1,5 +1,20 @@
 # Decision register
 
+## 16 November 2026 — close the two strict mandatory gaps
+
+The user authorized fixing Kubernetes Secret storage for admin-entered upstream
+credentials and auditing known revoked-key rejections, then rehearsing the complete
+two-user flow. The chosen store uses one external Secret, opaque PostgreSQL references,
+copy/verify migration and get/update RBAC limited to that Secret. It avoids plaintext
+active registry values without introducing an external secrets platform. Append-only
+entries preserve recovery/in-flight readers but require operator capacity management.
+
+Known key hashes can establish attribution after revocation without establishing
+authorization. Rejected events therefore record stored owner identity and safe cached
+tool metadata, never dispatch, and fail closed if audit persistence fails. Unknown
+credentials are not falsely attributed. See [evidence and tradeoffs](compliance-2026-11-16.md).
+These choices supersede the earlier accepted storage/rejection limitations.
+
 ## DEC-038 Preserve chat within the authenticated workspace
 
 Keep Chat mounted while switching sections so drafts and in-flight results survive.

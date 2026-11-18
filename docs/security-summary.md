@@ -15,10 +15,13 @@ isolation or complete defense against a malicious administrator/upstream.
   both returned 401 on the next call.
 - Kubernetes Secrets supply store/database/bootstrap/provider credentials. Woo REST
   credentials mount only in Woo MCP. The LLM key mounts only in the gateway. The
-  Woo service token seeds a server-side PostgreSQL registration. Admin-entered upstream
-  credentials are also held in PostgreSQL under the accepted implementation baseline,
-  without application-level encryption. They are omitted from read DTOs, audits and
-  browser/client responses. Database/Secret administrators are trusted.
+  Woo service token and admin-entered upstream credentials are stored in the dedicated
+  `urumi-upstream-credentials` Kubernetes Secret. PostgreSQL holds opaque references.
+  Values/references are omitted from read DTOs, audits and browser/client responses.
+  A projected one-hour service-account token permits get/update of that one named
+  Secret only; the runtime rereads the token to honor rotation. No list/create/delete
+  permission or access to unrelated Secrets is granted. Cluster administrators remain trusted.
+  Kubernetes Secret encoding is not encryption; no etcd encryption-at-rest claim is made.
 - A user key authenticates to the gateway only. It is stripped before upstream
   handling; each upstream receives only its own configured credential. Client-token
   passthrough would expose reusable user authority to an unrelated server and is not used.
@@ -60,8 +63,12 @@ Internal HTTP is unencrypted and local Ingress is HTTP. No real VPS TLS test is 
 
 Audit events store user/server/tool/time/duration/outcome, not request arguments,
 results, customer contacts, credentials or hashes. START is committed before execution;
-unknown outcomes are not silently replayed. Invalid/revoked keys are rejected before
-invocation auditing; the evidence report preserves their HTTP rejection separately.
+unknown outcomes are not silently replayed. A revoked key or disabled member with a
+known matching key gets a completed failed `KEY_REJECTED` row before the 401 response.
+It contains the stored owner/key identity and only trusted cached tool metadata, or
+`<authentication>` when no known tool can be resolved. No arguments are persisted and
+no upstream is dispatched. Rejection auditing failure returns 503 and still blocks
+execution. Unknown/malformed credentials have no attributable owner and return 401.
 
 PostgreSQL and gateway pod replacement preserved identity, revocation and audit data.
 Store persistence was verified in the earlier store milestone, with original claims
@@ -70,6 +77,14 @@ delete its PV data. No backup/restore, disk-loss recovery, production key rotati
 high-availability claim is made. Database owner/superuser separation is not hardened.
 
 Implemented hardening also includes non-root/read-only custom app containers, dropped
-capabilities, no privilege escalation and no API service-account token mounts. These
+capabilities and no privilege escalation. Automatic service-account token mounting
+is disabled. Only gateway runtime and migration/bootstrap Jobs receive the explicit
+projected token needed for the credential store. These
 support the core; they do not constitute completion of all optional security bonuses.
-Detailed historical analysis remains in [threat-model.md](threat-model.md).
+Credential entries are append-only: edits/removal can leave old entries, preserving
+in-flight readers and failed-transaction recovery. Capacity is bounded; orphan cleanup
+and coordinated rotation are operator work, not implemented automation. Back up both
+PostgreSQL references and the Secret. The migration does not securely erase earlier
+values from PostgreSQL WAL, old backups or physical pages. See the
+[migration runbook](production.md#credential-storage-migration). Detailed historical
+analysis remains in [threat-model.md](threat-model.md).

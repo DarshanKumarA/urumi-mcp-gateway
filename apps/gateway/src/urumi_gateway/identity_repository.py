@@ -169,6 +169,14 @@ class IdentityRepository(SQLRepository):
             return (selected(row, USER_FIELDS), row["key_id"], row["key_hash"]) if row else None
         return await self._run(read)
 
+    async def rejected_key_identity(self, key_hash):
+        def read(c):
+            row = c.execute(sa.select(users, api_keys.c.id.label("key_id"), api_keys.c.key_hash)
+                .join(api_keys, api_keys.c.user_id == users.c.id).where(api_keys.c.key_hash == key_hash,
+                    sa.or_(api_keys.c.revoked_at.is_not(None), users.c.enabled.is_(False)))).mappings().first()
+            return (selected(row, USER_FIELDS), row["key_id"], row["key_hash"]) if row else None
+        return await self._run(read)
+
     async def set_member_enabled(self, user_id, enabled):
         def change(c):
             result = c.execute(users.update().where(users.c.id == user_id, users.c.role == "member")

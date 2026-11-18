@@ -30,7 +30,8 @@ Build the five application images with the root README commands. Tag and push th
 reviewed builds to your registry under your own namespace. Set their registry paths and
 immutable version tags/digests in an ignored production override. Configure registry
 authentication on the target if required; never put registry passwords into values.
-The existing `stage8.1-openrouter` gateway source supports both provider adapters.
+Use the reviewed tags in the root README (currently gateway/dashboard
+`stage8.7-compliance`); both provider adapters remain supported.
 
 Create an ignored file such as `.secrets/values-vps.yaml` containing **configuration
 only**, not credentials. Adapt these fields for the actual target:
@@ -83,7 +84,12 @@ helm upgrade --install urumi charts/urumi --kube-context urumi-vps -n urumi -f c
 
 Use the WooCommerce admin to issue a Read/Write REST key for the intended service account,
 then provision `urumi-woocommerce-rest`, the gateway/PostgreSQL/admin/service-token Secrets,
-and the selected LLM Secret. The full overlay enables the components again:
+the selected LLM Secret, and an initially empty Opaque Secret named
+`<fullname>-upstream-credentials` (`urumi-upstream-credentials` for the default release).
+Keep it external to Helm so upgrades cannot replace its dynamic entries. Gateway and
+migration/bootstrap need HTTPS access to `kubernetes.default.svc`, the projected
+service-account token/CA, and the chart's get/update Role for that one Secret.
+The full overlay enables the components again:
 
 ```powershell
 helm upgrade urumi charts/urumi --kube-context urumi-vps -n urumi -f charts/urumi/values-prod.yaml -f .secrets/values-vps.yaml --dry-run=server
@@ -99,6 +105,39 @@ accepted full stack. Do not use `--reuse-values` to hide omitted configuration c
 Accept the target only after TLS/host routing, secret boundaries, gateway login, all three
 upstreams, a synthetic COD order, the two-user flow, revoked-key rejection, failure isolation,
 network policy and persistent-state recovery have passed there. Local results are not VPS evidence.
+
+## Credential storage migration
+
+Revision 13 introduced opaque registry references and audit schema
+`0004_secret_refs_rejections`. Before upgrading an older installation:
+
+1. Preserve consistent PostgreSQL recovery material and all existing Secrets. Provision
+   only the missing empty upstream credential Secret. Prepare/import or publish the
+   new images and review the rendered Role, token projections and Jobs.
+2. Record the current gateway replica count, then scale only the **old gateway** to
+   zero and wait for its Pods to terminate. This prevents an old process from reading
+   references as credential values or writing plaintext during migration. Keep the
+   store, databases and other upstreams running. Schedule the short gateway outage.
+3. Apply the reviewed full chart/values. The migration Job copies each legacy value
+   to the Secret, verifies a read-back match, and transactionally replaces database
+   values with references before advancing the schema. Existing references are
+   verified on reruns. A failed database commit may leave an unused Secret entry;
+   original database values remain recoverable. Stop and diagnose failures.
+4. Verify schema head, zero raw active registry values, preserved credential equality
+   without printing it, bootstrap completion, login, all tools and existing data.
+   Restore the intended gateway replica count through the reviewed release values.
+
+Do not roll back to an image that expects plaintext registry values. Helm rollback
+does not reverse this data migration. The audit downgrade deliberately refuses if
+new `KEY_REJECTED` rows cannot fit the old constraint. Prefer a compatible forward
+fix; a restore requires coordinated PostgreSQL/Secret recovery and explicit review.
+Historical WAL/backups can still contain pre-migration plaintext. The migration is
+not secure erasure, automatic encryption-at-rest, or a tested disaster recovery plan.
+
+The Secret store retains old entries on credential edits/removal. Monitor its size;
+the application stops writes below the Kubernetes object limit. Never empty/delete
+the Secret to clear space: active database references depend on it. Reclamation and
+credential rotation require a reviewed operator procedure; neither is automated.
 
 ## Upgrade and rollback
 

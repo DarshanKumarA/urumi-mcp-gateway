@@ -23,11 +23,24 @@ def migrate(engine, revision="head", *, down=False):
         (command.downgrade if down else command.upgrade)(cfg, revision)
 
 
+class MemoryCredentials:
+    def __init__(self): self.data = {}
+    def put(self, value):
+        key = "k8s-secret:" + uuid4().hex
+        self.data[key] = value
+        return key
+    def get(self, reference):
+        from urumi_gateway.credential_store import CredentialStoreUnavailable
+        if reference not in self.data: raise CredentialStoreUnavailable()
+        return self.data[reference]
+
 class DatabaseFixture:
     def __init__(self):
         self.directory = tempfile.TemporaryDirectory(prefix="urumi-registry-test-")
         self.url = sa.URL.create("sqlite", database=str(Path(self.directory.name) / "registry.db"))
         self.engine = sa.create_engine(self.url, hide_parameters=True)
+        self.credentials = MemoryCredentials()
+        self.engine._test_credentials = self.credentials
         migrate(self.engine)
         self.repo = SQLRepository(self.engine)
 
@@ -51,7 +64,7 @@ class PersistenceTests(unittest.IsolatedAsyncioTestCase):
         self.db.engine.dispose()
         engine = sa.create_engine(self.db.url, hide_parameters=True)
         try:
-            repo = SQLRepository(engine)
+            repo = SQLRepository(engine, self.db.credentials)
             self.assertEqual(await repo.get(self.server.id), self.server)
             self.assertEqual((await repo.get_by_slug("example")).id, self.server.id)
             self.assertEqual(len(await repo.list()), 1)

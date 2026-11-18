@@ -799,7 +799,7 @@ export function Audits() {
                     <Status value={a.outcome} />
                   </td>
                   <td>
-                    <code>{a.error_code || "—"}</code>
+                    <code>{a.error_code === "KEY_REJECTED" ? "Key rejected; no tool executed" : a.error_code || "—"}</code>
                   </td>
                 </tr>
               ))}

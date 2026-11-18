@@ -1,15 +1,17 @@
 # Demo and submission checklist
 
-The local acceptance results are in [acceptance.md](acceptance.md). This guide is the
+The final rehearsal is in [compliance-2026-11-16.md](compliance-2026-11-16.md);
+earlier acceptance results are in [acceptance.md](acceptance.md). This guide is the
 recording plan, not a claim that a video has been recorded or submitted. Use a new
 authorized test product/SKU and order when recording the "today" sequence; product 30
-and order 31 belong to **14 November 2026**. Preserve historical data.
+and order 31 belong to **14 November 2026**; product 32 and order 33 belong to
+**16 November 2026**. Preserve historical data.
 
 ## Before recording
 
 1. Start the existing Docker Desktop/k3d cluster if stopped. Do not recreate it.
    Confirm context `k3d-urumi-local`, namespace `urumi`, eight workloads Ready, three
-   Bound PVCs, and three Connected upstreams. Current Helm revision is 9.
+   Bound PVCs, and three Connected upstreams. The accepted Helm revision is 13.
 2. Open `http://gateway.urumi.test:8080` and `http://store.urumi.test:8080`.
    The WordPress administrator is **urumi-admin**; the gateway administrator is
    **urumiadmin**. They have different passwords. Use the existing credential manager
@@ -18,7 +20,8 @@ and order 31 belong to **14 November 2026**. Preserve historical data.
    link privately and let the member set their password. Sign in as that member and
    create a named key under **API Keys**; save it privately before closing the dialog.
    The disposable `acceptance_b` and `acceptance_ui_b` users are evidence identities,
-   not supplied reviewer logins. Their accounts are disabled and test keys revoked.
+   not supplied reviewer logins. Their accounts and all `rehearsal_*` accounts are
+   disabled and test keys revoked. Create a fresh recording identity.
 4. Keep A and B sessions separate, or explicitly sign out/in when switching. Browser
    tabs in one profile share cookies. A's chat must show the admin username; the
    external key must belong to B. Do not put gateway keys in chat prompts.
@@ -81,7 +84,7 @@ is not claimed by the Inspector evidence.
 | 6 | Disable Store Policy in A's Servers actions; refresh B's Inspector and the live chat catalog | Disabled in UI; Policy absent from both catalogs. The chat's `/api/catalog` uses session authentication; never expose session cookies |
 | 7 | Re-enable Policy and refresh; delete only its pod; show Unreachable and healthy-peer calls | Use the bounded failure sequence below; recover one replica, refresh and show Connected |
 | 8 | Revoke B's key from Team/key controls or B's API Keys; immediately repeat discovery/call | 401/authentication failure. Create a new key only if further external calls are needed |
-| 9 | Audit page: show A/session and B/API-key tool calls, outcomes and durations, including failure rows | Authenticated failures are audited. Explain that revoked requests are rejected before invocation auditing |
+| 9 | Audit page: show A/session and B/API-key tool calls, outcomes and durations, including failure rows | Show the attributed failed `KEY_REJECTED` row (UI: Key rejected; no tool executed). No upstream call occurs |
 | 10 | Kubernetes: inspect workload/Ingress/PVC/Secret names, probes, budgets, NetworkPolicies | No Secret contents. Explain local HTTP, internal boundaries, retention versus backup |
 | 11 | Production story, security and rollback | Use [production.md](production.md) and [security-summary.md](security-summary.md); clearly state that no real VPS or multi-store deployment was performed |
 
@@ -100,6 +103,20 @@ the accepted deployment) in a `finally` block, wait for rollout and refresh disc
 Do not leave a disabled server, zero replicas, extra registration or active disposable
 API key behind. A dashboard status is the last observation, so explicitly refresh
 after recovery. The actual acceptance used this bounded approach successfully.
+
+## Show the two compliance changes
+
+For credential storage, show only the Secret name, Role verbs/resource name and the
+registration's “credential configured” indicator. Explain that PostgreSQL contains
+an opaque reference and that gateway runtime plus migration/bootstrap Jobs can
+get/update one Secret. Do not decode Secret entries or show the token projection.
+
+For revocation, make a real B tool call first, revoke the same key, then repeat the
+external helper. Inspector usually starts with initialization/discovery, so the
+rejected audit row can use `<authentication>` rather than a tool name. A direct
+`tools/call` for a known cached tool records that safe tool identity. Both are
+`KEY_REJECTED`, attributed to the stored key owner, and execute nothing upstream.
+Unknown random keys have no attributable owner and do not receive guessed identities.
 
 ## Explanation checklist
 

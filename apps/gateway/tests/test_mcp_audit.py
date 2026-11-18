@@ -155,7 +155,8 @@ class MCPAuditTests(unittest.IsolatedAsyncioTestCase):
                 await client.list_tools(cache_mode="bypass")
             self.assertEqual(statuses[-1], 401)
             self.assertEqual(len(self.a.methods) + len(self.b.methods), before)
-            self.assertEqual(len(await self.rows()), 1)
+            self.assertEqual(len(await self.rows()), 2)
+            self.assertEqual((await self.rows())[0]["error_code"], "KEY_REJECTED")
 
     async def test_disabled_user_next_request_denied(self):
         statuses = []
@@ -167,7 +168,7 @@ class MCPAuditTests(unittest.IsolatedAsyncioTestCase):
                 await self.call(client)
             self.assertEqual(statuses[-1], 401)
             self.assertEqual(len(self.a.methods) + len(self.b.methods), before)
-        self.assertEqual(await self.rows(), [])
+        self.assertEqual((await self.rows())[0]["error_code"], "KEY_REJECTED")
 
     async def test_two_user_concurrent_attribution(self):
         barrier, arrivals, observed = asyncio.Event(), [], []
@@ -415,3 +416,28 @@ class MCPAuditTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("UPSTREAM_CHANGED", result.content[0].text)
         self.assertEqual(self.a.calls, [])
         self.assertEqual((await self.rows())[0]["server_id"], self.sa.id)
+
+    async def test_revoked_call_has_attributed_safe_metadata_without_dispatch(self):
+        await self.app.state.gateway.list_tools()
+        await self.identity.revoke_key(self.user_b,self.user_b['id'],self.key_b['key']['id'])
+        before=len(self.a.methods)+len(self.b.methods)
+        response=await self.http.post('/mcp',headers={'Authorization':'Bearer '+self.key_b['raw_key']},
+            json={'jsonrpc':'2.0','id':9,'method':'tools/call','params':{'name':'server_a__echo','arguments':{'private':'PRIVATE-ARGUMENT'}}})
+        self.assertEqual(response.status_code,401)
+        row=(await self.rows())[0]
+        self.assertEqual(row['user_id'],self.user_b['id'])
+        self.assertEqual(row['api_key_id'],self.key_b['key']['id'])
+        self.assertEqual(row['gateway_tool'],'server_a__echo')
+        self.assertEqual(row['error_code'],'KEY_REJECTED')
+        self.assertEqual(len(self.a.methods)+len(self.b.methods),before)
+        self.assertNotIn('PRIVATE-ARGUMENT',str(row))
+        self.assertNotIn(self.key_b['raw_key'],str(row))
+
+    async def test_rejected_audit_failure_is_closed_and_unknown_key_has_no_false_owner(self):
+        await self.identity.revoke_key(self.user_b,self.user_b['id'],self.key_b['key']['id'])
+        with patch.object(self.audits,'rejected',AsyncMock(side_effect=AuditUnavailable())):
+            response=await self.http.get('/mcp',headers={'Authorization':'Bearer '+self.key_b['raw_key']})
+            self.assertEqual(response.status_code,503)
+        response=await self.http.get('/mcp',headers={'Authorization':'Bearer '+token('key')})
+        self.assertEqual(response.status_code,401)
+        self.assertEqual(await self.rows(),[])

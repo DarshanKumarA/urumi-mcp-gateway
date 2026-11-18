@@ -3,6 +3,7 @@ import argparse
 import base64
 import getpass
 import json
+import re
 import secrets
 import subprocess
 from urllib.parse import quote
@@ -13,6 +14,7 @@ CONTRACTS = {
     "urumi-admin-bootstrap": {"username", "password"},
     "urumi-openrouter": {"api-key"},
     "urumi-woo-mcp-auth": {"token"},
+    "urumi-upstream-credentials": set(),
 }
 
 def kubectl(*args, body=None):
@@ -31,6 +33,14 @@ def check_existing(name, obj):
     if obj.get("type") != "Opaque" or obj.get("metadata", {}).get("deletionTimestamp"):
         raise ValueError("Existing Secret type/state conflict: " + name)
     data = obj.get("data", {})
+    if name == "urumi-upstream-credentials":
+        if not all(re.fullmatch(r"[a-f0-9]{32}", key) for key in data):
+            raise ValueError("Invalid credential reference key")
+        for value in data.values():
+            decoded = base64.b64decode(value, validate=True).decode("utf-8")
+            if not decoded or len(decoded) > 16000:
+                raise ValueError("Invalid stored credential")
+        return
     if set(data) != CONTRACTS[name]:
         raise ValueError("Existing Secret key-name conflict: " + name)
     for value in data.values():
@@ -38,6 +48,7 @@ def check_existing(name, obj):
             raise ValueError("Existing Secret contains empty/invalid text: " + name)
 
 def values_for(name):
+    if name == "urumi-upstream-credentials": return {}
     if name == "urumi-postgres-auth":
         password = secrets.token_urlsafe(32)
         return {"password": password, "database-url":

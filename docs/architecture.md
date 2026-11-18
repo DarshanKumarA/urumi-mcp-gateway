@@ -1,5 +1,16 @@
 # Architecture v1 and assignment boundaries
 
+## Current compliance update — 16 November 2026
+
+Helm revision 13 moves active registry credential values from PostgreSQL into a
+dedicated Kubernetes Secret with opaque database references and narrowly scoped
+get/update access. Known revoked/disabled keys now create attributed `KEY_REJECTED`
+audit rows before rejection, with no upstream execution. These changes supersede
+earlier plaintext-registry and unaudited-known-rejection descriptions below; historical
+milestone evidence is retained. See [final rehearsal and limits](compliance-2026-11-16.md),
+[security summary](security-summary.md) and [migration runbook](production.md#credential-storage-migration).
+Video/submission remain user tasks; no real VPS or multi-store deployment is claimed.
+
 ## 16 November: order-ranking fan-out correction
 
 The exact user prompt reproduced `PROVIDER_INVALID_RESPONSE` after one successful

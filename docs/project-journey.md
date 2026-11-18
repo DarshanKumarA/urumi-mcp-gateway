@@ -1,5 +1,25 @@
 # Project journey
 
+## 16 November 2026 — strict compliance and final rehearsal
+
+Comparing the source assignment with the implementation exposed two concrete gaps:
+registry credentials were server-side but still raw in PostgreSQL, and a revoked key's
+401 had no attributed audit event. The fix uses an external Kubernetes Secret with
+opaque references, narrow RBAC and a copy/read-back/transaction migration. Rejected
+known keys now retain attribution while remaining unauthorized.
+
+The existing credential and all original Secrets/PVCs were preserved during revision
+13. A new product (32) and COD order (33, INR 549) gave both the dashboard and external
+Inspector model conversation current-day evidence. Registry lifecycle, disable/recovery,
+failure isolation and rejection auditing were checked; disposable members were cleaned
+up. An automation-host interruption was recovered without changing business data.
+
+The practical lesson: hiding a credential from DTOs is different from storing it in
+the required secret system, and identifying a rejected caller must never authorize
+execution. The migration also makes rollback a compatibility decision. Current evidence
+and limits are in [the final report](compliance-2026-11-16.md); recording/submission remain
+the user's tasks.
+
 This is the chronological engineering story for an interviewer walkthrough: how the repository and system evolve, why choices change, and what evidence supports each completed step. [progress.md](progress.md) describes current status; [decisions.md](decisions.md) records individual decisions. The [original assignment](source/urumi-mcp-gateway-assignment.docx) remains authoritative; this narrative does not redefine its requirements.
 
 Add concise entries after meaningful completed steps. Cover starting state, problem, concepts, decision, alternatives, rationale, affected components, validation, learning, next-stage enablement, and commit when available. Do not turn this into a command-by-command log or describe future implementation as completed.

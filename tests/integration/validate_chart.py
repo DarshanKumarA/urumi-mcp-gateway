@@ -52,7 +52,7 @@ def validate(schema):
         for env in ("local", "prod"):
             objects = render(chart, env, 5)
             current = {(o["kind"], o["metadata"]["name"]): o for o in objects}
-            assert len(objects) == len(current) == 27
+            assert len(objects) == len(current) == 30
             for o in objects:
                 assert len(o["metadata"]["name"]) <= 63
                 group, _, version = o["apiVersion"].rpartition("/")
@@ -86,6 +86,20 @@ def validate(schema):
                 for port in o["spec"]["ports"]:
                     assert any(port["targetPort"] == cp["name"] or port["targetPort"] == cp["containerPort"]
                                for p in matched for c in p["spec"]["containers"] for cp in c.get("ports", []))
+            role = current['Role', 'urumi-credential-store']
+            assert role['rules'] == [{'apiGroups':[''], 'resources':['secrets'],
+                'resourceNames':['urumi-upstream-credentials'], 'verbs':['get','update']}]
+            binding = current['RoleBinding', 'urumi-credential-store']
+            assert binding['subjects'] == [{'kind':'ServiceAccount','name':'urumi-credential-store','namespace':'urumi'}]
+            for name,pod in pods.items():
+                spec = pod['spec']
+                projected = [v for v in spec.get('volumes',[]) if v['name']=='kubernetes-auth']
+                expected_access = name == 'urumi-gateway' or name.startswith('urumi-gateway-migrate-') or name.startswith('urumi-gateway-bootstrap-')
+                assert bool(projected) == expected_access
+                if expected_access:
+                    assert spec['serviceAccountName'] == 'urumi-credential-store'
+                    assert projected[0]['projected']['sources'][0]['serviceAccountToken']['expirationSeconds'] == 3600
+                    assert all(m['name'] != 'kubernetes-auth' for c in spec.get('initContainers',[]) for m in c.get('volumeMounts',[]))
             refs = {}
             for name, pod in pods.items():
                 if name in {"urumi-wordpress", "urumi-mariadb"} or "store-bootstrap" in name:
@@ -148,8 +162,8 @@ def validate(schema):
                 assert envs["URUMI_OPENROUTER_MODEL"] == "z-ai/glm-5.3-flash"
                 assert "URUMI_GEMINI_API_KEY_FILE" not in envs
             assert envs["URUMI_COOKIE_SECURE"] == ("true" if env == "prod" else "false")
-            assert "AUTHORIZATION" not in json.dumps(objects).upper()
-            print("PASS", env, "27 objects; v1.35.5 schema/unique keys/names/selectors/ports/probes/security/Secret contracts/NetworkPolicies/Ingress/storage")
+            assert "AUTHORIZATION" not in json.dumps(objects).replace("rbac.authorization.k8s.io", "RBAC_API_GROUP").upper()
+            print("PASS", env, "30 objects; v1.35.5 schema/unique keys/names/selectors/ports/probes/security/Secret contracts/NetworkPolicies/Ingress/storage")
             print("PASS eight r4 store objects identical except bootstrap r4->r5 names; four auxiliary objects identical")
             print("Inventory:", ", ".join(k + "/" + n for k, n in current))
 

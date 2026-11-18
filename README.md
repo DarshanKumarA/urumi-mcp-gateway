@@ -2,16 +2,20 @@
 
 This repository is for the Urumi AI FDE internship assignment: run a WooCommerce store on Kubernetes, write its MCP server, aggregate at least three upstream MCP servers through a team gateway, and provide a React dashboard with a chat agent that uses the gateway as the logged-in user.
 
-**Current state (16 November 2026):** The local core passed its live acceptance
-flow on 14 November, followed by member dashboard key creation/revocation and a
-repeatable external prompt check on 15 November. Product **30** and COD order **31**
-are real demo data; User A chat and User B's MCP Inspector calls both composed
-WooCommerce with Arithmetic. Revocation, disabled catalogs, upstream failure/recovery,
-audit attribution, network isolation and PostgreSQL/gateway replacement were verified.
-The original **382-test** acceptance baseline passed; the follow-up has **204 gateway** and **29 dashboard** tests plus **5 secret-setup** tests passing. The application now runs at
-Helm revision **9** after the tested chat/readability update, OpenRouter **`z-ai/glm-5.3-flash`**, with original PVCs and Secrets.
+**Current state (16 November 2026):** Helm revision **13**, OpenRouter
+**`z-ai/glm-5.3-flash`**, all eight local workloads healthy. The final rehearsal
+created product **32** and COD order **33** for **INR 549**. User A's dashboard
+and User B's official MCP Inspector conversation both used WooCommerce then Arithmetic.
+Disabled-tool removal, dead-upstream isolation/recovery and revoked-key rejection
+were exercised. Known rejected keys now produce attributed audit rows. Upstream
+credential values now live in a dedicated Kubernetes Secret; PostgreSQL stores
+opaque references. Original application Secrets, store data and PVCs were preserved.
+**215 gateway tests, 33 dashboard tests and 6 Secret-helper tests passed**, plus
+both chart validations and a real PostgreSQL migration check. Earlier networking
+and persistence evidence remains linked in [acceptance](docs/acceptance.md).
+See the [final rehearsal, changes and limits](docs/compliance-2026-11-16.md).
 **Video recording and form submission remain pending.** No real VPS, TLS or multi-store
-deployment is claimed. See [dated acceptance and limits](docs/acceptance.md).
+deployment is claimed.
 
 ## Start here as a reviewer
 
@@ -94,7 +98,8 @@ different accounts. Secret access is an operator recovery path, not a password r
 
    The platform helper generates matching PostgreSQL password/URL and a separate
    Woo service token, then prompts for gateway admin credentials and OpenRouter key.
-   It checks all existing contracts before creating missing objects, never replaces
+   It also creates the initially empty upstream credential Secret. It checks all
+   existing contracts before creating missing objects, never replaces
    them, and is safe to rerun after correcting a partial setup. Never use tracing or
    terminal transcription while entering credentials. A shape check cannot prove an
    external API key is valid or funded.
@@ -179,7 +184,8 @@ The [original assignment DOCX](docs/source/urumi-mcp-gateway-assignment.docx) is
 - [Chat reliability and reviewer setup follow-up](docs/reliability-2026-11-15.md)
 - [Interview reference PDF](docs/urumi-interview-reference.pdf) and [editable source](docs/interview-guide.md)
 
-- [Live acceptance and evidence](docs/acceptance.md)
+- [Final compliance rehearsal](docs/compliance-2026-11-16.md)
+- [Earlier live acceptance and evidence](docs/acceptance.md)
 - [Demo script, Inspector setup and submission checklist](docs/demo.md)
 - [Short system design and tradeoffs](docs/system-design.md)
 - [Short threat model and security limits](docs/security-summary.md)
@@ -233,8 +239,8 @@ No upstream MCP or database has a public route.
 
 ## External Secret contracts
 
-Local runtime update (16 November 2026): Helm revision 12 uses OpenRouter model
-`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.5-chat-continuity`.
+Local runtime update (16 November 2026): Helm revision 13 uses OpenRouter model
+`z-ai/glm-5.3-flash` with gateway image `urumi-gateway:stage8.7-compliance`.
 Add external Opaque Secret `urumi-openrouter` with exact key `api-key`, using the
 same masked-input/in-memory submission process below. Only the local gateway
 mounts it; the existing Gemini Secret is retained but not mounted locally.
@@ -242,7 +248,9 @@ Production retains its Gemini default. Direct provider smoke and two read-only
 dashboard queries passed. Later live core acceptance is recorded in [acceptance.md](docs/acceptance.md); video/submission remain outstanding.
 
 All are pre-created `Opaque` Secrets in namespace `urumi`; Helm creates none.
-Check only name/type/exact key names, never dump data or decode values.
+Inspect only names/types/key names; never print Secret values. The upstream credential
+Secret uses generated entry names rather than a fixed set of keys. Its name follows
+the chart fullname: `<fullname>-upstream-credentials` (default `urumi`).
 
 | Secret | Exact keys | Consumers |
 | --- | --- | --- |
@@ -256,6 +264,7 @@ Check only name/type/exact key names, never dump data or decode values.
 | `urumi-openrouter` | `api-key` | Gateway runtime, active local provider |
 | `urumi-gemini` | `api-key` | Gateway only when Gemini selected; not needed for a fresh OpenRouter-only local setup |
 | `urumi-woo-mcp-auth` | `token` | Woo MCP and gateway bootstrap Job only |
+| `urumi-upstream-credentials` | Initially empty; generated 32-character hex entry names | Gateway and migration/bootstrap Jobs through the Kubernetes API; raw registry credential values |
 
 PostgreSQL password and URL must describe the same account. URL structure:
 `postgresql+psycopg://<user>:<percent-encoded-password>@urumi-postgres.urumi.svc.cluster.local:5432/<database>`.
@@ -269,8 +278,8 @@ protected Secret-manager interface; construct JSON in memory and submit through
 redirected stdin with explicit context `k3d-urumi-local`, namespace `urumi` and
 create-only semantics. Capture/suppress child output/error. No plaintext files,
 credential CLI arguments, chat disclosure or automatic rotation/replacement.
-Recheck identity/key names only. Use `py -3.13 scripts/setup-platform-secrets.py check` or `create` for the four
-gateway/PostgreSQL/OpenRouter/service-token contracts. It preserves existing valid
+Recheck identity/key names only. Use `py -3.13 scripts/setup-platform-secrets.py check` or `create` for the five
+platform contracts, including the initially empty upstream credential Secret. It preserves existing valid
 objects, fails on conflicts and never applies/replaces Secrets. It targets only the
 default local user/database/Service names. The reviewed
 [REST helper](scripts/setup-woocommerce-rest-secret.ps1) remains specific to its
@@ -278,15 +287,28 @@ existing Secret. Review the concrete provisioning operation before entering real
 
 Woo caller token: at least 256 random bits encoded as unpadded base64url, matching
 `[A-Za-z0-9_-]{32,256}`. It is distinct from user API keys and Woo REST keys. Bootstrap
-stores it server-side in PostgreSQL under the accepted credential model; DTOs/audits
-exclude it. Secret rotation alone does not update an existing managed registration
+stores its value in `urumi-upstream-credentials` and an opaque `k8s-secret:` reference
+in PostgreSQL. Admin-added bearer/static-header credentials use the same store.
+DTOs and audits exclude both values and references. Secret rotation alone does not update an existing managed registration
 or running Woo process; coordinated rotation needs review. No default admin password.
+
+## Upgrading an existing pre-revision-13 local deployment
+
+The currently accepted machine already completed this migration; do not rerun it as
+a fresh install. For an older installation, review the [migration runbook](docs/production.md#credential-storage-migration)
+before applying the new images. Create the missing empty Secret with
+`py -3.13 scripts/setup-platform-secrets.py create`, prepare/import the reviewed
+images, then stop old gateway writers before the migration Job runs. Preserve DB
+backups and the credential Secret together. Older gateway images cannot consume
+the new reference format, so a blind Helm rollback is unsafe.
 
 ## Migration and bootstrap ordering
 
 1. PostgreSQL starts on retained 2-GiB claim `data-urumi-postgres-0`.
 2. Revisioned migration Job waits for DB and invokes Alembic `upgrade head` through
-   its supported Python API. Migrations 0001–0003 remain unchanged.
+   its supported Python API. Before applying migration 0004, legacy registry values
+   are copied to the upstream Secret, read back and verified, then replaced by opaque
+   references in one database transaction. Migrations 0001–0003 remain unchanged.
 3. Separate bootstrap Job waits for exact schema head, creates/verifies the initial
    administrator, then seeds `woocommerce`, `arithmetic`, `store_policy`.
 4. Per-slug receipts own first creation only: preserve later edits, disabled state,
@@ -313,8 +335,8 @@ An owned-setting conflict must stop acceptance, not weaken validation or patch a
 | Woo MCP | `urumi-woo-mcp:stage8.4-order-analysis` | 50m / 500m | 128Mi / 256Mi |
 | Arithmetic | `urumi-arithmetic-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
 | Store Policy | `urumi-store-policy-mcp:stage6.1` | 25m / 250m | 64Mi / 128Mi |
-| Gateway | `urumi-gateway:stage8.5-chat-continuity` | 100m / 1000m | 192Mi / 512Mi |
-| Dashboard | `urumi-dashboard:stage8.6-typing` | 25m / 250m | 32Mi / 128Mi |
+| Gateway | `urumi-gateway:stage8.7-compliance` | 100m / 1000m | 192Mi / 512Mi |
+| Dashboard | `urumi-dashboard:stage8.7-compliance` | 25m / 250m | 32Mi / 128Mi |
 | PostgreSQL | `postgres:18.6-bookworm` pinned below | 100m / 500m | 256Mi / 512Mi |
 | Each gateway Job / init | gateway Stage 8 image | 100m / 500m | 128Mi / 256Mi |
 
@@ -350,7 +372,7 @@ The configuration source is `charts/urumi/values-local.yaml`:
 ```yaml
 platform:
   gateway:
-    image: {repository: urumi-gateway, tag: stage8.5-chat-continuity, pullPolicy: Never}
+    image: {repository: urumi-gateway, tag: stage8.7-compliance, pullPolicy: Never}
     provider: openrouter
     model: z-ai/glm-5.3-flash
 ```
@@ -420,11 +442,11 @@ is needed just to build the images.
 
    ```powershell
    docker build -t urumi-woo-mcp:stage8.4-order-analysis apps/woo-mcp
-   docker build -t urumi-gateway:stage8.5-chat-continuity apps/gateway
-   docker build -t urumi-dashboard:stage8.6-typing apps/dashboard
+   docker build -t urumi-gateway:stage8.7-compliance apps/gateway
+   docker build -t urumi-dashboard:stage8.7-compliance apps/dashboard
    docker build -t urumi-arithmetic-mcp:stage6.1 apps/arithmetic-mcp
    docker build -t urumi-store-policy-mcp:stage6.1 apps/store-policy-mcp
-   k3d image import urumi-woo-mcp:stage8.4-order-analysis urumi-gateway:stage8.5-chat-continuity urumi-dashboard:stage8.6-typing urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
+   k3d image import urumi-woo-mcp:stage8.4-order-analysis urumi-gateway:stage8.7-compliance urumi-dashboard:stage8.7-compliance urumi-arithmetic-mcp:stage6.1 urumi-store-policy-mcp:stage6.1 --cluster urumi-local
    ```
 
 7. Lint/render before deployment. For an existing release also preview against the

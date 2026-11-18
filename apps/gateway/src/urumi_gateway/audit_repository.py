@@ -8,7 +8,7 @@ from . import identity_repository  # Register referenced identity tables.
 ERROR_CODES = frozenset({"UNKNOWN_TOOL", "UPSTREAM_DISABLED", "UPSTREAM_CHANGED",
     "UPSTREAM_UNAVAILABLE", "UPSTREAM_TIMEOUT", "UPSTREAM_REDIRECT", "UPSTREAM_INVALID_RESPONSE",
     "UPSTREAM_UNSAFE_RESPONSE", "UPSTREAM_TOOL_ERROR", "VALIDATION_ERROR", "GATEWAY_FAILURE",
-    "AUDIT_UNAVAILABLE"})
+    "AUDIT_UNAVAILABLE", "KEY_REJECTED"})
 
 audit_events = sa.Table("audit_events", metadata,
     sa.Column("id", sa.Uuid, primary_key=True),
@@ -48,6 +48,13 @@ class AuditRepository(SQLRepository):
             return await self._run(operation)
         except Exception:
             raise AuditUnavailable() from None
+
+    async def rejected(self, principal, target, now, duration_ms):
+        row = dict(id=uuid4(), user_id=principal.user_id, username=principal.username,
+            api_key_id=principal.api_key_id, auth_source="api_key", **target,
+            started_at=now, completed_at=now, duration_ms=duration_ms,
+            outcome="failed", error_code="KEY_REJECTED")
+        await self._audit(lambda c: c.execute(audit_events.insert().values(**row)))
 
     async def start(self, principal, target, now):
         event_id = uuid4()

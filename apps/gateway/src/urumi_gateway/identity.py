@@ -158,6 +158,13 @@ class IdentityService:
             raise IdentityError()
         return {"user": result[0], "key_id": result[1]}
 
+    async def rejected_key(self, raw):
+        if not valid_token(raw, "key"): return None
+        hashed = digest(raw)
+        result = await self.repo.rejected_key_identity(hashed)
+        if result is None or not hmac.compare_digest(result[2], hashed): return None
+        return {"user": result[0], "key_id": result[1]}
+
     async def revoke_key(self, actor, owner, key_id):
         if actor["id"] != owner:
             self.require_admin(actor)

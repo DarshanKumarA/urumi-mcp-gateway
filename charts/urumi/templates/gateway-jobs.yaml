@@ -16,6 +16,7 @@ spec:
     spec:
       restartPolicy: Never
       automountServiceAccountToken: false
+      serviceAccountName: {{ include "urumi.fullname" $ }}-credential-store
       nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
       securityContext:
         {{- include "urumi.platformSecurity" $ | nindent 8 }}
@@ -28,6 +29,7 @@ spec:
             {{- include "urumi.platformContainerSecurity" $ | nindent 12 }}
           env:
             {{- include "urumi.databaseEnv" $ | nindent 12 }}
+            {{- include "urumi.credentialEnv" $ | nindent 12 }}
             {{- if eq $mode "bootstrap" }}
             - {name: URUMI_BOOTSTRAP_USERNAME_FILE, value: /run/secrets/admin/username}
             - {name: URUMI_BOOTSTRAP_PASSWORD_FILE, value: /run/secrets/admin/password}
@@ -41,6 +43,7 @@ spec:
             {{- end }}
           volumeMounts:
             {{- include "urumi.databaseMount" $ | nindent 12 }}
+            {{- include "urumi.credentialMount" $ | nindent 12 }}
             {{- if eq $mode "bootstrap" }}
             - {name: admin, mountPath: /run/secrets/admin, readOnly: true}
             - {name: woo-auth, mountPath: /run/secrets/woo-mcp-auth, readOnly: true}
@@ -49,6 +52,7 @@ spec:
             {{- toYaml $.Values.platform.jobResources | nindent 12 }}
       volumes:
         {{- include "urumi.databaseVolume" $ | nindent 8 }}
+        {{- include "urumi.credentialVolume" $ | nindent 8 }}
         {{- if eq $mode "bootstrap" }}
         - name: admin
           secret:

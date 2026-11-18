@@ -19,9 +19,9 @@ class SetupTests(unittest.TestCase):
             prompt.assert_not_called()
             self.assertTrue(all(c.args[0]=="get" for c in run.call_args_list))
     def test_missing_check_never_creates(self):
-        with patch.object(setup,"kubectl",side_effect=[{"status":{"phase":"Active"}},None,None,None,None]) as run:
+        with patch.object(setup,"kubectl",side_effect=[{"status":{"phase":"Active"}},None,None,None,None,None]) as run:
             self.assertEqual(setup.run("check"),1)
-            self.assertEqual(run.call_count,5)
+            self.assertEqual(run.call_count,6)
     def test_conflict_aborts_before_any_create(self):
         with patch.object(setup,"kubectl",side_effect=[{"status":{"phase":"Active"}},None,{"type":"Opaque","data":{}}]) as run:
             with self.assertRaises(ValueError): setup.run("create")
@@ -31,6 +31,11 @@ class SetupTests(unittest.TestCase):
             self.assertEqual(setup.run("create"),0)
             self.assertEqual(run.call_args.args,("create","-f","-","-o","name"))
             self.assertIn('"stringData"',run.call_args.kwargs["body"])
+    def test_vault_preserves_versioned_entries(self):
+        obj={"type":"Opaque","data":{"a"*32:base64.b64encode(b"SYNTHETIC-ONLY").decode()}}
+        setup.check_existing("urumi-upstream-credentials",obj)
+        self.assertEqual(setup.values_for("urumi-upstream-credentials"),{})
+
     def test_empty_values_rejected(self):
         obj=self.existing("urumi-openrouter"); obj["data"]["api-key"]=""
         with self.assertRaises(ValueError): setup.check_existing("urumi-openrouter",obj)

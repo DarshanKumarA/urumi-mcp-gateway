@@ -31,6 +31,9 @@ spec:
         {{- include "urumi.platformLabels" (dict "root" $ "component" $component) | nindent 8 }}
     spec:
       automountServiceAccountToken: false
+      {{- if eq $component "gateway" }}
+      serviceAccountName: {{ include "urumi.fullname" $ }}-credential-store
+      {{- end }}
       nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
       securityContext:
         {{- include "urumi.platformSecurity" $ | nindent 8 }}
@@ -59,6 +62,7 @@ spec:
           {{- if eq $component "gateway" }}
           env:
             {{- include "urumi.databaseEnv" $ | nindent 12 }}
+            {{- include "urumi.credentialEnv" $ | nindent 12 }}
             - {name: URUMI_ENVIRONMENT, value: {{ $settings.environment | quote }}}
             - {name: URUMI_BROWSER_ORIGIN, value: {{ $.Values.platform.origin | quote }}}
             - {name: URUMI_COOKIE_SECURE, value: {{ $settings.secureCookie | quote }}}
@@ -78,6 +82,7 @@ spec:
             - {name: URUMI_MAX_TOOL_ROUNDS, value: {{ $settings.maxToolRounds | quote }}}
           volumeMounts:
             {{- include "urumi.databaseMount" $ | nindent 12 }}
+            {{- include "urumi.credentialMount" $ | nindent 12 }}
             - {name: provider-key, mountPath: {{ printf "/run/secrets/%s" $settings.provider | quote }}, readOnly: true}
           {{- else }}
           volumeMounts:
@@ -114,6 +119,7 @@ spec:
       volumes:
         {{- if eq $component "gateway" }}
         {{- include "urumi.databaseVolume" $ | nindent 8 }}
+        {{- include "urumi.credentialVolume" $ | nindent 8 }}
         - name: provider-key
           secret:
             secretName: {{ ternary $settings.openrouterSecretName $settings.geminiSecretName (eq $settings.provider "openrouter") | quote }}

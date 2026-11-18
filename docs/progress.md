@@ -1,6 +1,26 @@
 # Project progress
 
-## Current milestone
+Final review resumed on **18 November 2026**: revision 13, eight healthy workloads,
+three original Bound PVCs and seven tools from three enabled/Connected upstreams
+were rechecked. The business-flow evidence below remains dated 16 November.
+
+## Final local compliance rehearsal — 16 November 2026
+
+Revision **13** deploys gateway/dashboard `stage8.7-compliance` and schema
+`0004_secret_refs_rejections`. Original application Secrets, PVCs and business data
+were preserved; the new external credential Secret holds registry values. PostgreSQL
+stores only references. Known rejected keys are now durably attributed before 401.
+215 gateway tests, 33 dashboard tests, 6 Secret-helper tests, dashboard build, local/prod
+chart validation and isolated real-PostgreSQL migration checks passed.
+
+Live User A product **32**, COD order **33**, total/average **INR 549**; dashboard and
+member Inspector conversations both used Woo → Arithmetic. Credential lifecycle,
+disable/restore, dead Policy isolation/recovery and revocation audit passed. Disposable
+member keys were revoked and accounts disabled. See [complete evidence and limits](compliance-2026-11-16.md).
+Next: the user records the two-user flow and six explanation topics, reviews the video
+for credentials, and submits the links. No further core feature is planned.
+
+## Earlier chat milestones
 
 ### 16 November — typing indicator
 
